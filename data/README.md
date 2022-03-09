@@ -6,7 +6,7 @@ The data can be downloaded from the Codalab Competition: https://codalab.lisn.up
 #### Example
 | message_id          | response_id       | article_id | empathy           | distress | empathy_bin | distress_bin | essay              |
 |---------------------|-------------------|------------|-------------------|----------|-------------|--------------|--------------------|
-| R_1hGrPtWM4SumG0U_1 | R_1hGrPtWM4SumG0U | 67         | 5.667000000000001 | 4.375    | 1           | 1            | it is really ..    |
+| R_1hGrPtWM4SumG0U_1 | R_1hGrPtWM4SumG0U | 67         | 5.667 | 4.375    | 1           | 1            | it is really ..    |
 | R_1hGrPtWM4SumG0U_2 | R_1hGrPtWM4SumG0U | 86         | 4.833             | 4.875    | 1           | 1            | the phone lines .. |
 
 ## Lexicon Data set
