@@ -136,4 +136,4 @@ data/**/*.tsv
 data/**/*.txt
 
 # ignore others
-*.DS_Store
+**/.DS_Store
