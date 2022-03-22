@@ -21,8 +21,10 @@ data/
     │   ├── empathy_clusters.txt
     │   └── empathy_lexicon.txt
     ├── NRC-Emotion-Intensity-Lexicon-v1/   (Mohammad2018)
+    │   ├── NRC-Emotion-Intensity-Lexicon-v1.txt
     │   └── ...
     ├── NRC-VAD-Lexicon-Aug2018Release/     (Mohammad2018b)
+    │   ├── NRC-VAD-Lexicon.txt
     │   └── ...
     └── BRM-emot-submit.csv                 (Warriner2013)
 ```
@@ -33,7 +35,7 @@ Buechel2018 - Modeling empathy and distress in reaction to news stories
 
 The data can be downloaded from the Codalab Competition: https://codalab.lisn.upsaclay.fr/competitions/834#learn_the_details-datasets
 
-After downloading store the data in the subfolder /data/buechel_empathy as seen in the [Data Tree Structure](#Data-Tree-Structure).
+After downloading store the data in the subfolder */data/buechel_empathy/* as seen in the [Data Tree Structure](#Data-Tree-Structure).
 
 #### Example
 | message_id          | response_id       | article_id | empathy           | distress | empathy_bin | distress_bin | essay              |
@@ -64,22 +66,42 @@ The lexicon dataset for word rating for empathic concern and personal distress c
 
 Mohammad2018 - Word Affect Intensities
 
-The data can be downloaded here: http://saifmohammad.com/WebPages/AffectIntensity.htm
+The data can be downloaded here: http://saifmohammad.com/WebPages/AffectIntensity.htm . The downloaded folder structure can be kept, just add the folder into */data/lexicon/* as seen in the [Data Tree Structure](#Data-Tree-Structure).
+
+It comes in various different languages, the main language is english. The file for the english version is *NRC-Emotion-Intensity-Lexicon-v1.txt*, we only need this file for now.
+
+The lexicon constist of 5,961 english words with associated emotions and their emotion-intensity-score. A word can be associated with mulitple emotions, but does not have to be associated wiht all emotions.
 
 ##### Example
+| word          | 	emotion	| emotion-intensity-score   |
+|---------------|-----------|---------------------------|
+| kill          | fear      |  0.962                    |
+| kill          | sadness   |  0.797                    |
+| respect       | joy       |  0.500                    |
+| wonderfully   | joy       | 0.844                     | 
 
 
 ### NRC - Valence, arousal and dominance
 
 Mohammad2018b - Obtaining Reliable Human Ratings of Valence, Arousal, and Dominance for 20,000 English Words
 
+The data can be downloaded here: http://saifmohammad.com/WebPages/nrc-vad.html . The downloaded folder structure can be kept, just add the folder into */data/lexicon/* as seen in the [Data Tree Structure](#Data-Tree-Structure).
 
-Downloaded here: http://saifmohammad.com/WebPages/nrc-vad.html
+It comes in various different languages, the main language is english. The file for the english version is *NRC-VAD-Lexicon.txt*, we only need this file for now.
+
+
+For around 20,000 english words, this data set contains a rating for valence, arousal and domninance.
+
+| Word          | Valence	| Arousal   | Dominance | 
+|---------------|-----------|-----------------------|
+| achieve       |   0.816   |  0.545    |	0.843   |    
+| uncherished   |   0.250	|  0.412    |	0.280   |
+| sue           |	0.219	|  0.731	|   0.679   |
 
 ##### Example
 
 Warriner2013 - Norms of valence, arousal, and dominance for 13,915 English lemmas
 
-https://link.springer.com/article/10.3758/s13428-012-0314-x#Abs1
+The data can be downloaded here: https://link.springer.com/article/10.3758/s13428-012-0314-x#Abs1
 
 ### Valence, arousal and dominance ratings

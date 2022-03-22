@@ -1,0 +1,8 @@
+numpy
+pandas
+matplotlib
+scipy
+sklearn
+transformers==4.17.0
+datasets
+torch==1.11.0
