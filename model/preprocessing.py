@@ -20,14 +20,13 @@ def lower_text(text):
 
 
 def word_tokenizer(text):
-    """ Tokenize text based on space and punctuation using nltk
-    word_tokenizer
+    """ Tokenize text based on space and punctuation using nltk word_tokenizer
 
     Args:
         text (str): The text
 
     Returns:
-        _type_: _description_
+        list(str): The tokenized words
     """
     return nltk.word_tokenize(text)
 
@@ -36,12 +35,14 @@ def remove_non_alpha(text_tok):
     return [word for word in text_tok if word.isalpha()]
 
 
-def remove_stopwords(text_tok, stopwords):
-    """Remove stop words from a tokenized texts
+def remove_stopwords(text_tok):
+    """Remove (english) stopwords from a tokenized texts
 
     Args:
         text_tok (list(str)): Tokenized text
-        stopwords (set): The set of stopwords, downloaded from nltk
+
+    Returns:
+        list(str): The tokenized text without stopwords
     """
     text_processed = [word for word in text_tok if not word.lower() in STOPWORDS_EN]
     return text_processed
@@ -49,8 +50,9 @@ def remove_stopwords(text_tok, stopwords):
 
 def text_normalization(text_tok):
     # source: https://datascience.stackexchange.com/questions/69982/data-cleaning-refining-etc
+    # that is not needed here, as out textual data is quite clean
     text_tok_corrected = []
-    for word in words_to_correct:
+    for word in text_tok:
         segmented = seg_eng.segment(word)
         corrected = sp.correct(segmented)
         text_tok_corrected.append(corrected)

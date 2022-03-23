@@ -13,4 +13,4 @@ COPY ./utils.py ./utils.py
 COPY ./data/buechel_empathy ./data/buechel_empathy
 
 # run selected file
-CMD ["python", "./model/baseline_BERT.py"]
+CMD ["python","-u", "./model/baseline_BERT.py"]
