@@ -8,10 +8,12 @@
 # ------------------------------
 
 # utils
+from logging import root
 import time
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
+import math
 # Transformers, torch and model utils
 from transformers import BertModel, BertConfig, BertForSequenceClassification, AutoModel
 from transformers import BertTokenizer
@@ -20,7 +22,7 @@ from transformers import get_linear_schedule_with_warmup
 from datasets import Dataset, DatasetDict
 import torch
 import torch.nn as nn
-from torch.nn.utils.clip_grad import clip_grad_norm
+from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.utils.data import TensorDataset, DataLoader
 from torch.optim import AdamW
 from sklearn.preprocessing import MinMaxScaler
@@ -40,9 +42,15 @@ class BertRegressor(nn.Module):
     # source (changed some things): [2]  
     # https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
     
-    def __init__(self, drop_rate=0.2, bert_type="bert-base-uncased"):
+    def __init__(self, drop_rate=0.5, bert_type="bert-base-uncased"):
         super(BertRegressor, self).__init__()
         D_in, D_out = 768, 1
+
+        padding = 0
+        dilation = 1
+        stride = 2
+        kernel_size = 3
+        pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
         self.bert = BertModel.from_pretrained(bert_type)
         self.regressor = nn.Sequential(
             nn.Dropout(drop_rate),
@@ -112,7 +120,7 @@ def old_train(model, optimizer, scheduler, loss_function, epochs, train_dataload
                 loss = loss_function(outputs.squeeze(), 
                                 batch_labels.squeeze())
                 loss.backward()
-                clip_grad_norm(model.parameters(), clip_value)
+                clip_grad_norm_(model.parameters(), clip_value)
                 optimizer.step()
                 scheduler.step()
                     
@@ -134,6 +142,9 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         BILSTM: The trained model
     """
     print("Start training...\n")
+
+    history = pd.DataFrame(columns=['epoch', 'avrg_dev_loss', 'avrg_dev_r2', 'dev_corr', 'train_corr'])
+
     for epoch_i in range(epochs):
         # -------------------
         #      Training 
@@ -147,7 +158,6 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
 
         # Reset tracking variables at the beginning of each epoch
         total_loss, batch_loss, batch_count = 0, 0, 0
-        history = pd.DataFrame(columns=['dev_loss', 'dev_r2', 'dev_corr'])
         
         model.train()
     
@@ -172,7 +182,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
             optimizer.zero_grad()
             loss.backward()
 
-            clip_grad_norm(model.parameters(), clip_value)
+            clip_grad_norm_(model.parameters(), clip_value)
             optimizer.step()
             scheduler.step() 
 
@@ -184,7 +194,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
             # optimizer.step()
         
             # Print the loss values and time elapsed for every 1000 batches
-            if True: # (step % 1 == 0) or (step == len(train_dataloader) - 1):
+            if (step % 50 == 0) or (step == len(train_dataloader) - 1):
             
                 # Calculate time elapsed
                 time_elapsed = time.time() - t0_batch
@@ -201,9 +211,11 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         # -------------------
         # calculate, print and store the metrics
         dev_loss, dev_r2, dev_corr = evaluate(model, loss_function, dev_dataloader, device)
-        history = history.append({'dev_loss':dev_loss, 'dev_r2':dev_r2, 'dev_corr':dev_corr}, ignore_index=True)
+        train_loss, train_r2, train_corr = evaluate(model, loss_function, train_dataloader, device)
+        history = history.append({'epoch': int(epoch_i), 'avrg_dev_loss':sum(dev_loss)/len(dev_loss), 'avrg_dev_r2':sum(dev_r2)/len(dev_r2), 'dev_corr': dev_corr, 'train_corr': train_corr}, ignore_index=True)
+
         #print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | dev_loss: {dev_loss} | dev_r2: {dev_r2}")
-        print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr}")
+        print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | train_corr: {train_corr} | avrg_dev_loss: {sum(dev_loss)/len(dev_loss)} | avrg_dev_r2: {sum(dev_r2)/len(dev_r2)}")
     
     return model, history
 
@@ -213,7 +225,7 @@ def evaluate(model, loss_function, test_dataloader, device):
     # adapted by adding the pearson correlation
     model.eval()
     all_outputs, all_labels = np.array([]), np.array([])
-    dev_loss, dev_r2, dev_corr = [], [], []
+    dev_loss, dev_r2 = [], []
     for batch in test_dataloader:
         batch_inputs, batch_masks, batch_labels = \
                                  tuple(b.to(device) for b in batch)
@@ -230,14 +242,13 @@ def evaluate(model, loss_function, test_dataloader, device):
 
     all_outputs = np.array(all_outputs)
     all_labels = np.array(all_labels)
-    print(all_outputs)
-    print(all_labels.shape)
-    print(all_outputs.flatten().shape)
     # -- pearson correlation --
-    corr, _ = score_correlation(all_outputs, all_labels)
-    dev_corr.append(corr)
+    dev_corr, _ = score_correlation(all_outputs, all_labels)
 
-    return dev_loss, dev_r2, dev_corr
+    # remove inf and nan, do not count for average
+    filtered_dev_r2 = [val for val in dev_r2 if not (math.isinf(val) or math.isnan(val))]
+    filtered_dev_loss = [val for val in dev_loss if not (math.isinf(val) or math.isnan(val))]
+    return filtered_dev_loss, filtered_dev_r2, dev_corr
 
 
 def r2_score(outputs, labels):
@@ -263,23 +274,23 @@ def score_correlation(y_pred, y_true):
     return r, p
 
 
-def run():
+def run(root_folder="", empathy_type='empathy'):
     #logging.set_verbosity_warning()
     #logging.set_verbosity_error()
-    
+    data_root_folder = root_folder + 'data/'
     # -------------------
     #     parameters
     # -------------------
 
     bert_type = "bert-base-uncased"
     my_seed = 17
-    batch_size = 16
-    epochs = 2
+    batch_size = 4
+    epochs = 3
 
     # -------------------
     #   load data
     # -------------------
-    data_train_pd, data_dev_pd = utils.load_data(data_root_folder="data/")
+    data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
     data_train_pd = utils.clean_raw_data(data_train_pd)
     data_dev_pd = utils.clean_raw_data(data_dev_pd)
     
@@ -340,10 +351,20 @@ def run():
     # source for creating and training model: [2] 
     #   https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
     
+    # --- choose dataset ---
+    # per default use empathy label
+    dataloader_train = dataloader_emp_train
+    dataloader_dev = dataloader_emp_dev
+    display_text = 'Using empathy data'
+    if empathy_type == 'distress':
+        dataloader_train = dataloader_dis_train
+        dataloader_dev = dataloader_dis_dev
+        display_text = "Using distress data"
+    print(display_text)
 
 
     # --- init model ---
-    model = BertRegressor(drop_rate=0.2, bert_type=bert_type)
+    model = BertRegressor(drop_rate=0.5, bert_type=bert_type)
 
     # --- run on GPU if available ---
     if torch.cuda.is_available():       
@@ -355,28 +376,24 @@ def run():
     model.to(device)
 
     # --- optimizer ---
-    optimizer = AdamW(model.parameters(), lr=5e-5, eps=1e-8)
+    # low learning rate to not get into catastrophic forgetting - Sun 2019
+    # default epsilon by pytorch is 1e-8
+    optimizer = AdamW(model.parameters(), lr=2e-5, eps=1e-8)
 
     # scheduler
-    total_steps = len(dataloader_emp_train) * epochs
+    total_steps = len(dataloader_train) * epochs
     scheduler = get_linear_schedule_with_warmup(optimizer,       
                     num_warmup_steps=0, num_training_steps=total_steps)
 
     # epochs
     loss_function = nn.MSELoss()
    
-    model, history = train(model, dataloader_emp_train, dataloader_emp_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
-    history.to_csv('history.csv')
+    model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
+    history.to_csv(root_folder + 'output/history_' + empathy_type + '.csv')
     
-    # Initializing a BERT bert-base-uncased style configuration
-    configuration = BertConfig()
-
-    # Initializing a model from the bert-base-uncased style configuration
-    model = BertModel(configuration)
-
-    # Accessing the model configuration
-    #configuration = model.config
+    torch.save(model.state_dict(), root_folder + 'output/model_' + empathy_type)
     print('Done')
+    return model, history
 
 
 if __name__ == '__main__':
