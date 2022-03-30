@@ -38,13 +38,14 @@ path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
 import utils
 
-class BertRegressor(nn.Module):
-    # source (changed some things): [2]  
-    # https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
-    
+
+class BertMultiInput(nn.Module):
     def __init__(self, drop_rate=0.5, bert_type="bert-base-uncased"):
-        super(BertRegressor, self).__init__()
-        D_in, D_out = 768, 1
+        super(BertMultiInput, self).__init__()
+        D_in = 768
+        Bert_out = 100
+        Multi_in = 100 + 1
+        D_out = 1
 
         # calcuate output size of pooling layer
         #padding = 0
@@ -53,14 +54,23 @@ class BertRegressor(nn.Module):
         #kernel_size = 3
         #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
         self.bert = BertModel.from_pretrained(bert_type)
-        self.regressor = nn.Sequential(
-            nn.Dropout(drop_rate),
-            nn.Linear(D_in, D_out))
 
-    def forward(self, input_ids, attention_masks):
+        self.after_bert = nn.Sequential(
+            nn.Dropout(drop_rate),
+            nn.Linear(D_in, Bert_out))
+
+        self.regressor = nn.Sequential(
+            nn.Linear(Multi_in, 50),
+            nn.Linear(50, D_out))
+
+    def forward(self, input_ids, attention_masks, lexical_features):
         outputs = self.bert(input_ids, attention_masks)
-        class_label_output = outputs[1]
-        outputs = self.regressor(class_label_output)
+        bert_output = outputs[1]
+        # concat bert output with multi iput - lexical data
+        after_bert_outputs = self.after_bert(bert_output)
+        # combine bert output (after short ffn) with lexical features
+        x = torch.cat((after_bert_outputs, lexical_features), 1)
+        outputs = self.regressor(x)
         return outputs
 
 
@@ -93,17 +103,18 @@ def pd_to_datasetdict(train, dev):
     return whole_dataset
 
     
-def tokenize(batch, tokenizer):
+def tokenize(batch, tokenizer, column):
     # Source: [1] - https://huggingface.co/docs/transformers/training
-    return tokenizer(batch['essay'], padding='max_length', truncation=True, max_length=512)
+    return tokenizer(batch[column], padding='max_length', truncation=True, max_length=512)
 
 
-def create_dataloaders(inputs, masks, labels, batch_size):
+def create_dataloaders(inputs, masks, labels, lexical_features, batch_size):
     # Source: [2]
     input_tensor = torch.tensor(inputs)
     mask_tensor = torch.tensor(masks)
     labels_tensor = torch.tensor(labels)
-    dataset = TensorDataset(input_tensor, mask_tensor, labels_tensor)
+    lexical_features_tensor = torch.tensor(lexical_features)
+    dataset = TensorDataset(input_tensor, mask_tensor, labels_tensor, lexical_features_tensor)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     return dataloader
 
@@ -148,9 +159,9 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         
         for step, batch in enumerate(train_dataloader):  
             batch_count +=1
-            batch_inputs, batch_masks, batch_labels = tuple(b.to(device) for b in batch)
+            batch_inputs, batch_masks, batch_labels, batch_lexical = tuple(b.to(device) for b in batch)
             #model.zero_grad()
-            scores = model(batch_inputs, batch_masks)
+            scores = model(batch_inputs, batch_masks, batch_lexical)
             
             # make predictions into right shape
             #predictions = scores.view(-1, scores.shape[-1])
@@ -176,7 +187,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
             # optimizer.step()
         
             # Print the loss values and time elapsed for every 1000 batches
-            if (step % 1 == 0) or (step == len(train_dataloader) - 1):
+            if (step % 50 == 0) or (step == len(train_dataloader) - 1):
             
                 # Calculate time elapsed
                 time_elapsed = time.time() - t0_batch
@@ -215,10 +226,10 @@ def evaluate(model, loss_function, test_dataloader, device):
     all_outputs, all_labels = np.array([]), np.array([])
     dev_loss, dev_r2 = [], []
     for batch in test_dataloader:
-        batch_inputs, batch_masks, batch_labels = \
+        batch_inputs, batch_masks, batch_labels, batch_lexical = \
                                  tuple(b.to(device) for b in batch)
         with torch.no_grad():
-            outputs = model(batch_inputs, batch_masks)
+            outputs = model(batch_inputs, batch_masks, batch_lexical)
         # -- loss --
         loss = loss_function(outputs, batch_labels)
         dev_loss.append(loss.item())
@@ -272,20 +283,33 @@ def run(root_folder="", empathy_type='empathy'):
 
     bert_type = "bert-base-uncased"
     my_seed = 17
-    batch_size = 1
-    epochs = 1
+    batch_size = 4
+    epochs = 3
 
     # -------------------
     #   load data
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
+
     data_train_pd = utils.clean_raw_data(data_train_pd)
     data_dev_pd = utils.clean_raw_data(data_dev_pd)
+
+    # save raw essay (will not be tokenized by BERT)
+    data_train_pd['essay_raw'] = data_train_pd['essay']
+    data_dev_pd['essay_raw'] = data_dev_pd['essay']
+    # tokenize them already and create column essay_raw_tok
+    data_train_pd = utils.tokenize_data(data_train_pd, 'essay_raw')
+    data_dev_pd = utils.tokenize_data(data_dev_pd, 'essay_raw')
+    # create lexical features
+    fc = utils.FeatureCreator(data_root_folder=data_root_folder)
+    data_train_pd = fc.create_lexical_feature(data_train_pd, 'essay_raw_tok')
+    data_dev_pd = fc.create_lexical_feature(data_dev_pd, 'essay_raw_tok')
     
+
     # --- Create hugginface datasets ---
     # TODO: Use all data later on
-    data_train = pd_to_dataset(data_train_pd[:5])
-    data_dev = pd_to_dataset(data_dev_pd[:5])
+    data_train = pd_to_dataset(data_train_pd)
+    data_dev = pd_to_dataset(data_dev_pd)
 
     #  Create hugginface datasetsdict
     # data_train_dev = pd_to_datasetdict(data_train, data_dev)
@@ -297,8 +321,8 @@ def run(root_folder="", empathy_type='empathy'):
     # --- tokenize data ---
     tokenizer = BertTokenizer.from_pretrained(bert_type)
 
-    data_train_encoded = data_train.map(lambda x: tokenize(x, tokenizer), batched=True, batch_size=None)
-    data_dev_encoded = data_dev.map(lambda x: tokenize(x, tokenizer), batched=True, batch_size=None)
+    data_train_encoded = data_train.map(lambda x: tokenize(x, tokenizer, 'essay'), batched=True, batch_size=None)
+    data_dev_encoded = data_dev.map(lambda x: tokenize(x, tokenizer, 'essay'), batched=True, batch_size=None)
 
     # --- shuffle data ---
     data_train_encoded_shuff = data_train_encoded.shuffle(seed=my_seed)
@@ -310,11 +334,16 @@ def run(root_folder="", empathy_type='empathy'):
     attention_mask_train = np.array(data_train_encoded_shuff["attention_mask"]).astype(int)
     label_empathy_train = np.array(data_train_encoded_shuff["empathy"]).astype(np.float32).reshape(-1, 1)
     label_distress_train = np.array(data_train_encoded_shuff["distress"]).astype(np.float32).reshape(-1, 1)
+    lexical_emp_train = np.array(data_train_encoded_shuff["empathy_word_rating"]).astype(np.float32).reshape(-1, 1)
+    lexical_dis_train = np.array(data_train_encoded_shuff["distress_word_rating"]).astype(np.float32).reshape(-1, 1)
+    
     # dev
     input_ids_dev = np.array(data_dev_encoded_shuff["input_ids"]).astype(int)
     attention_mask_dev = np.array(data_dev_encoded_shuff["attention_mask"]).astype(int)
     label_empathy_dev = np.array(data_dev_encoded_shuff["empathy"]).astype(np.float32).reshape(-1, 1)
     label_distress_dev = np.array(data_dev_encoded_shuff["distress"]).astype(np.float32).reshape(-1, 1)
+    lexical_emp_dev = np.array(data_dev_encoded_shuff["empathy_word_rating"]).astype(np.float32).reshape(-1, 1)
+    lexical_dis_dev = np.array(data_dev_encoded_shuff["distress_word_rating"]).astype(np.float32).reshape(-1, 1)
 
     # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
     scaler_empathy = MinMaxScaler()
@@ -327,11 +356,11 @@ def run(root_folder="", empathy_type='empathy'):
 
     # --- create dataloader ---
     # for empathy
-    dataloader_emp_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_empathy_train, batch_size)
-    dataloader_emp_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, batch_size)
+    dataloader_emp_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_empathy_train, lexical_emp_train, batch_size)
+    dataloader_emp_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, lexical_emp_dev, batch_size)
     # for distress
-    dataloader_dis_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_distress_train, batch_size)
-    dataloader_dis_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, batch_size)
+    dataloader_dis_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_distress_train, lexical_dis_train, batch_size)
+    dataloader_dis_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, lexical_dis_dev, batch_size)
 
     # -------------------
     #  initialize model 
@@ -341,7 +370,7 @@ def run(root_folder="", empathy_type='empathy'):
     
     # --- init model ---
     print('------------ initializing Model ------------')
-    model = BertRegressor(drop_rate=0.5, bert_type=bert_type)
+    model = BertMultiInput(drop_rate=0.5, bert_type=bert_type)
 
     # --- choose dataset ---
     # per default use empathy label
@@ -377,9 +406,9 @@ def run(root_folder="", empathy_type='empathy'):
     loss_function = nn.MSELoss()
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
-    history.to_csv(root_folder + 'output/history_' + empathy_type + '.csv')
+    history.to_csv(root_folder + 'output/history_multiinput_' + empathy_type + '.csv')
     
-    torch.save(model.state_dict(), root_folder + 'output/model_' + empathy_type)
+    torch.save(model.state_dict(), root_folder + 'output/model_multiinput_' + empathy_type)
     print('Done')
     return model, history
 

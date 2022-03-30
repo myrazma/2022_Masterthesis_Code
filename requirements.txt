@@ -1,6 +1,7 @@
 numpy
 pandas
 matplotlib
+nltk
 scipy
 sklearn
 transformers==4.17.0
