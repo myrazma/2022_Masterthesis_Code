@@ -40,11 +40,12 @@ import utils
 
 
 class BertMultiInput(nn.Module):
-    def __init__(self, drop_rate=0.5, bert_type="bert-base-uncased"):
+    def __init__(self, drop_rate=0.5, bert_type='bert-base-uncased'):
         super(BertMultiInput, self).__init__()
         D_in = 768
-        Bert_out = 100
-        Multi_in = 100 + 1
+        Bert_out = 50
+        Multi_in = Bert_out + 1
+        Hidden_Regressor = 10
         D_out = 1
 
         # calcuate output size of pooling layer
@@ -53,24 +54,26 @@ class BertMultiInput(nn.Module):
         #stride = 2
         #kernel_size = 3
         #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
+        # self.bert = BertModel.from_pretrained(bert_type)
         self.bert = BertModel.from_pretrained(bert_type)
-
         self.after_bert = nn.Sequential(
             nn.Dropout(drop_rate),
             nn.Linear(D_in, Bert_out))
 
         self.regressor = nn.Sequential(
-            nn.Linear(Multi_in, 50),
-            nn.Linear(50, D_out))
+            nn.Linear(Multi_in, Hidden_Regressor),
+            nn.Linear(Hidden_Regressor, D_out))
 
     def forward(self, input_ids, attention_masks, lexical_features):
         outputs = self.bert(input_ids, attention_masks)
         bert_output = outputs[1]
+
         # concat bert output with multi iput - lexical data
         after_bert_outputs = self.after_bert(bert_output)
+
         # combine bert output (after short ffn) with lexical features
-        x = torch.cat((after_bert_outputs, lexical_features), 1)
-        outputs = self.regressor(x)
+        concat = torch.cat((after_bert_outputs, lexical_features), 1)
+        outputs = self.regressor(concat)
         return outputs
 
 
@@ -119,7 +122,7 @@ def create_dataloaders(inputs, masks, labels, lexical_features, batch_size):
     return dataloader
 
 
-def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2):
+def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=0):
     """Train the model on train dataset and evelautate on the dev dataset
     Source parly from [2]
     Args:
@@ -139,6 +142,15 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
     history = pd.DataFrame(columns=['epoch', 'avrg_dev_loss', 'avrg_dev_r2', 'dev_corr', 'train_corr'])
 
     for epoch_i in range(epochs):
+
+        # only train bert for 2 epochs, otherwise bert might 'forget too much'
+        if epoch_i == bert_update_epochs:
+            for p in model.bert.parameters():
+                p.requires_grad = False
+            for p in model.bert.embeddings.parameters():
+                p.requires_grad = False
+            print('------- Bert parameter is not being updated anymore -------')
+
         # -------------------
         #      Training 
         # -------------------
@@ -274,8 +286,19 @@ def score_correlation(y_pred, y_true):
 
 
 def run(root_folder="", empathy_type='empathy'):
+
     #logging.set_verbosity_warning()
     #logging.set_verbosity_error()
+    use_gpu = False
+    # --- run on GPU if available ---
+    if torch.cuda.is_available():       
+        device = torch.device("cuda")
+        print("Using GPU.")
+        use_gpu = True
+    else:
+        print("No GPU available, using the CPU instead.")
+        device = torch.device("cpu")
+        use_gpu = False
     data_root_folder = root_folder + 'data/'
     # -------------------
     #     parameters
@@ -284,7 +307,8 @@ def run(root_folder="", empathy_type='empathy'):
     bert_type = "bert-base-uncased"
     my_seed = 17
     batch_size = 4
-    epochs = 3
+    epochs = 6
+    learning_rate = 5e-5  # 2e-5
 
     # -------------------
     #   load data
@@ -354,6 +378,29 @@ def run(root_folder="", empathy_type='empathy'):
     label_scaled_distress_train = scaler_distress.fit_transform(label_distress_train)
     label_scaled_distress_dev = scaler_distress.transform(label_distress_dev)
 
+    # -------------------
+    #  initialize pre trained model an 
+    # -------------------
+    # source for creating and training model: [2] 
+    #   https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
+    
+    # --- load or pre-train bert here ---
+    #pre_trained_emp_bert = BertRegressor()
+    #pre_trained_emp_bert = torch.load(root_folder + 'output/model_' + empathy_type + '_22-03-25_1330', map_location=torch.device('cpu'))
+    #if use_gpu:
+    #    pre_trained_emp_bert.load_state_dict(torch.load(root_folder + 'output/model_' + empathy_type + '_22-03-25_1330'))
+    #else:
+    #    pre_trained_emp_bert.load_state_dict(torch.load(root_folder + 'output/model_' + empathy_type + '_22-03-25_1330',map_location=torch.device('cpu')))
+    # get output from pre-trained bert
+    #bert_outputs_emp_train = pre_trained_emp_bert(torch.tensor(input_ids_train), torch.tensor(attention_mask_train))
+    #bert_outputs_emp_dev = pre_trained_emp_bert(torch.tensor(input_ids_dev), torch.tensor(attention_mask_dev))
+
+    #emp_dev_corr, _ = score_correlation(np.array(bert_outputs_emp_dev), np.array(label_empathy_dev))
+    #print(emp_dev_corr)
+    #return
+    # -- pearson correlation --
+
+
     # --- create dataloader ---
     # for empathy
     dataloader_emp_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_empathy_train, lexical_emp_train, batch_size)
@@ -362,15 +409,11 @@ def run(root_folder="", empathy_type='empathy'):
     dataloader_dis_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_distress_train, lexical_dis_train, batch_size)
     dataloader_dis_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, lexical_dis_dev, batch_size)
 
-    # -------------------
-    #  initialize model 
-    # -------------------
-    # source for creating and training model: [2] 
-    #   https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
-    
+
     # --- init model ---
     print('------------ initializing Model ------------')
     model = BertMultiInput(drop_rate=0.5, bert_type=bert_type)
+    model.to(device)
 
     # --- choose dataset ---
     # per default use empathy label
@@ -383,19 +426,12 @@ def run(root_folder="", empathy_type='empathy'):
         display_text = "Using distress data"
     print('\n------------ ' + display_text + ' ------------\n')
 
-    # --- run on GPU if available ---
-    if torch.cuda.is_available():       
-        device = torch.device("cuda")
-        print("Using GPU.")
-    else:
-        print("No GPU available, using the CPU instead.")
-        device = torch.device("cpu")
-    model.to(device)
+    
 
     # --- optimizer ---
     # low learning rate to not get into catastrophic forgetting - Sun 2019
     # default epsilon by pytorch is 1e-8
-    optimizer = AdamW(model.parameters(), lr=2e-5, eps=1e-8)
+    optimizer = AdamW(model.parameters(), lr=learning_rate, eps=1e-8)
 
     # scheduler
     total_steps = len(dataloader_train) * epochs

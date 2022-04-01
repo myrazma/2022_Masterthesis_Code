@@ -34,10 +34,6 @@ class FeatureCreator():
         return data_pd
 
 
-def load_model(path_name):
-    torch.load(path_name)
-
-
 def load_data(data_root_folder="../data/"):
     # dev and train data
     # TODO check if files are available / downloaded
