@@ -305,7 +305,7 @@ def run(root_folder="", empathy_type='empathy'):
 
     bert_type = "bert-base-uncased"
     my_seed = 17
-    batch_size = 4
+    batch_size = 16
     epochs = 3
     learning_rate = 5e-5  # 2e-5
 
@@ -460,7 +460,7 @@ if __name__ == '__main__':
     else:
         empathy_type = 'empathy'
     
-    print(f'Using {empathy_type} as argument.')
+    print(f'\n------------ Using {empathy_type} as argument. ------------\n')
     
     run(empathy_type=empathy_type)
 
