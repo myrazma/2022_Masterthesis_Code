@@ -45,7 +45,8 @@ class BertMultiInput(nn.Module):
         D_in = 768
         Bert_out = 100
         Multi_in = Bert_out + 1
-        Hidden_Regressor = 10
+        Hidden_Regressor = 50
+        Bottleneck = 10
         D_out = 1
 
         # calcuate output size of pooling layer
@@ -59,8 +60,16 @@ class BertMultiInput(nn.Module):
             nn.Dropout(drop_rate),
             nn.Linear(D_in, Bert_out))
 
+        #self.regressor = nn.Sequential(
+        #    nn.Linear(Multi_in, Hidden_Regressor),
+        #    nn.ReLU(),
+        #    nn.Linear(Hidden_Regressor, D_out))
+
         self.regressor = nn.Sequential(
             nn.Linear(Multi_in, Hidden_Regressor),
+            nn.Linear(Hidden_Regressor, Bottleneck),
+            nn.Linear(Bottleneck, Hidden_Regressor),
+            nn.Dropout(drop_rate),
             nn.ReLU(),
             nn.Linear(Hidden_Regressor, D_out))
 
@@ -371,11 +380,11 @@ def run(root_folder="", empathy_type='empathy'):
     lexical_dis_dev = np.array(data_dev_encoded_shuff["distress_word_rating"]).astype(np.float32).reshape(-1, 1)
 
     # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
-    scaler_empathy = StandardScaler()
+    scaler_empathy = MinMaxScaler()
     label_scaled_empathy_train = scaler_empathy.fit_transform(label_empathy_train)
     label_scaled_empathy_dev = scaler_empathy.transform(label_empathy_dev)
     # make own for distress as std counts in transformation and it might be different for distress than empathy
-    scaler_distress = StandardScaler()
+    scaler_distress = MinMaxScaler()
     label_scaled_distress_train = scaler_distress.fit_transform(label_distress_train)
     label_scaled_distress_dev = scaler_distress.transform(label_distress_dev)
 
