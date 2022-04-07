@@ -54,7 +54,6 @@ class BertMultiInput(nn.Module):
         #stride = 2
         #kernel_size = 3
         #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
-        # self.bert = BertModel.from_pretrained(bert_type)
         self.bert = BertModel.from_pretrained(bert_type)
         self.after_bert = nn.Sequential(
             nn.Dropout(drop_rate),
@@ -122,7 +121,7 @@ def create_dataloaders(inputs, masks, labels, lexical_features, batch_size):
     return dataloader
 
 
-def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=0):
+def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=10):
     """Train the model on train dataset and evelautate on the dev dataset
     Source parly from [2]
     Args:
@@ -307,7 +306,7 @@ def run(root_folder="", empathy_type='empathy'):
     bert_type = "bert-base-uncased"
     my_seed = 17
     batch_size = 4
-    epochs = 2
+    epochs = 3
     learning_rate = 5e-5  # 2e-5
 
     # -------------------
@@ -315,8 +314,8 @@ def run(root_folder="", empathy_type='empathy'):
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
 
-    data_train_pd = utils.clean_raw_data(data_train_pd[:20])
-    data_dev_pd = utils.clean_raw_data(data_dev_pd[:10])
+    data_train_pd = utils.clean_raw_data(data_train_pd)
+    data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
     # save raw essay (will not be tokenized by BERT)
     data_train_pd['essay_raw'] = data_train_pd['essay']
