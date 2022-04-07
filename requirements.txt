@@ -1,9 +1,9 @@
-numpy
-pandas
-matplotlib
-nltk
-scipy
-sklearn
+numpy==1.22.3
+pandas==1.4.1
+matplotlib==3.5.1
+nltk==3.6.7
+scipy==1.8.0
+sklearn==1.0.2
 transformers==4.17.0
-datasets
+datasets==1.13.3
 torch==1.11.0
