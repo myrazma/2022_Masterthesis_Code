@@ -158,3 +158,17 @@ def lemmatize_data(data, column):
     lemmatizer = WordNetLemmatizer()  # lemmatize
     data[column + '_lem'] = data[column].apply(lambda x: [lemmatizer.lemmatize(word) for word in x])
     return data
+
+
+
+def remove_stopwords(text_tok):
+    """Remove (english) stopwords from a tokenized texts
+
+    Args:
+        text_tok (list(str)): Tokenized text
+
+    Returns:
+        list(str): The tokenized text without stopwords
+    """
+    text_processed = [word for word in text_tok if not word.lower() in STOPWORDS_EN]
+    return text_processed

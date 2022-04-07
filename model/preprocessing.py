@@ -1,6 +1,3 @@
-from ekphrasis.classes.spellcorrect import SpellCorrector
-from ekphrasis.classes.segmenter import Segmenter
-
 import nltk
 from nltk.corpus import stopwords
 nltk.download('punkt')
@@ -10,9 +7,7 @@ nltk.download('stopwords')
 # Load english stop words
 STOPWORDS_EN = set(stopwords.words('english'))
 
-# Load for text normalization
-sp = SpellCorrector(corpus="English")
-seg_eng = Segmenter(corpus="English") 
+
 
 
 def lower_text(text):

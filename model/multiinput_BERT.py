@@ -25,7 +25,7 @@ import torch.nn as nn
 from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.utils.data import TensorDataset, DataLoader
 from torch.optim import AdamW
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from scipy.stats import pearsonr
 from transformers import logging
 
@@ -321,14 +321,15 @@ def run(root_folder="", empathy_type='empathy'):
     # save raw essay (will not be tokenized by BERT)
     data_train_pd['essay_raw'] = data_train_pd['essay']
     data_dev_pd['essay_raw'] = data_dev_pd['essay']
+    
     # tokenize them already and create column essay_raw_tok
     data_train_pd = utils.tokenize_data(data_train_pd, 'essay_raw')
     data_dev_pd = utils.tokenize_data(data_dev_pd, 'essay_raw')
+    
     # create lexical features
     fc = utils.FeatureCreator(data_root_folder=data_root_folder)
     data_train_pd = fc.create_lexical_feature(data_train_pd, 'essay_raw_tok')
     data_dev_pd = fc.create_lexical_feature(data_dev_pd, 'essay_raw_tok')
-    
 
     # --- Create hugginface datasets ---
     # TODO: Use all data later on
@@ -370,11 +371,11 @@ def run(root_folder="", empathy_type='empathy'):
     lexical_dis_dev = np.array(data_dev_encoded_shuff["distress_word_rating"]).astype(np.float32).reshape(-1, 1)
 
     # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
-    scaler_empathy = MinMaxScaler()
+    scaler_empathy = StandardScaler()
     label_scaled_empathy_train = scaler_empathy.fit_transform(label_empathy_train)
     label_scaled_empathy_dev = scaler_empathy.transform(label_empathy_dev)
     # make own for distress as std counts in transformation and it might be different for distress than empathy
-    scaler_distress = MinMaxScaler()
+    scaler_distress = StandardScaler()
     label_scaled_distress_train = scaler_distress.fit_transform(label_distress_train)
     label_scaled_distress_dev = scaler_distress.transform(label_distress_dev)
 
