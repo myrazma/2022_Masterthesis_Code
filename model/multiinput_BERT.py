@@ -222,8 +222,8 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
             avrg_dev_loss = sum(dev_loss)/len(dev_loss)
         if len(dev_r2) > 0:
             avrg_dev_r2 = sum(dev_r2)/len(dev_r2)
-        
-        history = history.append({'epoch': int(epoch_i), 'avrg_dev_loss':avrg_dev_loss, 'avrg_dev_r2':avrg_dev_r2, 'dev_corr': dev_corr, 'train_corr': train_corr}, ignore_index=True)
+        current_step_df = pd.DataFrame({'epoch': int(epoch_i), 'avrg_dev_loss':avrg_dev_loss, 'avrg_dev_r2':avrg_dev_r2, 'dev_corr': dev_corr, 'train_corr': train_corr}, index=[0])
+        history = pd.concat([history, current_step_df], ignore_index=True)
 
         #print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | dev_loss: {dev_loss} | dev_r2: {dev_r2}")
         print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | train_corr: {train_corr} | avrg_dev_loss: {avrg_dev_loss} | avrg_dev_r2: {avrg_dev_r2}")
@@ -293,10 +293,10 @@ def run(root_folder="", empathy_type='empathy'):
     # --- run on GPU if available ---
     if torch.cuda.is_available():       
         device = torch.device("cuda")
-        print("Using GPU.")
+        print("\n------------------ Using GPU. ------------------\n")
         use_gpu = True
     else:
-        print("No GPU available, using the CPU instead.")
+        print("\n---------- No GPU available, using the CPU instead. ----------\n")
         device = torch.device("cpu")
         use_gpu = False
     data_root_folder = root_folder + 'data/'
@@ -307,7 +307,7 @@ def run(root_folder="", empathy_type='empathy'):
     bert_type = "bert-base-uncased"
     my_seed = 17
     batch_size = 4
-    epochs = 6
+    epochs = 2
     learning_rate = 5e-5  # 2e-5
 
     # -------------------
@@ -315,8 +315,8 @@ def run(root_folder="", empathy_type='empathy'):
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
 
-    data_train_pd = utils.clean_raw_data(data_train_pd)
-    data_dev_pd = utils.clean_raw_data(data_dev_pd)
+    data_train_pd = utils.clean_raw_data(data_train_pd[:20])
+    data_dev_pd = utils.clean_raw_data(data_dev_pd[:10])
 
     # save raw essay (will not be tokenized by BERT)
     data_train_pd['essay_raw'] = data_train_pd['essay']

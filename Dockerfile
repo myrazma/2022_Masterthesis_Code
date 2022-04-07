@@ -15,4 +15,4 @@ RUN mkdir -p /mzmarsly/output
 COPY ./data/buechel_empathy /mzmarsly/data/buechel_empathy
 
 # run selected file
-CMD ["python","-u", "./model/baseline_BERT.py", "distress"]
+#CMD ["python","-u", "./model/baseline_BERT.py", "distress"]
