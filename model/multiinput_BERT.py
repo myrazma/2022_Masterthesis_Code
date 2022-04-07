@@ -40,10 +40,10 @@ import utils
 
 
 class BertMultiInput(nn.Module):
-    def __init__(self, drop_rate=0.5, bert_type='bert-base-uncased'):
+    def __init__(self, drop_rate=0.2, bert_type='bert-base-uncased'):
         super(BertMultiInput, self).__init__()
         D_in = 768
-        Bert_out = 50
+        Bert_out = 100
         Multi_in = Bert_out + 1
         Hidden_Regressor = 10
         D_out = 1
@@ -61,6 +61,7 @@ class BertMultiInput(nn.Module):
 
         self.regressor = nn.Sequential(
             nn.Linear(Multi_in, Hidden_Regressor),
+            nn.ReLU(),
             nn.Linear(Hidden_Regressor, D_out))
 
     def forward(self, input_ids, attention_masks, lexical_features):
@@ -306,7 +307,7 @@ def run(root_folder="", empathy_type='empathy'):
     bert_type = "bert-base-uncased"
     my_seed = 17
     batch_size = 4
-    epochs = 3
+    epochs = 5
     learning_rate = 2e-5  # 2e-5
 
     # -------------------
