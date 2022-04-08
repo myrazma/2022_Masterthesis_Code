@@ -16,8 +16,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 import math
 # Transformers, torch and model utils
-from transformers import BertModel, BertConfig, BertForSequenceClassification, AutoModel
-from transformers import BertTokenizer
+from transformers import AutoTokenizer, BertModel, BertConfig, BertForSequenceClassification, AutoModel, RobertaModel
+from transformers import BertTokenizer, RobertaTokenizer
 from transformers import AdamW
 from transformers import get_linear_schedule_with_warmup
 from datasets import Dataset, DatasetDict
@@ -55,7 +55,7 @@ class BertMultiInput(nn.Module):
         #stride = 2
         #kernel_size = 3
         #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
-        self.bert = AutoModel.from_pretrained(bert_type)
+        self.bert = RobertaModel.from_pretrained(bert_type)
         self.after_bert = nn.Sequential(
             nn.Dropout(0.2),
             nn.Linear(D_in, Bert_out))
@@ -393,7 +393,7 @@ def run(root_folder="", empathy_type='empathy'):
     # -------------------
 
     # --- tokenize data ---
-    tokenizer = BertTokenizer.from_pretrained(bert_type)
+    tokenizer = RobertaTokenizer.from_pretrained(bert_type)
 
     data_train_encoded = data_train.map(lambda x: tokenize(x, tokenizer, 'essay'), batched=True, batch_size=None)
     data_dev_encoded = data_dev.map(lambda x: tokenize(x, tokenizer, 'essay'), batched=True, batch_size=None)
