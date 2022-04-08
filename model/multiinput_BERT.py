@@ -10,6 +10,7 @@
 # utils
 from logging import root
 import time
+import copy
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
@@ -43,9 +44,9 @@ class BertMultiInput(nn.Module):
     def __init__(self, drop_rate=0.2, bert_type='bert-base-uncased'):
         super(BertMultiInput, self).__init__()
         D_in = 768
-        Bert_out = 256
+        Bert_out = 100
         Multi_in = Bert_out + 1
-        Hidden_Regressor = 128
+        Hidden_Regressor = 56
         D_out = 1
 
         # calcuate output size of pooling layer
@@ -61,11 +62,11 @@ class BertMultiInput(nn.Module):
 
         self.regressor = nn.Sequential(
             nn.Linear(Multi_in, Hidden_Regressor),
-            nn.Dropout(0.1),
+            nn.Dropout(0.2),
             nn.ReLU(),
-            nn.Linear(Hidden_Regressor, 56),
+            nn.Linear(Hidden_Regressor, 16),
             nn.ReLU(),
-            nn.Linear(56, D_out))
+            nn.Linear(16, D_out))
 
     def forward(self, input_ids, attention_masks, lexical_features):
         outputs = self.bert(input_ids, attention_masks)
@@ -145,6 +146,10 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
     history = pd.DataFrame(columns=['epoch', 'avrg_dev_loss', 'avrg_dev_r2', 'dev_corr', 'train_corr'])
 
     # variables for early stopping
+    # counter for loss, counter goes up, if the loss is worse (bigger) than before, will be set to 0 if the loss is smaller
+    worse_loss, prev_loss, curr_loss = 0, None, 0
+    model_best = None
+    epoch_model_saved = 0
 
     for epoch_i in range(epochs):
 
@@ -221,31 +226,50 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         #     Validation 
         # -------------------
         # calculate, print and store the metrics
-        dev_loss, dev_r2, dev_corr = evaluate(model, loss_function, dev_dataloader, device)
-        train_loss, train_r2, train_corr = evaluate(model, loss_function, train_dataloader, device)
+        dev_loss, dev_corr = evaluate(model, loss_function, dev_dataloader, device)
+        train_loss, train_corr = evaluate(model, loss_function, train_dataloader, device)
         avrg_dev_loss, avrg_dev_r2, avrg_train_loss = None, None, None
         if len(dev_loss) > 0:
             avrg_dev_loss = sum(dev_loss)/len(dev_loss)
-        if len(dev_r2) > 0:
-            avrg_dev_r2 = sum(dev_r2)/len(dev_r2)
         if len(total_epoch_loss) > 0:
             # remove nans or infs for calculation
             filtered_train_loss = [val for val in total_epoch_loss if not (math.isinf(val) or math.isnan(val))]   
             avrg_train_loss = sum(filtered_train_loss)/len(filtered_train_loss)
             
-        current_step_df = pd.DataFrame({'epoch': int(epoch_i), 'avrg_dev_loss':avrg_dev_loss, 'avrg_dev_r2':avrg_dev_r2, 'dev_corr': dev_corr, 'train_corr': train_corr, 'avrg_train_loss': avrg_train_loss}, index=[0])
+        current_step_df = pd.DataFrame({'epoch': int(epoch_i), 'avrg_dev_loss':avrg_dev_loss, 'dev_corr': dev_corr, 'train_corr': train_corr, 'avrg_train_loss': avrg_train_loss}, index=[0])
         history = pd.concat([history, current_step_df], ignore_index=True)
 
-        #print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | dev_loss: {dev_loss} | dev_r2: {dev_r2}")
         print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | train_corr: {train_corr} | avrg_dev_loss: {avrg_dev_loss} | avrg_train_loss: {avrg_train_loss}")
         
         # -------------------
         #   Early stopping 
         # -------------------
-    
 
+        # save the best model according to loss
+        if worse_loss > 0: # if the loss is worse than in previous training, don't save this model
+            continue # do nothing
+        else:
+            model_best = copy.deepcopy(model)
+            epoch_model_saved = int(epoch_i)
 
-    return model, history
+        all_dev_loss = history['avrg_dev_loss'].to_numpy()
+        if all_dev_loss.shape[0] > 1:  # not possible to do this in first epoch
+            if all_dev_loss[-2] <= all_dev_loss[-1]:
+                worse_loss += 1
+            else:
+                worse_loss = 0
+
+        if worse_loss == early_stop_toleance:
+            print('early stopping at epoch', int(epoch_i))
+            break
+        
+
+    # save at which state we saved the model
+    model_saved_at_arr = np.zeros(history.shape[0])
+    model_saved_at_arr[epoch_model_saved] = 1  # set to one at this epoch
+    history['model_saved'] = model_saved_at_arr
+
+    return model_best, history
 
 
 def evaluate(model, loss_function, test_dataloader, device):
@@ -253,7 +277,7 @@ def evaluate(model, loss_function, test_dataloader, device):
     # adapted by adding the pearson correlation
     model.eval()
     all_outputs, all_labels = np.array([]), np.array([])
-    dev_loss, dev_r2 = [], []
+    dev_loss = []
     for batch in test_dataloader:
         batch_inputs, batch_masks, batch_labels, batch_lexical = \
                                  tuple(b.to(device) for b in batch)
@@ -275,9 +299,8 @@ def evaluate(model, loss_function, test_dataloader, device):
     dev_corr, _ = score_correlation(all_outputs, all_labels)
 
     # remove inf and nan, do not count for average
-    filtered_dev_r2 = [val for val in dev_r2 if not (math.isinf(val) or math.isnan(val))]
     filtered_dev_loss = [val for val in dev_loss if not (math.isinf(val) or math.isnan(val))]
-    return filtered_dev_loss, filtered_dev_r2, dev_corr
+    return filtered_dev_loss, dev_corr
 
 
 def r2_score(outputs, labels):
@@ -327,7 +350,7 @@ def run(root_folder="", empathy_type='empathy'):
     bert_type = "bert-base-uncased"
     my_seed = 17
     batch_size = 8
-    epochs = 5
+    epochs = 2
     learning_rate = 2e-5  # 2e-5
 
     # -------------------
@@ -335,8 +358,8 @@ def run(root_folder="", empathy_type='empathy'):
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
 
-    data_train_pd = utils.clean_raw_data(data_train_pd)
-    data_dev_pd = utils.clean_raw_data(data_dev_pd)
+    data_train_pd = utils.clean_raw_data(data_train_pd[:10])
+    data_dev_pd = utils.clean_raw_data(data_dev_pd[:10])
 
     # save raw essay (will not be tokenized by BERT)
     data_train_pd['essay_raw'] = data_train_pd['essay']
