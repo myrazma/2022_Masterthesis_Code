@@ -153,6 +153,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
     epoch_model_saved = 0
 
     for epoch_i in range(epochs):
+        print('Beginning of epoch' + str(int(epoch_i)) + 'worse_loss' + str(worse_loss))
 
         # only train bert for 2 epochs, otherwise bert might 'forget too much'
         if epoch_i == bert_update_epochs:
