@@ -57,17 +57,15 @@ class BertMultiInput(nn.Module):
         #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
         self.bert = BertModel.from_pretrained(bert_type)
         self.after_bert = nn.Sequential(
-            nn.Dropout(0.5),
+            nn.Dropout(0.2),
             nn.Linear(D_in, Bert_out))
 
         self.regressor = nn.Sequential(
             nn.Linear(Multi_in, Hidden_Regressor),
-            nn.Dropout(0.2),
+            nn.Dropout(0.1),
             nn.ReLU(),
-            nn.Linear(Hidden_Regressor, 16),
-            nn.Linear(16, 8),
-            nn.ReLU(),
-            nn.Linear(8, D_out))
+            nn.Linear(Hidden_Regressor, 10),
+            nn.Linear(10, D_out))
 
     def forward(self, input_ids, attention_masks, lexical_features):
         outputs = self.bert(input_ids, attention_masks)
@@ -128,7 +126,7 @@ def create_dataloaders(inputs, masks, labels, lexical_features, batch_size):
     return dataloader
 
 
-def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=2, early_stop_toleance=2):
+def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=10, early_stop_toleance=2):
     """Train the model on train dataset and evelautate on the dev dataset
     Source parly from [2]
     Args:
@@ -259,10 +257,11 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         
         # save the best model according to loss
         if worse_loss > 0: # if the loss is worse than in previous training, don't save this model
-            continue # do nothing
+            pass # do nothing
         else:
             model_best = copy.deepcopy(model)
             epoch_model_saved = int(epoch_i)
+
         print('worse_loss', worse_loss)
 
         if int(worse_loss) == int(early_stop_toleance):
