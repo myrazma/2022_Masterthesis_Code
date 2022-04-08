@@ -46,7 +46,6 @@ class BertMultiInput(nn.Module):
         Bert_out = 100
         Multi_in = Bert_out + 1
         Hidden_Regressor = 50
-        Bottleneck = 10
         D_out = 1
 
         # calcuate output size of pooling layer
@@ -60,16 +59,8 @@ class BertMultiInput(nn.Module):
             nn.Dropout(drop_rate),
             nn.Linear(D_in, Bert_out))
 
-        #self.regressor = nn.Sequential(
-        #    nn.Linear(Multi_in, Hidden_Regressor),
-        #    nn.ReLU(),
-        #    nn.Linear(Hidden_Regressor, D_out))
-
         self.regressor = nn.Sequential(
             nn.Linear(Multi_in, Hidden_Regressor),
-            nn.Linear(Hidden_Regressor, Bottleneck),
-            nn.Linear(Bottleneck, Hidden_Regressor),
-            nn.Dropout(drop_rate),
             nn.ReLU(),
             nn.Linear(Hidden_Regressor, D_out))
 
@@ -296,6 +287,9 @@ def score_correlation(y_pred, y_true):
 
 def run(root_folder="", empathy_type='empathy'):
 
+    data_root_folder = root_folder + 'data/'
+    output_root_folder = root_folder + 'output/'
+
     #logging.set_verbosity_warning()
     #logging.set_verbosity_error()
     use_gpu = False
@@ -308,14 +302,13 @@ def run(root_folder="", empathy_type='empathy'):
         print("\n---------- No GPU available, using the CPU instead. ----------\n")
         device = torch.device("cpu")
         use_gpu = False
-    data_root_folder = root_folder + 'data/'
     # -------------------
     #     parameters
     # -------------------
 
     bert_type = "bert-base-uncased"
     my_seed = 17
-    batch_size = 4
+    batch_size = 8
     epochs = 5
     learning_rate = 2e-5  # 2e-5
 
@@ -452,9 +445,9 @@ def run(root_folder="", empathy_type='empathy'):
     loss_function = nn.MSELoss()
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
-    history.to_csv(root_folder + 'output/history_multiinput_' + empathy_type + '.csv')
+    history.to_csv(output_root_folder + 'history_multiinput_' + empathy_type + '.csv')
     
-    torch.save(model.state_dict(), root_folder + 'output/model_multiinput_' + empathy_type)
+    torch.save(model.state_dict(), output_root_folder + 'model_multiinput_' + empathy_type)
     print('Done')
     return model, history
 
