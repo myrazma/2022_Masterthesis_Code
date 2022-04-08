@@ -46,7 +46,7 @@ class BertMultiInput(nn.Module):
         D_in = 768
         Bert_out = 100
         Multi_in = Bert_out + 1
-        Hidden_Regressor = 10
+        Hidden_Regressor = 50
         D_out = 1
 
         # calcuate output size of pooling layer
@@ -62,9 +62,10 @@ class BertMultiInput(nn.Module):
 
         self.regressor = nn.Sequential(
             nn.Linear(Multi_in, Hidden_Regressor),
-            #nn.Dropout(0.2),
-            #nn.ReLU(),
-            #nn.Linear(Hidden_Regressor, 16),
+            nn.Dropout(0.2),
+            nn.ReLU(),
+            nn.Linear(Hidden_Regressor, 16),
+            nn.Linear(16, 8),
             nn.ReLU(),
             nn.Linear(Hidden_Regressor, D_out))
 
@@ -127,7 +128,7 @@ def create_dataloaders(inputs, masks, labels, lexical_features, batch_size):
     return dataloader
 
 
-def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=10, early_stop_toleance=2):
+def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=2, early_stop_toleance=2):
     """Train the model on train dataset and evelautate on the dev dataset
     Source parly from [2]
     Args:
@@ -153,6 +154,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
     epoch_model_saved = 0
 
     for epoch_i in range(epochs):
+        print('------ epoch' + str(epoch_i) + ' ------')
         print('Beginning of epoch' + str(int(epoch_i)) + 'worse_loss' + str(worse_loss))
 
         # only train bert for 2 epochs, otherwise bert might 'forget too much'
