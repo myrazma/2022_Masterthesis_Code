@@ -358,8 +358,8 @@ def run(root_folder="", empathy_type='empathy'):
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
 
-    data_train_pd = utils.clean_raw_data(data_train_pd[:10])
-    data_dev_pd = utils.clean_raw_data(data_dev_pd[:10])
+    data_train_pd = utils.clean_raw_data(data_train_pd)
+    data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
     # save raw essay (will not be tokenized by BERT)
     data_train_pd['essay_raw'] = data_train_pd['essay']
