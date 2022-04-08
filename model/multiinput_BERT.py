@@ -226,6 +226,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         # -------------------
         #     Validation 
         # -------------------
+        model.eval()
         # calculate, print and store the metrics
         dev_loss, dev_corr = evaluate(model, loss_function, dev_dataloader, device)
         train_loss, train_corr = evaluate(model, loss_function, train_dataloader, device)
