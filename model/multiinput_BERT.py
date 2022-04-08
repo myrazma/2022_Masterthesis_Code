@@ -350,7 +350,7 @@ def run(root_folder="", empathy_type='empathy'):
 
     bert_type = "bert-base-uncased"
     my_seed = 17
-    batch_size = 8
+    batch_size = 16
     epochs = 6
     learning_rate = 2e-5  # 2e-5
 
