@@ -246,19 +246,20 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         #   Early stopping 
         # -------------------
 
-        # save the best model according to loss
-        if worse_loss > 0: # if the loss is worse than in previous training, don't save this model
-            continue # do nothing
-        else:
-            model_best = copy.deepcopy(model)
-            epoch_model_saved = int(epoch_i)
-
         all_dev_loss = history['avrg_dev_loss'].to_numpy()
         if all_dev_loss.shape[0] > 1:  # not possible to do this in first epoch
             if all_dev_loss[-2] <= all_dev_loss[-1]:
                 worse_loss += 1
             else:
                 worse_loss = 0
+        
+        # save the best model according to loss
+        if worse_loss > 0: # if the loss is worse than in previous training, don't save this model
+            continue # do nothing
+        else:
+            model_best = copy.deepcopy(model)
+            epoch_model_saved = int(epoch_i)
+        print('worse_loss', worse_loss)
 
         if int(worse_loss) == int(early_stop_toleance):
             print('early stopping at epoch', int(epoch_i))
@@ -351,7 +352,7 @@ def run(root_folder="", empathy_type='empathy'):
     bert_type = "bert-base-uncased"
     my_seed = 17
     batch_size = 16
-    epochs = 6
+    epochs = 10
     learning_rate = 2e-5  # 2e-5
 
     # -------------------
