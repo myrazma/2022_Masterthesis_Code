@@ -41,7 +41,7 @@ import utils
 
 
 class BertMultiInput(nn.Module):
-    def __init__(self, drop_rate=0.2, bert_type='bert-base-uncased'):
+    def __init__(self, bert_type, drop_rate=0.2):
         super(BertMultiInput, self).__init__()
         D_in = 768
         Bert_out = 100
@@ -248,7 +248,8 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         #   Early stopping 
         # -------------------
 
-        all_dev_loss = history['avrg_dev_loss'].to_numpy()
+        # was avrg_dev_loss before, but maybe correlation is also useful
+        all_dev_loss = history['dev_corr'].to_numpy()
         if all_dev_loss.shape[0] > 1:  # not possible to do this in first epoch
             if all_dev_loss[-2] <= all_dev_loss[-1]:
                 worse_loss += 1
@@ -352,7 +353,7 @@ def run(root_folder="", empathy_type='empathy'):
     #     parameters
     # -------------------
 
-    bert_type = "bert-base-uncased"
+    bert_type = "roberta-base"  # "bert-base-uncased"
     my_seed = 17
     batch_size = 16
     epochs = 10
