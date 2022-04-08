@@ -122,7 +122,7 @@ def create_dataloaders(inputs, masks, labels, lexical_features, batch_size):
     return dataloader
 
 
-def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=10):
+def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=10, early_stop_toleance=2):
     """Train the model on train dataset and evelautate on the dev dataset
     Source parly from [2]
     Args:
@@ -140,6 +140,8 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
     print("Start training...\n")
 
     history = pd.DataFrame(columns=['epoch', 'avrg_dev_loss', 'avrg_dev_r2', 'dev_corr', 'train_corr'])
+
+    # variables for early stopping
 
     for epoch_i in range(epochs):
 
@@ -227,7 +229,13 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
 
         #print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | dev_loss: {dev_loss} | dev_r2: {dev_r2}")
         print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | train_corr: {train_corr} | avrg_dev_loss: {avrg_dev_loss} | avrg_dev_r2: {avrg_dev_r2}")
-    
+        
+        # -------------------
+        #   Early stopping 
+        # -------------------
+
+
+
     return model, history
 
 
@@ -415,7 +423,7 @@ def run(root_folder="", empathy_type='empathy'):
 
     # --- init model ---
     print('------------ initializing Model ------------')
-    model = BertMultiInput(drop_rate=0.5, bert_type=bert_type)
+    model = BertMultiInput(drop_rate=0.2, bert_type=bert_type)
     model.to(device)
 
     # --- choose dataset ---
@@ -428,8 +436,6 @@ def run(root_folder="", empathy_type='empathy'):
         dataloader_dev = dataloader_dis_dev
         display_text = "Using distress data"
     print('\n------------ ' + display_text + ' ------------\n')
-
-    
 
     # --- optimizer ---
     # low learning rate to not get into catastrophic forgetting - Sun 2019
