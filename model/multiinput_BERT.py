@@ -43,9 +43,9 @@ class BertMultiInput(nn.Module):
     def __init__(self, drop_rate=0.2, bert_type='bert-base-uncased'):
         super(BertMultiInput, self).__init__()
         D_in = 768
-        Bert_out = 100
+        Bert_out = 256
         Multi_in = Bert_out + 1
-        Hidden_Regressor = 50
+        Hidden_Regressor = 128
         D_out = 1
 
         # calcuate output size of pooling layer
@@ -56,13 +56,16 @@ class BertMultiInput(nn.Module):
         #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
         self.bert = BertModel.from_pretrained(bert_type)
         self.after_bert = nn.Sequential(
-            nn.Dropout(drop_rate),
+            nn.Dropout(0.5),
             nn.Linear(D_in, Bert_out))
 
         self.regressor = nn.Sequential(
             nn.Linear(Multi_in, Hidden_Regressor),
+            nn.Dropout(0.1),
             nn.ReLU(),
-            nn.Linear(Hidden_Regressor, D_out))
+            nn.Linear(Hidden_Regressor, 56),
+            nn.ReLU(),
+            nn.Linear(56, D_out))
 
     def forward(self, input_ids, attention_masks, lexical_features):
         outputs = self.bert(input_ids, attention_masks)
@@ -164,7 +167,8 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         t0_batch = time.time()
 
         # Reset tracking variables at the beginning of each epoch
-        total_loss, batch_loss, batch_count = 0, 0, 0
+        batch_loss, batch_count = 0, 0, 0
+        total_epoch_loss = []
         
         model.train()
     
@@ -183,7 +187,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
             loss = loss_function(scores.squeeze(), batch_labels.squeeze())
             # loss = criterion(predictions, tags)
             batch_loss += loss.item()
-            total_loss += loss.item()
+            total_epoch_loss.append(loss.item())
 
 
             optimizer.zero_grad()
@@ -219,21 +223,26 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         # calculate, print and store the metrics
         dev_loss, dev_r2, dev_corr = evaluate(model, loss_function, dev_dataloader, device)
         train_loss, train_r2, train_corr = evaluate(model, loss_function, train_dataloader, device)
-        avrg_dev_loss, avrg_dev_r2 = None, None
+        avrg_dev_loss, avrg_dev_r2, avrg_train_loss = None, None, None
         if len(dev_loss) > 0:
             avrg_dev_loss = sum(dev_loss)/len(dev_loss)
         if len(dev_r2) > 0:
             avrg_dev_r2 = sum(dev_r2)/len(dev_r2)
-        current_step_df = pd.DataFrame({'epoch': int(epoch_i), 'avrg_dev_loss':avrg_dev_loss, 'avrg_dev_r2':avrg_dev_r2, 'dev_corr': dev_corr, 'train_corr': train_corr}, index=[0])
+        if len(total_epoch_loss) > 0:
+            # remove nans or infs for calculation
+            filtered_train_loss = [val for val in total_epoch_loss if not (math.isinf(val) or math.isnan(val))]   
+            avrg_train_loss = sum(filtered_train_loss)/len(filtered_train_loss)
+            
+        current_step_df = pd.DataFrame({'epoch': int(epoch_i), 'avrg_dev_loss':avrg_dev_loss, 'avrg_dev_r2':avrg_dev_r2, 'dev_corr': dev_corr, 'train_corr': train_corr, 'avrg_train_loss': avrg_train_loss}, index=[0])
         history = pd.concat([history, current_step_df], ignore_index=True)
 
         #print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | dev_loss: {dev_loss} | dev_r2: {dev_r2}")
-        print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | train_corr: {train_corr} | avrg_dev_loss: {avrg_dev_loss} | avrg_dev_r2: {avrg_dev_r2}")
+        print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | train_corr: {train_corr} | avrg_dev_loss: {avrg_dev_loss} | avrg_train_loss: {avrg_train_loss}")
         
         # -------------------
         #   Early stopping 
         # -------------------
-
+    
 
 
     return model, history
@@ -254,8 +263,9 @@ def evaluate(model, loss_function, test_dataloader, device):
         loss = loss_function(outputs, batch_labels)
         dev_loss.append(loss.item())
         # -- r2 --
-        r2 = r2_score(outputs, batch_labels)
-        dev_r2.append(r2.item())
+        #r2 = r2_score(outputs, batch_labels)
+        #dev_r2.append(r2.item())
+        
         all_outputs = np.concatenate((all_outputs, outputs.detach().cpu().numpy()), axis = None)
         all_labels = np.concatenate((all_labels, batch_labels.detach().cpu().numpy()), axis = None)
 

@@ -6,6 +6,7 @@ COPY requirements.txt .
 
 RUN pip install -r requirements.txt
 
+# follwing is only needed for deployment
 # copy python files 
 # use if no volume is being used
 #COPY ./model/baseline_BERT.py /mzmarsly/model/baseline_BERT.py
