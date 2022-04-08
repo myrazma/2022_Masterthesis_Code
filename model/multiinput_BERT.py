@@ -67,7 +67,7 @@ class BertMultiInput(nn.Module):
             nn.Linear(Hidden_Regressor, 16),
             nn.Linear(16, 8),
             nn.ReLU(),
-            nn.Linear(Hidden_Regressor, D_out))
+            nn.Linear(8, D_out))
 
     def forward(self, input_ids, attention_masks, lexical_features):
         outputs = self.bert(input_ids, attention_masks)
@@ -154,8 +154,8 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
     epoch_model_saved = 0
 
     for epoch_i in range(epochs):
-        print('------ epoch' + str(epoch_i) + ' ------')
-        print('Beginning of epoch' + str(int(epoch_i)) + 'worse_loss' + str(worse_loss))
+        print('------ epoch ' + str(epoch_i) + ' ------')
+        print('Beginning of epoch ' + str(int(epoch_i)) + ', worse_loss ' + str(worse_loss))
 
         # only train bert for 2 epochs, otherwise bert might 'forget too much'
         if epoch_i == bert_update_epochs:
