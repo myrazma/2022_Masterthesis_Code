@@ -251,7 +251,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         # was avrg_dev_loss before, but maybe correlation is also useful
         all_dev_loss = history['dev_corr'].to_numpy()
         if all_dev_loss.shape[0] > 1:  # not possible to do this in first epoch
-            if all_dev_loss[-2] <= all_dev_loss[-1]:
+            if all_dev_loss[-2] >= all_dev_loss[-1]:
                 worse_loss += 1
             else:
                 worse_loss = 0
