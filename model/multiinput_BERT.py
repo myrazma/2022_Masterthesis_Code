@@ -46,7 +46,7 @@ class BertMultiInput(nn.Module):
         D_in = 768
         Bert_out = 100
         Multi_in = Bert_out + 1
-        Hidden_Regressor = 56
+        Hidden_Regressor = 10
         D_out = 1
 
         # calcuate output size of pooling layer
@@ -62,11 +62,11 @@ class BertMultiInput(nn.Module):
 
         self.regressor = nn.Sequential(
             nn.Linear(Multi_in, Hidden_Regressor),
-            nn.Dropout(0.2),
+            #nn.Dropout(0.2),
+            #nn.ReLU(),
+            #nn.Linear(Hidden_Regressor, 16),
             nn.ReLU(),
-            nn.Linear(Hidden_Regressor, 16),
-            nn.ReLU(),
-            nn.Linear(16, D_out))
+            nn.Linear(Hidden_Regressor, D_out))
 
     def forward(self, input_ids, attention_masks, lexical_features):
         outputs = self.bert(input_ids, attention_masks)
