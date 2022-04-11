@@ -172,3 +172,17 @@ def remove_stopwords(text_tok):
     """
     text_processed = [word for word in text_tok if not word.lower() in STOPWORDS_EN]
     return text_processed
+
+
+def normalize_scores(data, input_interval):
+    """Maps from desired input intervall to [0,1]
+
+    Args:
+        data (np.array): The data
+        input_interval ((int,int)): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    normalized = (data - input_interval[0]) / (input_interval[1] - input_interval[0])
+    return normalized

@@ -56,6 +56,7 @@ class BertMultiInput(nn.Module):
         #kernel_size = 3
         #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
         self.bert = RobertaModel.from_pretrained(bert_type)
+        self.bert.add_adapters
         self.after_bert = nn.Sequential(
             nn.Dropout(0.2),
             nn.Linear(D_in, Bert_out))
@@ -355,8 +356,8 @@ def run(root_folder="", empathy_type='empathy'):
 
     bert_type = "roberta-base"  # "bert-base-uncased"
     my_seed = 17
-    batch_size = 16
-    epochs = 10
+    batch_size = 4
+    epochs = 6
     learning_rate = 2e-5  # 2e-5
 
     # -------------------
@@ -421,13 +422,10 @@ def run(root_folder="", empathy_type='empathy'):
     lexical_dis_dev = np.array(data_dev_encoded_shuff["distress_word_rating"]).astype(np.float32).reshape(-1, 1)
 
     # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
-    scaler_empathy = MinMaxScaler()
-    label_scaled_empathy_train = scaler_empathy.fit_transform(label_empathy_train)
-    label_scaled_empathy_dev = scaler_empathy.transform(label_empathy_dev)
-    # make own for distress as std counts in transformation and it might be different for distress than empathy
-    scaler_distress = MinMaxScaler()
-    label_scaled_distress_train = scaler_distress.fit_transform(label_distress_train)
-    label_scaled_distress_dev = scaler_distress.transform(label_distress_dev)
+    label_scaled_empathy_train = utils.normalize_scores(label_empathy_train, (1,7))
+    label_scaled_empathy_dev = utils.normalize_scores(label_empathy_dev, (1,7))
+    label_scaled_distress_train = utils.normalize_scores(label_distress_train, (1,7))
+    label_scaled_distress_dev = utils.normalize_scores(label_distress_dev, (1,7))
 
     # -------------------
     #  initialize pre trained model an 

@@ -317,14 +317,11 @@ def run(root_folder="", empathy_type='empathy'):
     label_distress_dev = np.array(data_dev_encoded_shuff["distress"]).astype(np.float32).reshape(-1, 1)
 
     # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
-    scaler_empathy = MinMaxScaler()
-    label_scaled_empathy_train = scaler_empathy.fit_transform(label_empathy_train)
-    label_scaled_empathy_dev = scaler_empathy.transform(label_empathy_dev)
-    # make own for distress as std counts in transformation and it might be different for distress than empathy
-    scaler_distress = MinMaxScaler()
-    label_scaled_distress_train = scaler_distress.fit_transform(label_distress_train)
-    label_scaled_distress_dev = scaler_distress.transform(label_distress_dev)
-
+    label_scaled_empathy_train = utils.normalize_scores(label_empathy_train, (1,7))
+    label_scaled_empathy_dev = utils.normalize_scores(label_empathy_dev, (1,7))
+    label_scaled_distress_train = utils.normalize_scores(label_distress_train, (1,7))
+    label_scaled_distress_dev = utils.normalize_scores(label_distress_dev, (1,7))
+    
     # --- create dataloader ---
     # for empathy
     dataloader_emp_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_empathy_train, batch_size)
