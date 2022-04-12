@@ -364,7 +364,7 @@ def run(root_folder="", empathy_type='empathy'):
     my_seed = 17
     batch_size = 16
     epochs = 12
-    learning_rate = 5e-5  # 2e-5
+    learning_rate = 2e-5  # 2e-5
     use_early_stopping = False
 
     # -------------------
