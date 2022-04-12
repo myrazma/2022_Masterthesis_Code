@@ -236,7 +236,7 @@ def evaluate(model, loss_function, test_dataloader, device):
     # adapted by adding the pearson correlation
     model.eval()
     all_outputs, all_labels = np.array([]), np.array([])
-    dev_loss, dev_r2 = [], []
+    dev_loss = []
     for batch in test_dataloader:
         batch_inputs, batch_masks, batch_labels = \
                                  tuple(b.to(device) for b in batch)
@@ -246,8 +246,9 @@ def evaluate(model, loss_function, test_dataloader, device):
         loss = loss_function(outputs, batch_labels)
         dev_loss.append(loss.item())
         # -- r2 --
-        r2 = r2_score(outputs, batch_labels)
-        dev_r2.append(r2.item())
+        #r2 = r2_score(outputs, batch_labels)
+        #dev_r2.append(r2.item())
+        
         all_outputs = np.concatenate((all_outputs, outputs.detach().cpu().numpy()), axis = None)
         all_labels = np.concatenate((all_labels, batch_labels.detach().cpu().numpy()), axis = None)
 
@@ -257,9 +258,8 @@ def evaluate(model, loss_function, test_dataloader, device):
     dev_corr, _ = score_correlation(all_outputs, all_labels)
 
     # remove inf and nan, do not count for average
-    filtered_dev_r2 = [val for val in dev_r2 if not (math.isinf(val) or math.isnan(val))]
     filtered_dev_loss = [val for val in dev_loss if not (math.isinf(val) or math.isnan(val))]
-    return filtered_dev_loss, filtered_dev_r2, dev_corr
+    return filtered_dev_loss, dev_corr
 
 
 def r2_score(outputs, labels):
