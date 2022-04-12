@@ -128,7 +128,7 @@ def create_dataloaders(inputs, masks, labels, lexical_features, batch_size):
     return dataloader
 
 
-def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=10, early_stop_toleance=2):
+def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=10, early_stop_toleance=2, use_early_stopping=True):
     """Train the model on train dataset and evelautate on the dev dataset
     Source parly from [2]
     Args:
@@ -173,7 +173,8 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         print("-"*70)
 
         # Measure the elapsed time of each epoch
-        t0_batch = time.time()
+        t0_batch = time.time()  # will be overwritten each batch
+        t0_epoch = time.time()
 
         # Reset tracking variables at the beginning of each epoch
         batch_loss, batch_count = 0, 0
@@ -226,6 +227,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
                 batch_loss, batch_count = 0, 0
                 t0_batch = time.time()
             
+        epoch_time_elapsed = time.time() - t0_epoch
         # -------------------
         #     Validation 
         # -------------------
@@ -241,36 +243,39 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
             filtered_train_loss = [val for val in total_epoch_loss if not (math.isinf(val) or math.isnan(val))]   
             avrg_train_loss = sum(filtered_train_loss)/len(filtered_train_loss)
             
-        current_step_df = pd.DataFrame({'epoch': int(epoch_i), 'avrg_dev_loss':avrg_dev_loss, 'dev_corr': dev_corr, 'train_corr': train_corr, 'avrg_train_loss': avrg_train_loss}, index=[0])
+        current_step_df = pd.DataFrame({'epoch': int(epoch_i), 'avrg_dev_loss':avrg_dev_loss, 'dev_corr': dev_corr, 'train_corr': train_corr, 'avrg_train_loss': avrg_train_loss, 'train_time_elapsed': epoch_time_elapsed}, index=[0])
         history = pd.concat([history, current_step_df], ignore_index=True)
 
-        print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | train_corr: {train_corr} | avrg_dev_loss: {avrg_dev_loss} | avrg_train_loss: {avrg_train_loss}")
+        print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | train_corr: {train_corr} | avrg_dev_loss: {avrg_dev_loss} | avrg_train_loss: {avrg_train_loss} | training time elapsed: {epoch_time_elapsed}")
         
         # -------------------
         #   Early stopping 
         # -------------------
 
-        # was avrg_dev_loss before, but maybe correlation is also useful
-        all_dev_loss = history['dev_corr'].to_numpy()
-        if all_dev_loss.shape[0] > 1:  # not possible to do this in first epoch
-            if all_dev_loss[-2] >= all_dev_loss[-1]:
-                worse_loss += 1
+        if use_early_stopping:
+            # was avrg_dev_loss before, but maybe correlation is also useful
+            all_dev_loss = history['dev_corr'].to_numpy()
+            if all_dev_loss.shape[0] > 1:  # not possible to do this in first epoch
+                if all_dev_loss[-2] >= all_dev_loss[-1]:
+                    worse_loss += 1
+                else:
+                    worse_loss = 0
+            
+            # save the best model according to loss
+            if worse_loss > 0: # if the loss is worse than in previous training, don't save this model
+                pass # do nothing
             else:
-                worse_loss = 0
-        
-        # save the best model according to loss
-        if worse_loss > 0: # if the loss is worse than in previous training, don't save this model
-            pass # do nothing
-        else:
-            model_best = copy.deepcopy(model)
-            epoch_model_saved = int(epoch_i)
+                model_best = copy.deepcopy(model)
+                epoch_model_saved = int(epoch_i)
 
-        print('worse_loss', worse_loss)
-
-        if int(worse_loss) == int(early_stop_toleance):
-            print('early stopping at epoch', int(epoch_i))
-            break
+            if int(worse_loss) == int(early_stop_toleance):
+                print('early stopping at epoch', int(epoch_i))
+                break
         
+    if model_best is None:
+        # This is the case if no early stopping is used
+        print('Saving last model state...')
+        model_best = model
 
     # save at which state we saved the model
     model_saved_at_arr = np.zeros(history.shape[0])
@@ -358,8 +363,9 @@ def run(root_folder="", empathy_type='empathy'):
     bert_type = "roberta-base"  # "bert-base-uncased"
     my_seed = 17
     batch_size = 16
-    epochs = 6
-    learning_rate = 2e-5  # 2e-5
+    epochs = 12
+    learning_rate = 5e-5  # 2e-5
+    use_early_stopping = False
 
     # -------------------
     #   load data
@@ -489,7 +495,7 @@ def run(root_folder="", empathy_type='empathy'):
     # epochs
     loss_function = nn.MSELoss()
    
-    model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
+    model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_early_stopping=use_early_stopping)
     history.to_csv(output_root_folder + 'history_multiinput_' + empathy_type + '.csv')
     
     torch.save(model.state_dict(), output_root_folder + 'model_multiinput_' + empathy_type)
