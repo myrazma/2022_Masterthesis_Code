@@ -107,11 +107,11 @@ def pd_to_datasetdict(train, dev):
     whole_dataset = DatasetDict({'train': dataset_train, 'dev': dataset_dev})
     return whole_dataset
 
-    
-def tokenize(batch, tokenizer):
-    # Source: [1] - https://huggingface.co/docs/transformers/training
-    return tokenizer(batch['essay'], padding='max_length', truncation=True, max_length=512)
 
+def tokenize(batch, tokenizer, column):
+    # Source: [1] - https://huggingface.co/docs/transformers/training
+    # longest is around 200
+    return tokenizer(batch[column], padding='max_length', truncation=True, max_length=256)
 
 def create_dataloaders(inputs, masks, labels, batch_size):
     # Source: [2]
@@ -327,8 +327,8 @@ def run(root_folder="", empathy_type='empathy'):
     else:
         tokenizer = BertTokenizer.from_pretrained(bert_type)
 
-    data_train_encoded = data_train.map(lambda x: tokenize(x, tokenizer), batched=True, batch_size=None)
-    data_dev_encoded = data_dev.map(lambda x: tokenize(x, tokenizer), batched=True, batch_size=None)
+    data_train_encoded = data_train.map(lambda x: tokenize(x, tokenizer, 'essay'), batched=True, batch_size=None)
+    data_dev_encoded = data_dev.map(lambda x: tokenize(x, tokenizer, 'essay'), batched=True, batch_size=None)
 
     # --- shuffle data ---
     data_train_encoded_shuff = data_train_encoded.shuffle(seed=my_seed)
