@@ -56,7 +56,7 @@ class BertMultiInput(nn.Module):
         #kernel_size = 3
         #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
         self.bert = RobertaModel.from_pretrained(bert_type)
-        self.bert.add_adapters
+        
         self.after_bert = nn.Sequential(
             nn.Dropout(0.2),
             nn.Linear(D_in, Bert_out))
