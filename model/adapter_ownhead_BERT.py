@@ -50,7 +50,8 @@ class RegressionModelAdapters(nn.Module):
         super(RegressionModelAdapters, self).__init__()
         D_in = 768
         Bert_out = 100
-        Multi_in = Bert_out + 1
+        Add_Input_Dim = 0  # Input dim of additonal input
+        Regressor_in = Bert_out + Add_Input_Dim
         Hidden_Regressor = 50
         D_out = 1
 
@@ -92,36 +93,25 @@ class RegressionModelAdapters(nn.Module):
             nn.Dropout(0.2),
             nn.Linear(D_in, Bert_out))
 
+        # if multiinput should be added, do it here
         self.regressor = nn.Sequential(
-            nn.Linear(Multi_in, Hidden_Regressor),
+            nn.Linear(Regressor_in, Hidden_Regressor),
             nn.Dropout(0.1),
             nn.ReLU(),
             nn.Linear(Hidden_Regressor, 10),
             nn.Linear(10, D_out))
 
-    def forward(self, input_ids, attention_masks, lexical_features):
+    def forward(self, input_ids, attention_masks):
         bert_outputs = self.bert(input_ids, attention_masks)
-        # TODO I need to hand lexical features somwhere dont I?
         bert_output = bert_outputs[1]
     
         bert_head_output = self.bert_head(bert_output)
     
         # concat bert output with multi iput - lexical data
         # combine bert output (after short ffn) with lexical features
-        concat = torch.cat((bert_head_output, lexical_features), 1)
-        outputs = self.regressor(concat)
+        #concat = torch.cat((bert_head_output, lexical_features), 1)
+        outputs = self.regressor(bert_head_output)
         return outputs
-
-class mySequential(nn.Sequential):
-    def forward(self, outputs, cls_output=None, attention_mask=None, return_dict=False, **kwargs):
-        input = outputs
-        for module in self._modules.values():
-            print((outputs[0],) + outputs[2:])
-            #print(outputs)
-            print(cls_output)
-            print(module)
-            input = module(*input)
-        return input
 
 
 class MyPredictionHead(nn.Sequential):
@@ -356,9 +346,9 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         for step, batch in enumerate(train_dataloader):  
             batch_count +=1
             #batch_inputs, batch_masks, batch_labels, batch_lexical = tuple(b.to(device) for b in batch)
-            batch_inputs, batch_masks, batch_labels, batch_lexicon = tuple(b.to(device) for b in batch)
+            batch_inputs, batch_masks, batch_labels = tuple(b.to(device) for b in batch)
             #model.zero_grad()
-            scores = model(batch_inputs, batch_masks, batch_lexicon)
+            scores = model(batch_inputs, batch_masks)
        
             #loss, logits, hidden_states, attentions = scores
   
@@ -463,10 +453,10 @@ def evaluate(model, loss_function, test_dataloader, device):
     all_outputs, all_labels = np.array([]), np.array([])
     dev_loss = []
     for batch in test_dataloader:
-        batch_inputs, batch_masks, batch_labels, batch_lexicon = \
+        batch_inputs, batch_masks, batch_labels = \
                                  tuple(b.to(device) for b in batch)
         with torch.no_grad():
-            outputs = model(batch_inputs, batch_masks, batch_lexicon)
+            outputs = model(batch_inputs, batch_masks)
         # -- loss --
         loss = loss_function(outputs, batch_labels)
         dev_loss.append(loss.item())
@@ -525,7 +515,7 @@ def run(root_folder="", empathy_type='empathy'):
     bert_type = "roberta-base"  # "bert-base-uncased"
     my_seed = 17
     batch_size = 16
-    epochs = 12
+    epochs = 10
     learning_rate = 5e-5  # might also try: 0.0001 (pfeiffer)
     use_early_stopping = False
 
@@ -534,8 +524,8 @@ def run(root_folder="", empathy_type='empathy'):
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
 
-    data_train_pd = utils.clean_raw_data(data_train_pd)
-    data_dev_pd = utils.clean_raw_data(data_dev_pd)
+    data_train_pd = utils.clean_raw_data(data_train_pd[:10])
+    data_dev_pd = utils.clean_raw_data(data_dev_pd[:10])
 
     # save raw essay (will not be tokenized by BERT)
     data_train_pd['essay_raw'] = data_train_pd['essay']
@@ -622,19 +612,19 @@ def run(root_folder="", empathy_type='empathy'):
     # --- create dataloader ---
     # with lexical data
     # for empathy
-    dataloader_emp_train = create_dataloaders_multi_in(input_ids_train, attention_mask_train, label_scaled_empathy_train, lexical_emp_train, batch_size)
-    dataloader_emp_dev = create_dataloaders_multi_in(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, lexical_emp_dev, batch_size)
+    #dataloader_emp_train = create_dataloaders_multi_in(input_ids_train, attention_mask_train, label_scaled_empathy_train, lexical_emp_train, batch_size)
+    #dataloader_emp_dev = create_dataloaders_multi_in(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, lexical_emp_dev, batch_size)
     # for distress
-    dataloader_dis_train = create_dataloaders_multi_in(input_ids_train, attention_mask_train, label_scaled_distress_train, lexical_dis_train, batch_size)
-    dataloader_dis_dev = create_dataloaders_multi_in(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, lexical_dis_dev, batch_size)
+    #dataloader_dis_train = create_dataloaders_multi_in(input_ids_train, attention_mask_train, label_scaled_distress_train, lexical_dis_train, batch_size)
+    #dataloader_dis_dev = create_dataloaders_multi_in(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, lexical_dis_dev, batch_size)
 
     # without lexical data
     # for empathy
-    #dataloader_emp_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_empathy_train, batch_size)
-    #dataloader_emp_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, batch_size)
+    dataloader_emp_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_empathy_train, batch_size)
+    dataloader_emp_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, batch_size)
     # for distress
-    #dataloader_dis_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_distress_train, batch_size)
-    #dataloader_dis_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, batch_size)
+    dataloader_dis_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_distress_train, batch_size)
+    dataloader_dis_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, batch_size)
 
     # TODO create for distress and select accoridng to method input from run()
     pytorch_dataset_emp_train = MyDataset(input_ids_train, attention_mask_train, label_scaled_empathy_train, device)

@@ -15,8 +15,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 import math
 # Transformers, torch and model utils
-from transformers import BertModel, BertConfig, BertForSequenceClassification, AutoModel
-from transformers import BertTokenizer
+from transformers import BertModel, BertConfig, BertForSequenceClassification, AutoModel, RobertaModel
+from transformers import BertTokenizer, RobertaTokenizer
 from transformers import AdamW
 from transformers import get_linear_schedule_with_warmup
 from datasets import Dataset, DatasetDict
@@ -42,25 +42,40 @@ class BertRegressor(nn.Module):
     # source (changed some things): [2]  
     # https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
     
-    def __init__(self, drop_rate=0.5, bert_type="bert-base-uncased"):
+    def __init__(self, bert_type="bert-base-uncased"):
         super(BertRegressor, self).__init__()
         D_in, D_out = 768, 1
-
+        Bert_out = 100
+        Add_Input_Dim = 0  # Input dim of additonal input
+        Regressor_in = Bert_out + Add_Input_Dim
+        Hidden_Regressor = 50
         # calcuate output size of pooling layer
         #padding = 0
         #dilation = 1
         #stride = 2
         #kernel_size = 3
         #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
-        self.bert = BertModel.from_pretrained(bert_type)
+        if bert_type == 'roberta-base':
+            self.bert = RobertaModel.from_pretrained(bert_type)
+        else:
+            self.bert = BertModel.from_pretrained(bert_type)
+
+        self.bert_head = nn.Sequential(
+            nn.Dropout(0.2),
+            nn.Linear(D_in, Bert_out))
+
+        # if multiinput should be added, do it here
         self.regressor = nn.Sequential(
-            nn.Dropout(drop_rate),
-            nn.Linear(D_in, D_out))
+            nn.Linear(Regressor_in, Hidden_Regressor),
+            nn.Dropout(0.1),
+            nn.ReLU(),
+            nn.Linear(Hidden_Regressor, 10),
+            nn.Linear(10, D_out))
 
     def forward(self, input_ids, attention_masks):
-        outputs = self.bert(input_ids, attention_masks)
-        class_label_output = outputs[1]
-        outputs = self.regressor(class_label_output)
+        bert_outputs = self.bert(input_ids, attention_masks)
+        bert_output = bert_outputs[1]
+        outputs = self.regressor(bert_output)
         return outputs
 
 
@@ -137,6 +152,8 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
 
         # Measure the elapsed time of each epoch
         t0_batch = time.time()
+        t0_epoch = time.time()
+        total_epoch_loss = []
 
         # Reset tracking variables at the beginning of each epoch
         total_loss, batch_loss, batch_count = 0, 0, 0
@@ -159,6 +176,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
             # loss = criterion(predictions, tags)
             batch_loss += loss.item()
             total_loss += loss.item()
+            total_epoch_loss.append(loss.item())
 
 
             optimizer.zero_grad()
@@ -187,24 +205,28 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
                 # Reset batch tracking variables
                 batch_loss, batch_count = 0, 0
                 t0_batch = time.time()
+
+        epoch_time_elapsed = time.time() - t0_epoch
             
         # -------------------
         #     Validation 
         # -------------------
         # calculate, print and store the metrics
-        dev_loss, dev_r2, dev_corr = evaluate(model, loss_function, dev_dataloader, device)
-        train_loss, train_r2, train_corr = evaluate(model, loss_function, train_dataloader, device)
-        avrg_dev_loss, avrg_dev_r2 = None, None
+        dev_loss, dev_corr = evaluate(model, loss_function, dev_dataloader, device)
+        train_loss, train_corr = evaluate(model, loss_function, train_dataloader, device)
+        avrg_dev_loss, avrg_dev_r2, avrg_train_loss = None, None, None
         if len(dev_loss) > 0:
             avrg_dev_loss = sum(dev_loss)/len(dev_loss)
-        if len(dev_r2) > 0:
-            avrg_dev_r2 = sum(dev_r2)/len(dev_r2)
-        
-        history = history.append({'epoch': int(epoch_i), 'avrg_dev_loss':avrg_dev_loss, 'avrg_dev_r2':avrg_dev_r2, 'dev_corr': dev_corr, 'train_corr': train_corr}, ignore_index=True)
+        if len(total_epoch_loss) > 0:
+            # remove nans or infs for calculation
+            filtered_train_loss = [val for val in total_epoch_loss if not (math.isinf(val) or math.isnan(val))]   
+            avrg_train_loss = sum(filtered_train_loss)/len(filtered_train_loss)
 
-        #print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | dev_loss: {dev_loss} | dev_r2: {dev_r2}")
-        print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | train_corr: {train_corr} | avrg_dev_loss: {avrg_dev_loss} | avrg_dev_r2: {avrg_dev_r2}")
-    
+        current_step_df = pd.DataFrame({'epoch': int(epoch_i), 'avrg_dev_loss':avrg_dev_loss, 'dev_corr': dev_corr, 'train_corr': train_corr, 'avrg_train_loss': avrg_train_loss, 'train_time_elapsed': epoch_time_elapsed}, index=[0])
+        history = pd.concat([history, current_step_df], ignore_index=True)
+
+        print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | train_corr: {train_corr} | avrg_dev_loss: {avrg_dev_loss} | avrg_train_loss: {avrg_train_loss} | training time elapsed: {epoch_time_elapsed}")
+        
     return model, history
 
 
@@ -270,10 +292,15 @@ def run(root_folder="", empathy_type='empathy'):
     #     parameters
     # -------------------
 
-    bert_type = "bert-base-uncased"
+    bert_type = "roberta-base"
     my_seed = 17
-    batch_size = 1
-    epochs = 1
+    batch_size = 16
+    learning_rate = 5e-5
+    epochs = 10
+
+    using_roberta = False
+    if bert_type == 'roberta-base':
+        using_roberta = True
 
     # -------------------
     #   load data
@@ -295,7 +322,10 @@ def run(root_folder="", empathy_type='empathy'):
     # -------------------
 
     # --- tokenize data ---
-    tokenizer = BertTokenizer.from_pretrained(bert_type)
+    if using_roberta:
+        tokenizer = RobertaTokenizer.from_pretrained(bert_type)
+    else:
+        tokenizer = BertTokenizer.from_pretrained(bert_type)
 
     data_train_encoded = data_train.map(lambda x: tokenize(x, tokenizer), batched=True, batch_size=None)
     data_dev_encoded = data_dev.map(lambda x: tokenize(x, tokenizer), batched=True, batch_size=None)
@@ -363,7 +393,7 @@ def run(root_folder="", empathy_type='empathy'):
     # --- optimizer ---
     # low learning rate to not get into catastrophic forgetting - Sun 2019
     # default epsilon by pytorch is 1e-8
-    optimizer = AdamW(model.parameters(), lr=2e-5, eps=1e-8)
+    optimizer = AdamW(model.parameters(), lr=learning_rate, eps=1e-8)
 
     # scheduler
     total_steps = len(dataloader_train) * epochs
@@ -374,9 +404,9 @@ def run(root_folder="", empathy_type='empathy'):
     loss_function = nn.MSELoss()
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
-    history.to_csv(root_folder + 'output/history_' + empathy_type + '.csv')
+    history.to_csv(root_folder + 'output/history_baseline_' + empathy_type + '.csv')
     
-    torch.save(model.state_dict(), root_folder + 'output/model_' + empathy_type)
+    torch.save(model.state_dict(), root_folder + 'output/model_baseline_' + empathy_type)
     print('Done')
     return model, history
 
