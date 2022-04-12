@@ -218,9 +218,9 @@ class MyDataset(PyTorchDataset):
             seq (np.array) [x, y]: The sequences of shape (sample_size, max_seq_size)
             labels (np.array) [x, y]: The labels of shape (sample_size, max_seq_size)
         """
-        self.labels = torch.from_numpy(labels).type(torch.FloatTensor).to(device)
-        self.input_ids = torch.from_numpy(input_ids).type(torch.FloatTensor).to(device)
-        self.attention_mask = torch.from_numpy(attention_mask).type(torch.LongTensor).to(device)
+        self.labels = torch.from_numpy(labels).type(torch.FloatTensor)
+        self.input_ids = torch.from_numpy(input_ids).type(torch.FloatTensor)
+        self.attention_mask = torch.from_numpy(attention_mask).type(torch.LongTensor)
 
     def __len__(self):
         """Implement len function of type Dataset
@@ -642,12 +642,12 @@ def run(root_folder="", empathy_type='empathy'):
 
     # --- choose dataset ---
     # per default use empathy label
-    dataset_train = pytorch_dataset_emp_train
-    dataset_dev = pytorch_dataset_emp_dev
+    dataloader_train = dataloader_emp_train
+    dataloader_dev = dataloader_emp_dev
     display_text = 'Using empathy data'
     if empathy_type == 'distress':
-        dataset_train = pytorch_dataset_dis_train
-        dataset_dev = pytorch_dataset_dis_dev
+        dataloader_train = dataloader_dis_train
+        dataloader_dev = dataloader_dis_dev
         display_text = "Using distress data"
     print('\n------------ ' + display_text + ' ------------\n')
 
@@ -737,14 +737,14 @@ def run(root_folder="", empathy_type='empathy'):
     optimizer = AdamW(model.parameters(), lr=learning_rate, eps=1e-8)
 
     # scheduler
-    total_steps = len(dataset_train) * epochs
+    total_steps = len(dataloader_train) * epochs
     scheduler = get_linear_schedule_with_warmup(optimizer,       
                     num_warmup_steps=0, num_training_steps=total_steps)
 
     # epochs
     loss_function = nn.MSELoss()
    
-    model, history = train(model, dataset_train, dataset_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
+    model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
     history.to_csv(output_root_folder + 'history_multiinput_' + empathy_type + '.csv')
     
     torch.save(model.state_dict(), output_root_folder + 'model_multiinput_' + empathy_type)

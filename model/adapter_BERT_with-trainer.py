@@ -123,9 +123,9 @@ class MyDataset(PyTorchDataset):
             seq (np.array) [x, y]: The sequences of shape (sample_size, max_seq_size)
             labels (np.array) [x, y]: The labels of shape (sample_size, max_seq_size)
         """
-        self.labels = torch.from_numpy(labels).type(torch.FloatTensor).to(device)
-        self.input_ids = torch.from_numpy(input_ids).type(torch.FloatTensor).to(device)
-        self.attention_mask = torch.from_numpy(attention_mask).type(torch.LongTensor).to(device)
+        self.labels = torch.from_numpy(labels).type(torch.FloatTensor)
+        self.input_ids = torch.from_numpy(input_ids).type(torch.FloatTensor)
+        self.attention_mask = torch.from_numpy(attention_mask).type(torch.LongTensor)
 
     def __len__(self):
         """Implement len function of type Dataset
