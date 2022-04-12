@@ -75,7 +75,8 @@ class BertRegressor(nn.Module):
     def forward(self, input_ids, attention_masks):
         bert_outputs = self.bert(input_ids, attention_masks)
         bert_output = bert_outputs[1]
-        outputs = self.regressor(bert_output)
+        bert_head_output = self.bert_head(bert_output)
+        outputs = self.regressor(bert_head_output)
         return outputs
 
 

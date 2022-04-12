@@ -71,6 +71,7 @@ class RegressionModelAdapters(nn.Module):
         
         # task adapter - only add if not existing
         if adapter_name not in self.bert.config.adapters:
+            print('adding adapter')
             self.bert.add_adapter(adapter_name, config="pfeiffer", set_active=True)
         #self.bert.set_active_adapters(adapter_name)
         self.bert.train_adapter(adapter_name)  # set adapter into training mode and freeze parameters in the transformer model
