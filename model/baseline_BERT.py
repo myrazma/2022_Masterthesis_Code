@@ -368,7 +368,7 @@ def run(root_folder="", empathy_type='empathy'):
     
     # --- init model ---
     print('------------ initializing Model ------------')
-    model = BertRegressor(drop_rate=0.5, bert_type=bert_type)
+    model = BertRegressor(bert_type=bert_type)
 
     # --- choose dataset ---
     # per default use empathy label
