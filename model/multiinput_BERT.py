@@ -68,6 +68,7 @@ class BertMultiInput(nn.Module):
             nn.Linear(Hidden_Regressor, 10),
             nn.Linear(10, D_out))
 
+
     def forward(self, input_ids, attention_masks, lexical_features):
         outputs = self.bert(input_ids, attention_masks)
         bert_output = outputs[1]
@@ -356,7 +357,7 @@ def run(root_folder="", empathy_type='empathy'):
 
     bert_type = "roberta-base"  # "bert-base-uncased"
     my_seed = 17
-    batch_size = 4
+    batch_size = 16
     epochs = 6
     learning_rate = 2e-5  # 2e-5
 

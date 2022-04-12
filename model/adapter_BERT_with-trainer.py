@@ -234,14 +234,15 @@ def run(root_folder="", empathy_type='empathy'):
         print("\n---------- No GPU available, using the CPU instead. ----------\n")
         device = torch.device("cpu")
         use_gpu = False
+
     # -------------------
     #     parameters
     # -------------------
 
     bert_type = "roberta-base"  # "bert-base-uncased"
     my_seed = 17
-    batch_size = 4
-    epochs = 2
+    batch_size = 16
+    epochs = 6
     learning_rate = 2e-5  # 2e-5
 
     # -------------------
@@ -249,8 +250,8 @@ def run(root_folder="", empathy_type='empathy'):
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
 
-    data_train_pd = utils.clean_raw_data(data_train_pd[:20])
-    data_dev_pd = utils.clean_raw_data(data_dev_pd[:10])
+    data_train_pd = utils.clean_raw_data(data_train_pd)
+    data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
     # save raw essay (will not be tokenized by BERT)
     data_train_pd['essay_raw'] = data_train_pd['essay']
@@ -346,11 +347,11 @@ def run(root_folder="", empathy_type='empathy'):
     # without lexical data
     # for empathy
     
-    dataloader_emp_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_empathy_train, batch_size)
-    dataloader_emp_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, batch_size)
+    #dataloader_emp_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_empathy_train, batch_size)
+    #dataloader_emp_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, batch_size)
     # for distress
-    dataloader_dis_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_distress_train, batch_size)
-    dataloader_dis_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, batch_size)
+    #dataloader_dis_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_distress_train, batch_size)
+    #dataloader_dis_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, batch_size)
     
     pytorch_dataset_emp_train = MyDataset(input_ids_train, attention_mask_train, label_scaled_empathy_train, device)
     pytorch_dataset_emp_dev = MyDataset(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, device)

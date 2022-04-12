@@ -61,9 +61,7 @@ class RegressionModelAdapters(nn.Module):
 
             
         # Enable adapter training
-        self.bert_head = mySequential(
-            nn.Dropout(0.2),
-            nn.Linear(D_in, D_out))
+        
 
         # TODO
         #regr_head = RegressionHead(self.bert, head_name)  # self.bert_head
@@ -93,27 +91,27 @@ class RegressionModelAdapters(nn.Module):
             
         self.bert_head = nn.Sequential(
             nn.Dropout(0.2),
-            nn.Linear(D_in, D_out))
+            nn.Linear(D_in, Bert_out))
 
         self.regressor = nn.Sequential(
-            nn.Linear(Multi_in, Hidden_Regressor),
+            nn.Linear(Bert_out, Hidden_Regressor),
             nn.Dropout(0.1),
             nn.ReLU(),
             nn.Linear(Hidden_Regressor, 10),
             nn.Linear(10, D_out))
 
     def forward(self, input_ids, attention_masks):
-        outputs = self.bert(input_ids, attention_masks)
+        bert_outputs = self.bert(input_ids, attention_masks)
         # TODO I need to hand lexical features somwhere dont I?
-        bert_output = outputs[1]
+        bert_output = bert_outputs[1]
     
-        after_bert_outputs = self.bert_head(bert_output)
+        bert_head_output = self.bert_head(bert_output)
     
         # concat bert output with multi iput - lexical data
         # combine bert output (after short ffn) with lexical features
         #concat = torch.cat((after_bert_outputs, lexical_features), 1)
-        #outputs = self.regressor(concat)
-        return after_bert_outputs
+        outputs = self.regressor(bert_head_output)
+        return outputs
 
 class mySequential(nn.Sequential):
     def forward(self, outputs, cls_output=None, attention_mask=None, return_dict=False, **kwargs):
@@ -524,17 +522,17 @@ def run(root_folder="", empathy_type='empathy'):
 
     bert_type = "roberta-base"  # "bert-base-uncased"
     my_seed = 17
-    batch_size = 4
-    epochs = 2
-    learning_rate = 2e-5  # 2e-5
+    batch_size = 16
+    epochs = 6
+    learning_rate = 2e-5
 
     # -------------------
     #   load data
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
 
-    data_train_pd = utils.clean_raw_data(data_train_pd[:20])
-    data_dev_pd = utils.clean_raw_data(data_dev_pd[:10])
+    data_train_pd = utils.clean_raw_data(data_train_pd)
+    data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
     # save raw essay (will not be tokenized by BERT)
     data_train_pd['essay_raw'] = data_train_pd['essay']
@@ -638,16 +636,18 @@ def run(root_folder="", empathy_type='empathy'):
     # TODO create for distress and select accoridng to method input from run()
     pytorch_dataset_emp_train = MyDataset(input_ids_train, attention_mask_train, label_scaled_empathy_train, device)
     pytorch_dataset_emp_dev = MyDataset(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, device)
+    pytorch_dataset_dis_train = MyDataset(input_ids_train, attention_mask_train, label_scaled_distress_train, device)
+    pytorch_dataset_dis_dev = MyDataset(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, device)
     
 
     # --- choose dataset ---
     # per default use empathy label
-    dataloader_train = dataloader_emp_train
-    dataloader_dev = dataloader_emp_dev
+    dataset_train = pytorch_dataset_emp_train
+    dataset_dev = pytorch_dataset_emp_dev
     display_text = 'Using empathy data'
     if empathy_type == 'distress':
-        dataloader_train = dataloader_dis_train
-        dataloader_dev = dataloader_dis_dev
+        dataset_train = pytorch_dataset_dis_train
+        dataset_dev = pytorch_dataset_dis_dev
         display_text = "Using distress data"
     print('\n------------ ' + display_text + ' ------------\n')
 
@@ -737,14 +737,14 @@ def run(root_folder="", empathy_type='empathy'):
     optimizer = AdamW(model.parameters(), lr=learning_rate, eps=1e-8)
 
     # scheduler
-    total_steps = len(dataloader_train) * epochs
+    total_steps = len(dataset_train) * epochs
     scheduler = get_linear_schedule_with_warmup(optimizer,       
                     num_warmup_steps=0, num_training_steps=total_steps)
 
     # epochs
     loss_function = nn.MSELoss()
    
-    model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
+    model, history = train(model, dataset_train, dataset_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
     history.to_csv(output_root_folder + 'history_multiinput_' + empathy_type + '.csv')
     
     torch.save(model.state_dict(), output_root_folder + 'model_multiinput_' + empathy_type)
