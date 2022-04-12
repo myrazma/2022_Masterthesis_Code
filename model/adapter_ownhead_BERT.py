@@ -46,7 +46,7 @@ import utils
 # TODO: I need to structure for adapters
 # TODO: Use Trainer / Adaptertrainer
 class RegressionModelAdapters(nn.Module):
-    def __init__(self, bert_type, task_type):
+    def __init__(self, bert_type, task_type, adapter_config):
         super(RegressionModelAdapters, self).__init__()
         D_in = 768
         Bert_out = 100
@@ -72,7 +72,7 @@ class RegressionModelAdapters(nn.Module):
         # task adapter - only add if not existing
         if adapter_name not in self.bert.config.adapters:
             print('adding adapter')
-            self.bert.add_adapter(adapter_name, config="pfeiffer", set_active=True)
+            self.bert.add_adapter(adapter_name, config=adapter_config, set_active=True)
         #self.bert.set_active_adapters(adapter_name)
         self.bert.train_adapter(adapter_name)  # set adapter into training mode and freeze parameters in the transformer model
         #self.bert.active_adapters = adapter_name
@@ -519,6 +519,21 @@ def run(root_folder="", empathy_type='empathy'):
     epochs = 10
     learning_rate = 5e-5  # might also try: 0.0001 (pfeiffer)
     use_early_stopping = False
+    adapter_config = 'parallel'  # He2021
+
+    """ADAPTER_CONFIG_MAP = {
+    "pfeiffer": PfeifferConfig(),  # Pfeiffer2020
+    "houlsby": HoulsbyConfig(),
+    "pfeiffer+inv": PfeifferInvConfig(),
+    "houlsby+inv": HoulsbyInvConfig(),
+    "compacter++": CompacterPlusPlusConfig(),
+    "compacter": CompacterConfig(),
+    "prefix_tuning": PrefixTuningConfig(),
+    "prefix_tuning_flat": PrefixTuningConfig(flat=True),
+    "parallel": ParallelConfig(),  # He2021
+    "scaled_parallel": ParallelConfig(scaling="learned"),
+    "mam": MAMConfig(),
+    }"""
 
     # -------------------
     #   load data
@@ -722,7 +737,7 @@ def run(root_folder="", empathy_type='empathy'):
     """
 
     #model = BertMultiInput(drop_rate=0.2, bert_type=bert_type)
-    model = RegressionModelAdapters(bert_type=bert_type,task_type=empathy_type)
+    model = RegressionModelAdapters(bert_type=bert_type,task_type=empathy_type, adapter_config=adapter_config)
     model.to(device)
     # -------------------------------
     # --- optimizer ---
