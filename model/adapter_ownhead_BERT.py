@@ -19,7 +19,6 @@ import math
 from transformers import AutoTokenizer, BertModel, BertConfig, BertForSequenceClassification, AutoModel, RobertaModel
 from transformers import RobertaConfig, RobertaModelWithHeads
 from transformers import BertTokenizer, RobertaTokenizer
-from transformers import AdamW
 from transformers import TrainingArguments, AdapterTrainer, EvalPrediction
 from transformers import get_linear_schedule_with_warmup
 import transformers.adapters as adapters
@@ -325,7 +324,6 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
 
     for epoch_i in range(epochs):
         print('------ epoch ' + str(epoch_i) + ' ------')
-        print('Beginning of epoch ' + str(int(epoch_i)) + ', worse_loss ' + str(worse_loss))
 
         # only train bert for 2 epochs, otherwise bert might 'forget too much'
         #if epoch_i == bert_update_epochs:
@@ -360,10 +358,9 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
             batch_inputs, batch_masks, batch_labels = tuple(b.to(device) for b in batch)
             #model.zero_grad()
             scores = model(batch_inputs, batch_masks)
-            print(scores)
+       
             #loss, logits, hidden_states, attentions = scores
-            print(batch_labels)
-            break
+  
             # make predictions into right shape
             #predictions = scores.view(-1, scores.shape[-1])
             #tags = labels.view(-1)
@@ -745,9 +742,9 @@ def run(root_folder="", empathy_type='empathy'):
     loss_function = nn.MSELoss()
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
-    history.to_csv(output_root_folder + 'history_multiinput_' + empathy_type + '.csv')
+    history.to_csv(output_root_folder + 'history_adapters_' + empathy_type + '.csv')
     
-    torch.save(model.state_dict(), output_root_folder + 'model_multiinput_' + empathy_type)
+    torch.save(model.state_dict(), output_root_folder + 'model_adapters_' + empathy_type)
     print('Done')
     return model, history
 

@@ -14,7 +14,6 @@ import math
 from transformers import AutoTokenizer, BertModel, BertConfig, BertForSequenceClassification, AutoModel, RobertaModel
 from transformers import RobertaConfig, RobertaModelWithHeads
 from transformers import BertTokenizer, RobertaTokenizer
-from transformers import AdamW
 from transformers import TrainingArguments, AdapterTrainer, EvalPrediction
 from transformers import get_linear_schedule_with_warmup
 import transformers.adapters as adapters
@@ -391,7 +390,6 @@ def run(root_folder="", empathy_type='empathy'):
     model.train_adapter(adapter_name)  # set adapter into training mode and freeze parameters in the transformer model
 
     model.to(device)
-
 
 
     # -------------------------------
