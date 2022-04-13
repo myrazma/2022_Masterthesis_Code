@@ -61,30 +61,15 @@ class RegressionModelAdapters(nn.Module):
 
             
         # Enable adapter training
-        
-
-        # TODO
-        #regr_head = RegressionHead(self.bert, head_name)  # self.bert_head
-        #self.bert.register_custom_head(head_name, regr_head)
-        #self.bert.add_custom_head(head_type=head_name, head_name='_' + head_name)
-        #self.bert.add_classification_head(adapter_name, num_labels=1)  # if label is one, regression is used
-        
         # task adapter - only add if not existing
         if adapter_name not in self.bert.config.adapters:
             print('adding adapter')
             self.bert.add_adapter(adapter_name, config=adapter_config, set_active=True)
         #self.bert.set_active_adapters(adapter_name)
         self.bert.train_adapter(adapter_name)  # set adapter into training mode and freeze parameters in the transformer model
-        #self.bert.active_adapters = adapter_name
-        #self.bert = RobertaAdapterModel.from_pretrained(bert_type)
-        #self.bert.add_adapter("mam_adapter", config=mam_config)
-        #self.bert.register_custom_head("regression_head", CustomHead)
-        #self.bert.add_custom_head(head_type="regression_head", head_name="regression_head_1", **kwargs)
-        #self.bert.add_adapter("regression_head_1", config="pfeiffer")
-        #self.bert.set_active_adapters("regression_head_1"
         
         # print frozen parameters
-        if False:
+        if True:
             names = [n for n, p in self.bert.named_parameters()]
             paramsis = [param for param in self.bert.parameters()]
             for n, p in zip(names, paramsis):
@@ -113,92 +98,6 @@ class RegressionModelAdapters(nn.Module):
         #concat = torch.cat((bert_head_output, lexical_features), 1)
         outputs = self.regressor(bert_head_output)
         return outputs
-
-
-class MyPredictionHead(nn.Sequential):
-    def __init__(self, name):
-        super().__init__()
-        self.config = {}
-        self.name = name
-
-    def build(self, model):
-        model_config = model.config
-
-        dropout_prob = self.config.get("dropout_prob", model_config.hidden_dropout_prob)
-        #for i, module in enumerate(pred_head):
-        self.add_module(0, nn.Dropout(dropout_prob))
-        self.add_module(1, nn.Linear(model_config.hidden_size, model_config.hidden_size))
-        self.add_module(2, nn.Linear(model_config.hidden_size, 1))
-
-        self.apply(model._init_weights)
-        self.train(model.training)  # make sure training mode is consistent
-
-    def get_output_embeddings(self):
-        return None  # override for heads with output embeddings
-
-
-    
-class RegressionHead(MyPredictionHead):
-    # source https://docs.adapterhub.ml/prediction_heads.html#adaptermodel-classes
-    def __init__(
-        self,
-        model,
-        head_name,
-        **kwargs,
-    ):
-        super().__init__(head_name)
-        # TODO: Add multli input, if wanted
-        D_in = 768
-        Bert_out = 100
-        Multi_in = Bert_out +1
-        Hidden_Regressor = 50
-        D_out = 1
-
-        self.bert_head = nn.Sequential(
-            nn.Dropout(0.2),
-            nn.Linear(D_in, D_out))
-            #nn.Linear(D_in, Bert_out))
-
-        self.regressor = nn.Sequential(
-            nn.Linear(Multi_in, Hidden_Regressor),
-            nn.Dropout(0.1),
-            nn.ReLU(),
-            nn.Linear(Hidden_Regressor, 10),
-            nn.Linear(10, D_out))
-        
-        #self.build(model)
-    def forward(self, outputs, cls_output=None, attention_mask=None, return_dict=False, **kwargs):
-        if cls_output is None:
-            if self.config["use_pooler"]:
-                cls_output = kwargs.pop("pooled_output")
-            else:
-                cls_output = outputs[0][:, 0]
-        logits = super().forward(cls_output)
-    """
-    def forward(self, head_inputs, head_name, attention_mask=None,return_dict=None,pooled_output=None,**kwargs,):
-
-        #cls_output = kwargs.pop("pooled_output")
-        #print(type(outputs))
-        #if cls_output is None:
-        #cls_output = outputs[0][:, 0]
-        print(head_name)
-        print(head_inputs[0][:, 0])
-        logits = super().forward(head_inputs[0][:, 0])
-        loss = None
-        labels = kwargs.pop("labels", None)
-        print(labels)
-        print('-----------------------')
-        #print(type(attention_mask))
-        #outputs = self.bert(input_ids, attention_masks)
-        bert_output = head_inputs[1]
-
-        # concat bert output with multi iput - lexical data
-        after_bert_outputs = self.bert_head(bert_output)
-    
-        # combine bert output (after short ffn) with lexical features
-        #concat = torch.cat((after_bert_outputs, lexical_features), 1)
-        #outputs = self.regressor(concat)
-        return after_bert_outputs"""
 
 
 class MyDataset(PyTorchDataset):

@@ -42,7 +42,7 @@ class BertRegressor(nn.Module):
     # source (changed some things): [2]  
     # https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
     
-    def __init__(self, bert_type="bert-base-uncased"):
+    def __init__(self, bert_type="bert-base-uncased", train_only_bias=False):
         super(BertRegressor, self).__init__()
         D_in, D_out = 768, 1
         Bert_out = 100
@@ -60,11 +60,20 @@ class BertRegressor(nn.Module):
         else:
             self.bert = BertModel.from_pretrained(bert_type)
 
+        if train_only_bias:
+            names = [n for n, p in self.bert.named_parameters()]
+            paramsis = [param for param in self.bert.parameters()]
+            for n, p in zip(names, paramsis):
+                if 'bias' in n:
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+                print(f"{n}: {p.requires_grad}")
+
         self.bert_head = nn.Sequential(
             nn.Dropout(0.2),
             nn.Linear(D_in, Bert_out))
 
-        # if multiinput should be added, do it here
         self.regressor = nn.Sequential(
             nn.Linear(Regressor_in, Hidden_Regressor),
             nn.Dropout(0.1),
@@ -285,7 +294,7 @@ def score_correlation(y_pred, y_true):
     return r, p
 
 
-def run(root_folder="", empathy_type='empathy'):
+def run(settings, root_folder=""):
     #logging.set_verbosity_warning()
     #logging.set_verbosity_error()
     data_root_folder = root_folder + 'data/'
@@ -293,11 +302,13 @@ def run(root_folder="", empathy_type='empathy'):
     #     parameters
     # -------------------
 
-    bert_type = "roberta-base"
-    my_seed = 17
-    batch_size = 16
-    learning_rate = 5e-5
-    epochs = 10
+    empathy_type = settings['empathy_type']
+    bert_type = settings['bert-type']
+    my_seed = settings['seed']
+    batch_size = settings['batch_size']
+    learning_rate = settings['learning_rate']
+    epochs = settings['epochs']
+    train_only_bias = settings['train_only_bias']
 
     using_roberta = False
     if bert_type == 'roberta-base':
@@ -312,8 +323,8 @@ def run(root_folder="", empathy_type='empathy'):
     
     # --- Create hugginface datasets ---
     # TODO: Use all data later on
-    data_train = pd_to_dataset(data_train_pd)
-    data_dev = pd_to_dataset(data_dev_pd)
+    data_train = pd_to_dataset(data_train_pd[:10])
+    data_dev = pd_to_dataset(data_dev_pd[:5])
 
     #  Create hugginface datasetsdict
     # data_train_dev = pd_to_datasetdict(data_train, data_dev)
@@ -369,7 +380,7 @@ def run(root_folder="", empathy_type='empathy'):
     
     # --- init model ---
     print('------------ initializing Model ------------')
-    model = BertRegressor(bert_type=bert_type)
+    model = BertRegressor(bert_type=bert_type, train_only_bias=train_only_bias)
 
     # --- choose dataset ---
     # per default use empathy label
@@ -405,9 +416,9 @@ def run(root_folder="", empathy_type='empathy'):
     loss_function = nn.MSELoss()
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
-    history.to_csv(root_folder + 'output/history_baseline_' + empathy_type + '.csv')
+    history.to_csv(root_folder + 'output/history_baseline_' + empathy_type + '_' + settings['model_name'] +  '.csv')
     
-    torch.save(model.state_dict(), root_folder + 'output/model_baseline_' + empathy_type)
+    torch.save(model.state_dict(), root_folder + 'output/model_baseline_' + empathy_type + '_' + settings['model_name'])
     print('Done')
     return model, history
 
@@ -415,16 +426,12 @@ def run(root_folder="", empathy_type='empathy'):
 if __name__ == '__main__':
     # check if there is an input argument
     args = sys.argv[1:]  # ignore first arg as this is the call of this python script
-    possible_empathy_types = ['empathy', 'distress']
-    if len(args) > 0:
-        empathy_type = args[0]
-        if empathy_type not in possible_empathy_types:
-            print(f"The possible empathy types are: {possible_empathy_types}. Your arg was: {empathy_type}. Exiting.")
-            sys.exit(-1)
-    else:
-        empathy_type = 'empathy'
+
+    # ---- put in seperate function ----
     
-    print(f'Using {empathy_type} as argument.')
+
+    settings = utils.arg_parsing_to_settings(args)
+    # ---- end function ----
     
-    run(empathy_type=empathy_type)
+    run(settings=settings)
 

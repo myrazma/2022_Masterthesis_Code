@@ -186,3 +186,47 @@ def normalize_scores(data, input_interval):
     """
     normalized = (data - input_interval[0]) / (input_interval[1] - input_interval[0])
     return normalized
+
+
+def arg_parsing_to_settings(args, default_empathy_type = 'empathy', default_learning_rate=2e-5, default_seed=17, default_batch_size=4, default_epochs=5, default_bert_type='roberta-base', default_train_only_bias=False, default_adapter_type="pfeiffer", default_model_name=""):
+    # provide default settings
+    settings = {'empathy_type': default_empathy_type,'learning_rate': default_learning_rate, 'seed': default_seed, 'batch_size': default_batch_size, 'epochs': default_epochs, 'bert-type': default_bert_type, "train_only_bias": default_train_only_bias, "adapter_type": default_adapter_type, "model_name": default_model_name}
+
+    for idx, arg in enumerate(args):
+        if '--' in arg:  # this is a key, value following afterwards
+            arg_name = arg[2:]  # remove the two lines before the actual name
+            if arg_name == 'train_only_bias':
+                settings[arg_name] = True
+                continue
+            elif arg_name == 'empathy' or arg_name == 'distress':
+                settings["empathy_type"] = arg_name
+                continue
+            elif len(args) > (idx + 1):
+                if arg_name not in settings.keys():
+                    print(f'--- MyWarning: Argument ({arg_name}) not found in settings. Your setting might not me recignized or used. ---')
+                    print(f"The following are possible: {list(settings.keys())}")
+                    
+                value = args[idx + 1]
+                if '--' in value:
+                    print(f"No value specified for {arg_name}. Don't use for settings. Abort.")
+                else:
+                    if arg_name == 'model_name':
+                        settings["model_name"] = arg_name
+                        settings[arg_name] = str(value)
+                        args.pop(idx+1)
+                        continue
+                    settings[arg_name] = float(value)
+                    args.pop(idx+1)
+            else:
+                print(f'MyWarning: Could not recognize argument {arg}')
+                continue
+        else:
+            print(f'MyWarning: Could not recognize argument ({arg}). Maybe try using -- before.')
+            continue
+        
+    settings['epochs'] = int(settings['epochs'])
+    settings['batch_size'] = int(settings['batch_size'])
+
+    print('\nYou are using the following settings:')
+    print(settings, '\n')
+    return settings
