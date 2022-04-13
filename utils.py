@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import json
 from collections import defaultdict
 import torch
 import nltk
@@ -188,9 +189,9 @@ def normalize_scores(data, input_interval):
     return normalized
 
 
-def arg_parsing_to_settings(args, default_empathy_type = 'empathy', default_learning_rate=2e-5, default_seed=17, default_batch_size=4, default_epochs=5, default_bert_type='roberta-base', default_train_only_bias=False, default_adapter_type="pfeiffer", default_model_name=""):
+def arg_parsing_to_settings(args, default_empathy_type = 'empathy', default_learning_rate=2e-5, default_seed=17, default_batch_size=4, default_epochs=5, default_bert_type='roberta-base', default_train_only_bias=False, default_adapter_type="pfeiffer", default_model_name="", default_save_settings=False):
     # provide default settings
-    settings = {'empathy_type': default_empathy_type,'learning_rate': default_learning_rate, 'seed': default_seed, 'batch_size': default_batch_size, 'epochs': default_epochs, 'bert-type': default_bert_type, "train_only_bias": default_train_only_bias, "adapter_type": default_adapter_type, "model_name": default_model_name}
+    settings = {'empathy_type': default_empathy_type,'learning_rate': default_learning_rate, 'seed': default_seed, 'batch_size': default_batch_size, 'epochs': default_epochs, 'bert-type': default_bert_type, "train_only_bias": default_train_only_bias, "adapter_type": default_adapter_type, "model_name": default_model_name, "save_settings":default_save_settings}
 
     for idx, arg in enumerate(args):
         if '--' in arg:  # this is a key, value following afterwards
@@ -200,6 +201,9 @@ def arg_parsing_to_settings(args, default_empathy_type = 'empathy', default_lear
                 continue
             elif arg_name == 'empathy' or arg_name == 'distress':
                 settings["empathy_type"] = arg_name
+                continue
+            elif arg_name == 'save_settings':
+                settings["save_settings"] = True
                 continue
             elif len(args) > (idx + 1):
                 if arg_name not in settings.keys():
@@ -227,6 +231,10 @@ def arg_parsing_to_settings(args, default_empathy_type = 'empathy', default_lear
     settings['epochs'] = int(settings['epochs'])
     settings['batch_size'] = int(settings['batch_size'])
 
+
+    if settings["save_settings"]:
+        with open('output/settings_' + settings['model_name'] + '.json', 'w') as fp:
+            json.dump(settings, fp)
     print('\nYou are using the following settings:')
     print(settings, '\n')
     return settings

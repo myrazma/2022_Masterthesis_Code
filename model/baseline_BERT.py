@@ -323,8 +323,8 @@ def run(settings, root_folder=""):
     
     # --- Create hugginface datasets ---
     # TODO: Use all data later on
-    data_train = pd_to_dataset(data_train_pd[:10])
-    data_dev = pd_to_dataset(data_dev_pd[:5])
+    data_train = pd_to_dataset(data_train_pd)
+    data_dev = pd_to_dataset(data_dev_pd)
 
     #  Create hugginface datasetsdict
     # data_train_dev = pd_to_datasetdict(data_train, data_dev)
