@@ -245,6 +245,8 @@ def run(settings, root_folder=""):
     learning_rate = settings['learning_rate']
     epochs = settings['epochs']
     adapter_config = settings['adapter_type']
+    weight_decay = settings['weight_decay']
+
 
     # -------------------
     #   load data
@@ -405,6 +407,7 @@ def run(settings, root_folder=""):
         overwrite_output_dir=False,
         # The next line is important to ensure the dataset labels are properly passed to the model
         remove_unused_columns=False,
+        weight_decay=weight_decay
     )
 
     def compute_correlation(p: EvalPrediction):

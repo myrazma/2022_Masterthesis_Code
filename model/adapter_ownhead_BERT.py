@@ -423,6 +423,8 @@ def run(settings, root_folder=""):
     train_only_bias = settings['train_only_bias']
     adapter_config = settings['adapter_type']
     use_early_stopping = settings['early_stopping']
+    weight_decay = settings['weight_decay']
+
 
     """ADAPTER_CONFIG_MAP = {
     "pfeiffer": PfeifferConfig(),  # Pfeiffer2020
@@ -542,7 +544,7 @@ def run(settings, root_folder=""):
     # --- optimizer ---
     # low learning rate to not get into catastrophic forgetting - Sun 2019
     # default epsilon by pytorch is 1e-8
-    optimizer = AdamW(model.parameters(), lr=learning_rate, eps=1e-8)
+    optimizer = AdamW(model.parameters(), lr=learning_rate, eps=1e-8, weight_decay=weight_decay)
 
     # scheduler
     total_steps = len(dataloader_train) * epochs

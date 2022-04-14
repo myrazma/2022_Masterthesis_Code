@@ -310,6 +310,7 @@ def run(settings, root_folder=""):
     learning_rate = settings['learning_rate']
     epochs = settings['epochs']
     train_only_bias = settings['train_only_bias']
+    weight_decay = settings['weight_decay']
 
     using_roberta = False
     if bert_type == 'roberta-base':
@@ -406,7 +407,7 @@ def run(settings, root_folder=""):
     # --- optimizer ---
     # low learning rate to not get into catastrophic forgetting - Sun 2019
     # default epsilon by pytorch is 1e-8
-    optimizer = AdamW(model.parameters(), lr=learning_rate, eps=1e-8)
+    optimizer = AdamW(model.parameters(), lr=learning_rate, eps=1e-8, weight_decay=weight_decay)
 
     # scheduler
     total_steps = len(dataloader_train) * epochs
