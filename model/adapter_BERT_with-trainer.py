@@ -42,7 +42,7 @@ import preprocessing
 # TODO: I need to structure for adapters
 # TODO: Use Trainer / Adaptertrainer
 class RegressionModelAdapters(nn.Module):
-    def __init__(self, bert_type, task_type, drop_rate=0.2):
+    def __init__(self, bert_type, task_type, drop_rate=0.2, adapter_config="pfeiffer"):
         super(RegressionModelAdapters, self).__init__()
         D_in = 768
         Bert_out = 100
@@ -59,7 +59,7 @@ class RegressionModelAdapters(nn.Module):
         #self.bert.register_custom_head(head_name, regr_head)
         #self.bert.add_custom_head(head_type=head_name, head_name='_' + head_name)
         self.bert.add_classification_head(adapter_name, num_labels=1)  # if label is one, regression is used
-        self.bert.add_adapter(adapter_name, config="pfeiffer")
+        self.bert.add_adapter(adapter_name, config=adapter_config)
         self.bert.set_active_adapters(adapter_name)
         self.bert.train_adapter(adapter_name)  # set adapter into training mode and freeze parameters in the transformer model
 
@@ -244,6 +244,7 @@ def run(settings, root_folder=""):
     batch_size = settings['batch_size']
     learning_rate = settings['learning_rate']
     epochs = settings['epochs']
+    adapter_config = settings['adapter_type']
 
     # -------------------
     #   load data
@@ -386,7 +387,7 @@ def run(settings, root_folder=""):
     head_name = empathy_type + '_head'
     adapter_name = empathy_type + '_adapter'
     model.add_classification_head(adapter_name, num_labels=1, activation_function='relu')  # if label is one, regression is used
-    model.add_adapter(adapter_name, config="pfeiffer")
+    model.add_adapter(adapter_name, config=adapter_config)
     model.set_active_adapters(adapter_name)
     model.train_adapter(adapter_name)  # set adapter into training mode and freeze parameters in the transformer model
 
@@ -400,8 +401,8 @@ def run(settings, root_folder=""):
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         logging_steps=200,
-        output_dir="./outptu",
-        overwrite_output_dir=True,
+        output_dir="./output",
+        overwrite_output_dir=False,
         # The next line is important to ensure the dataset labels are properly passed to the model
         remove_unused_columns=False,
     )
@@ -429,7 +430,7 @@ if __name__ == '__main__':
     # check if there is an input argument
     args = sys.argv[1:]  # ignore first arg as this is the call of this python script
 
-    settings = utils.arg_parsing_to_settings(args, default_learning_rate=5e-5, default_batch_type=16)
+    settings = utils.arg_parsing_to_settings(args, default_learning_rate=5e-5, default_batch_type=16, default_adapter_type='parallel', default_epochs=10)
     # ---- end function ----
     
     run(settings=settings)

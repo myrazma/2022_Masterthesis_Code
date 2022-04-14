@@ -97,7 +97,7 @@ def load_articles(data_root_folder="../data/"):
     return articles
 
 
-def arg_parsing_to_settings(args, default_empathy_type = 'empathy', default_learning_rate=2e-5, default_seed=17, default_batch_size=4, default_epochs=5, default_bert_type='roberta-base', default_train_only_bias=False, default_adapter_type="pfeiffer", default_model_name="", default_save_settings=False, default_early_stopping=False):
+def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_learning_rate=2e-5, default_seed=17, default_batch_size=4, default_epochs=5, default_bert_type='roberta-base', default_train_only_bias=False, default_adapter_type="pfeiffer", default_model_name="", default_save_settings=False, default_early_stopping=False):
     if default_model_name=="":  # set model name to timestamp
         default_model_name = time.strftime("%y-%m-%d_%H%M", time.localtime())
     # provide default settings
