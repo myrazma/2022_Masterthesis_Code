@@ -136,7 +136,11 @@ def arg_parsing_to_settings(args, default_empathy_type = 'empathy', default_lear
                         settings[arg_name] = str(value)
                         args.pop(idx+1)
                         continue
-                    settings[arg_name] = float(value)
+                    try:
+                        val = float(value)
+                    except:
+                        val = str(value)
+                    settings[arg_name] = val
                     args.pop(idx+1)
             else:
                 print(f'MyWarning: Could not recognize argument {arg}')
