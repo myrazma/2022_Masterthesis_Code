@@ -103,6 +103,10 @@ def arg_parsing_to_settings(args, default_empathy_type = 'empathy', default_lear
     # provide default settings
     settings = {'empathy_type': default_empathy_type,'learning_rate': default_learning_rate, 'seed': default_seed, 'batch_size': default_batch_size, 'epochs': default_epochs, 'bert-type': default_bert_type, "train_only_bias": default_train_only_bias, "adapter_type": default_adapter_type, "model_name": default_model_name, "save_settings":default_save_settings, 'early_stopping':default_early_stopping}
 
+    if '--show_settings' in args:
+        print(dict)
+        sys.exit(-1)
+        
     for idx, arg in enumerate(args):
         if '--' in arg:  # this is a key, value following afterwards
             arg_name = arg[2:]  # remove the two lines before the actual name
