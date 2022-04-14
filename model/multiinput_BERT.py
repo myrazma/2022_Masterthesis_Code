@@ -38,6 +38,7 @@ import sys
 path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
 import utils
+import preprocessing
 
 
 class BertMultiInput(nn.Module):
@@ -339,7 +340,7 @@ def score_correlation(y_pred, y_true):
     return r, p
 
 
-def run(root_folder="", empathy_type='empathy'):
+def run(settings, root_folder=""):
 
     data_root_folder = root_folder + 'data/'
     output_root_folder = root_folder + 'output/'
@@ -360,12 +361,13 @@ def run(root_folder="", empathy_type='empathy'):
     #     parameters
     # -------------------
 
-    bert_type = "roberta-base"  # "bert-base-uncased"
-    my_seed = 17
-    batch_size = 16
-    epochs = 12
-    learning_rate = 2e-5  # 2e-5
-    use_early_stopping = False
+    empathy_type = settings['empathy_type']
+    bert_type = settings['bert-type']
+    my_seed = settings['seed']
+    batch_size = settings['batch_size']
+    learning_rate = settings['learning_rate']
+    epochs = settings['epochs']
+    train_only_bias = settings['train_only_bias']
 
     # -------------------
     #   load data
@@ -380,11 +382,11 @@ def run(root_folder="", empathy_type='empathy'):
     data_dev_pd['essay_raw'] = data_dev_pd['essay']
     
     # tokenize them already and create column essay_raw_tok
-    data_train_pd = utils.tokenize_data(data_train_pd, 'essay_raw')
-    data_dev_pd = utils.tokenize_data(data_dev_pd, 'essay_raw')
+    data_train_pd = preprocessing.tokenize_data(data_train_pd, 'essay_raw')
+    data_dev_pd = preprocessing.tokenize_data(data_dev_pd, 'essay_raw')
     
     # create lexical features
-    fc = utils.FeatureCreator(data_root_folder=data_root_folder)
+    fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder)
     data_train_pd = fc.create_lexical_feature(data_train_pd, 'essay_raw_tok')
     data_dev_pd = fc.create_lexical_feature(data_dev_pd, 'essay_raw_tok')
 
@@ -429,10 +431,10 @@ def run(root_folder="", empathy_type='empathy'):
     lexical_dis_dev = np.array(data_dev_encoded_shuff["distress_word_rating"]).astype(np.float32).reshape(-1, 1)
 
     # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
-    label_scaled_empathy_train = utils.normalize_scores(label_empathy_train, (1,7))
-    label_scaled_empathy_dev = utils.normalize_scores(label_empathy_dev, (1,7))
-    label_scaled_distress_train = utils.normalize_scores(label_distress_train, (1,7))
-    label_scaled_distress_dev = utils.normalize_scores(label_distress_dev, (1,7))
+    label_scaled_empathy_train = preprocessing.normalize_scores(label_empathy_train, (1,7))
+    label_scaled_empathy_dev = preprocessing.normalize_scores(label_empathy_dev, (1,7))
+    label_scaled_distress_train = preprocessing.normalize_scores(label_distress_train, (1,7))
+    label_scaled_distress_dev = preprocessing.normalize_scores(label_distress_dev, (1,7))
 
     # -------------------
     #  initialize pre trained model an 
@@ -495,27 +497,19 @@ def run(root_folder="", empathy_type='empathy'):
     # epochs
     loss_function = nn.MSELoss()
    
-    model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_early_stopping=use_early_stopping)
-    history.to_csv(output_root_folder + 'history_multiinput_' + empathy_type + '.csv')
+    model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_early_stopping=settings['early_stopping'])
+
+    history.to_csv(output_root_folder + 'history_multiinput_' + empathy_type + '_' + settings['model_name'] +  '.csv')
     
-    torch.save(model.state_dict(), output_root_folder + 'model_multiinput_' + empathy_type)
+    torch.save(model.state_dict(), output_root_folder + 'model_multiinput_' + empathy_type + '_' + settings['model_name'])
     print('Done')
     return model, history
 
 
 if __name__ == '__main__':
-    # check if there is an input argument
+
     args = sys.argv[1:]  # ignore first arg as this is the call of this python script
-    possible_empathy_types = ['empathy', 'distress']
-    if len(args) > 0:
-        empathy_type = args[0]
-        if empathy_type not in possible_empathy_types:
-            print(f"The possible empathy types are: {possible_empathy_types}. Your arg was: {empathy_type}. Exiting.")
-            sys.exit(-1)
-    else:
-        empathy_type = 'empathy'
-    
-    print(f'\n------------ Using {empathy_type} as argument. ------------\n')
-    
-    run(empathy_type=empathy_type)
+
+    settings = utils.arg_parsing_to_settings(args, default_learning_rate=2e-5, default_batch_size=16)
+    run(settings=settings)
 

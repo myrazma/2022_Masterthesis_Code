@@ -42,6 +42,7 @@ import sys
 path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
 import utils
+import preprocessing
 
 # TODO: I need to structure for adapters
 # TODO: Use Trainer / Adaptertrainer
@@ -191,7 +192,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
     """Train the model on train dataset and evelautate on the dev dataset
     Source parly from [2]
     Args:
-        model (BILSTM): The model that should be trained
+        model (): The model that should be trained
         train_loader (DataLoader): The DataLoader of the train SeqDataset
         dev_loader (DataLoader): The DataLoader of the dev SeqDataset
         epochs (int): The number of epochs
@@ -391,7 +392,7 @@ def score_correlation(y_pred, y_true):
     return r, p
 
 
-def run(root_folder="", empathy_type='empathy'):
+def run(settings, root_folder=""):
 
     data_root_folder = root_folder + 'data/'
     output_root_folder = root_folder + 'output/'
@@ -412,13 +413,16 @@ def run(root_folder="", empathy_type='empathy'):
     #     parameters
     # -------------------
 
-    bert_type = "roberta-base"  # "bert-base-uncased"
-    my_seed = 17
-    batch_size = 16
-    epochs = 10
-    learning_rate = 5e-5  # might also try: 0.0001 (pfeiffer)
-    use_early_stopping = False
-    adapter_config = 'parallel'  # He2021
+
+    empathy_type = settings['empathy_type']
+    bert_type = settings['bert-type']
+    my_seed = settings['seed']
+    batch_size = settings['batch_size']
+    learning_rate = settings['learning_rate']
+    epochs = settings['epochs']
+    train_only_bias = settings['train_only_bias']
+    adapter_config = settings['adapter_type']
+    use_early_stopping = settings['early_stopping']
 
     """ADAPTER_CONFIG_MAP = {
     "pfeiffer": PfeifferConfig(),  # Pfeiffer2020
@@ -431,7 +435,7 @@ def run(root_folder="", empathy_type='empathy'):
     "prefix_tuning_flat": PrefixTuningConfig(flat=True),
     "parallel": ParallelConfig(),  # He2021
     "scaled_parallel": ParallelConfig(scaling="learned"),
-    "mam": MAMConfig(),
+    "mam": MAMConfig(),  # He2021
     }"""
 
     # -------------------
@@ -447,11 +451,11 @@ def run(root_folder="", empathy_type='empathy'):
     data_dev_pd['essay_raw'] = data_dev_pd['essay']
     
     # tokenize them already and create column essay_raw_tok
-    data_train_pd = utils.tokenize_data(data_train_pd, 'essay_raw')
-    data_dev_pd = utils.tokenize_data(data_dev_pd, 'essay_raw')
+    data_train_pd = preprocessing.tokenize_data(data_train_pd, 'essay_raw')
+    data_dev_pd = preprocessing.tokenize_data(data_dev_pd, 'essay_raw')
     
     # create lexical features
-    fc = utils.FeatureCreator(data_root_folder=data_root_folder)
+    fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder)
     data_train_pd = fc.create_lexical_feature(data_train_pd, 'essay_raw_tok')
     data_dev_pd = fc.create_lexical_feature(data_dev_pd, 'essay_raw_tok')
 
@@ -496,33 +500,10 @@ def run(root_folder="", empathy_type='empathy'):
     lexical_dis_dev = np.array(data_dev_encoded_shuff["distress_word_rating"]).astype(np.float32).reshape(-1, 1)
 
     # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
-    label_scaled_empathy_train = utils.normalize_scores(label_empathy_train, (1,7))
-    label_scaled_empathy_dev = utils.normalize_scores(label_empathy_dev, (1,7))
-    label_scaled_distress_train = utils.normalize_scores(label_distress_train, (1,7))
-    label_scaled_distress_dev = utils.normalize_scores(label_distress_dev, (1,7))
-    
-    # -------------------
-    #  initialize pre trained model an 
-    # -------------------
-    # source for creating and training model: [2] 
-    #   https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
-    
-    # --- load or pre-train bert here ---
-    #pre_trained_emp_bert = BertRegressor()
-    #pre_trained_emp_bert = torch.load(root_folder + 'output/model_' + empathy_type + '_22-03-25_1330', map_location=torch.device('cpu'))
-    #if use_gpu:
-    #    pre_trained_emp_bert.load_state_dict(torch.load(root_folder + 'output/model_' + empathy_type + '_22-03-25_1330'))
-    #else:
-    #    pre_trained_emp_bert.load_state_dict(torch.load(root_folder + 'output/model_' + empathy_type + '_22-03-25_1330',map_location=torch.device('cpu')))
-    # get output from pre-trained bert
-    #bert_outputs_emp_train = pre_trained_emp_bert(torch.tensor(input_ids_train), torch.tensor(attention_mask_train))
-    #bert_outputs_emp_dev = pre_trained_emp_bert(torch.tensor(input_ids_dev), torch.tensor(attention_mask_dev))
-
-    #emp_dev_corr, _ = score_correlation(np.array(bert_outputs_emp_dev), np.array(label_empathy_dev))
-    #print(emp_dev_corr)
-    #return
-    # -- pearson correlation --
-
+    label_scaled_empathy_train = preprocessing.normalize_scores(label_empathy_train, (1,7))
+    label_scaled_empathy_dev = preprocessing.normalize_scores(label_empathy_dev, (1,7))
+    label_scaled_distress_train = preprocessing.normalize_scores(label_distress_train, (1,7))
+    label_scaled_distress_dev = preprocessing.normalize_scores(label_distress_dev, (1,7))
 
     # --- create dataloader ---
     # with lexical data
@@ -541,13 +522,6 @@ def run(root_folder="", empathy_type='empathy'):
     dataloader_dis_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_distress_train, batch_size)
     dataloader_dis_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, batch_size)
 
-    # TODO create for distress and select accoridng to method input from run()
-    pytorch_dataset_emp_train = MyDataset(input_ids_train, attention_mask_train, label_scaled_empathy_train, device)
-    pytorch_dataset_emp_dev = MyDataset(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, device)
-    pytorch_dataset_dis_train = MyDataset(input_ids_train, attention_mask_train, label_scaled_distress_train, device)
-    pytorch_dataset_dis_dev = MyDataset(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, device)
-    
-
     # --- choose dataset ---
     # per default use empathy label
     dataloader_train = dataloader_emp_train
@@ -562,80 +536,6 @@ def run(root_folder="", empathy_type='empathy'):
 
     # --- init model ---
     print('------------ initializing Model ------------')
-    # ------------------------ TODO: added 
-    #model = RobertaAdapterModel.from_pretrained(bert_type)
-    #model.register_custom_head("regression_head", CustomHead)
-    #model.add_custom_head(head_type="regression_head", head_name="regression_head_1")
-    #model.add_adapter("regression_head_1", config="pfeiffer")
-    #model.set_active_adapters("regression_head_1")
-    #model.train_adapter("regression_head_1")
-    """
-    #model = RegressionModelAdapters(bert_type=bert_type, task_type=empathy_type)
-    config = RobertaConfig.from_pretrained(
-        "roberta-base",
-        num_labels=1,
-    )
-    model = RobertaAdapterModel.from_pretrained(
-        "roberta-base",
-        config=config,
-    )
-    #model = RobertaAdapterModel.from_pretrained(bert_type)
-    # TODO
-    head_name = empathy_type + '_head'
-    adapter_name = empathy_type + '_adapter'
-    regr_head = RegressionHead(model, head_name)
-    model.register_custom_head(head_name, regr_head)
-    model.add_custom_head(head_type=head_name, head_name='_' + head_name)
-    #model.add_classification_head(adapter_name, num_labels=1)  # if label is one, regression is used
-    model.add_adapter(adapter_name, config="pfeiffer")
-    model.set_active_adapters(adapter_name)
-    model.train_adapter(adapter_name)  # set adapter into training mode and freeze parameters in the transformer model
-
-    # -------------------------- added done --------------------------
-    #model = BertMultiInput(drop_rate=0.2, bert_type=bert_type)
-    model.to(device)
-
-    # -------------------------------
-    training_args = TrainingArguments(
-        learning_rate=learning_rate,
-        num_train_epochs=epochs,
-        per_device_train_batch_size=batch_size,
-        per_device_eval_batch_size=batch_size,
-        logging_steps=200,
-        output_dir="./outptu",
-        overwrite_output_dir=True,
-        # The next line is important to ensure the dataset labels are properly passed to the model
-        remove_unused_columns=False,
-    )
-    
-    def score_correlation(y_pred, y_true):
-        r, p = pearsonr(y_true, y_pred)
-        return r, p
-
-    def compute_correlation(p: EvalPrediction):
-        print(p)
-        r, p = pearsonr(p.label_ids, p.predictions)
-        return {"corr": r[0]}
-
-    def compute_accuracy(p: EvalPrediction):
-        preds = np.argmax(p.predictions, axis=1)
-        return {"corr": (preds == p.label_ids).mean()}
-
-    trainer = AdapterTrainer(
-        model=model,
-        args=training_args,
-        train_dataset=pytorch_dataset_emp_train,
-        eval_dataset=pytorch_dataset_emp_dev,
-        compute_metrics=compute_correlation,
-    )
-
-    trainer.train()
-    metrics = trainer.evaluate()
-    print(metrics)
-    return
-    """
-
-    #model = BertMultiInput(drop_rate=0.2, bert_type=bert_type)
     model = RegressionModelAdapters(bert_type=bert_type,task_type=empathy_type, adapter_config=adapter_config)
     model.to(device)
     # -------------------------------
@@ -653,9 +553,10 @@ def run(root_folder="", empathy_type='empathy'):
     loss_function = nn.MSELoss()
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_early_stopping=use_early_stopping)
-    history.to_csv(output_root_folder + 'history_adapters_' + empathy_type + '.csv')
+
+    history.to_csv(output_root_folder + 'history_adapters_' + empathy_type + '_' + settings['model_name'] +  '.csv')
     
-    torch.save(model.state_dict(), output_root_folder + 'model_adapters_' + empathy_type)
+    torch.save(model.state_dict(), output_root_folder + 'model_adapters_' + empathy_type + '_' + settings['model_name'])
     print('Done')
     return model, history
 
@@ -663,16 +564,9 @@ def run(root_folder="", empathy_type='empathy'):
 if __name__ == '__main__':
     # check if there is an input argument
     args = sys.argv[1:]  # ignore first arg as this is the call of this python script
-    possible_empathy_types = ['empathy', 'distress']
-    if len(args) > 0:
-        empathy_type = args[0]
-        if empathy_type not in possible_empathy_types:
-            print(f"The possible empathy types are: {possible_empathy_types}. Your arg was: {empathy_type}. Exiting.")
-            sys.exit(-1)
-    else:
-        empathy_type = 'empathy'
+
+    settings = utils.arg_parsing_to_settings(args, default_learning_rate=5e-5, default_batch_size=16, epochs=10)
+    # ---- end function ----
     
-    print(f'\n------------ Using {empathy_type} as argument. ------------\n')
-    
-    run(empathy_type=empathy_type)
+    run(settings=settings)
 

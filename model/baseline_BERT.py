@@ -37,6 +37,7 @@ import sys
 path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
 import utils
+import preprocessing
 
 class BertRegressor(nn.Module):
     # source (changed some things): [2]  
@@ -359,10 +360,10 @@ def run(settings, root_folder=""):
     label_distress_dev = np.array(data_dev_encoded_shuff["distress"]).astype(np.float32).reshape(-1, 1)
 
     # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
-    label_scaled_empathy_train = utils.normalize_scores(label_empathy_train, (1,7))
-    label_scaled_empathy_dev = utils.normalize_scores(label_empathy_dev, (1,7))
-    label_scaled_distress_train = utils.normalize_scores(label_distress_train, (1,7))
-    label_scaled_distress_dev = utils.normalize_scores(label_distress_dev, (1,7))
+    label_scaled_empathy_train = preprocessing.normalize_scores(label_empathy_train, (1,7))
+    label_scaled_empathy_dev = preprocessing.normalize_scores(label_empathy_dev, (1,7))
+    label_scaled_distress_train = preprocessing.normalize_scores(label_distress_train, (1,7))
+    label_scaled_distress_dev = preprocessing.normalize_scores(label_distress_dev, (1,7))
     
     # --- create dataloader ---
     # for empathy
@@ -427,10 +428,7 @@ if __name__ == '__main__':
     # check if there is an input argument
     args = sys.argv[1:]  # ignore first arg as this is the call of this python script
 
-    # ---- put in seperate function ----
-    
-
-    settings = utils.arg_parsing_to_settings(args)
+    settings = utils.arg_parsing_to_settings(args, default_early_stopping=False, default_learning_rate=2e-5, default_batch_size=16, default_bert_type='roberta-base', default_epochs=10)
     # ---- end function ----
     
     run(settings=settings)

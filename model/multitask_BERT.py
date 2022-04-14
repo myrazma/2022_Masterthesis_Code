@@ -41,6 +41,7 @@ from transformers.trainer_utils import get_last_checkpoint
 path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
 import utils
+import preprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -343,10 +344,10 @@ def run(params):
     label_distress_dev = np.array(data_dev_encoded_shuff["distress"]).astype(np.float32).reshape(-1, 1)
 
     # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
-    label_scaled_empathy_train = utils.normalize_scores(label_empathy_train, (1,7))
-    label_scaled_empathy_dev = utils.normalize_scores(label_empathy_dev, (1,7))
-    label_scaled_distress_train = utils.normalize_scores(label_distress_train, (1,7))
-    label_scaled_distress_dev = utils.normalize_scores(label_distress_dev, (1,7))
+    label_scaled_empathy_train = preprocessing.normalize_scores(label_empathy_train, (1,7))
+    label_scaled_empathy_dev = preprocessing.normalize_scores(label_empathy_dev, (1,7))
+    label_scaled_distress_train = preprocessing.normalize_scores(label_distress_train, (1,7))
+    label_scaled_distress_dev = preprocessing.normalize_scores(label_distress_dev, (1,7))
 
     # create array for tasks
     empathy_task = Task(name='empathy', num_labels=1, id=0, output_type='regression')
