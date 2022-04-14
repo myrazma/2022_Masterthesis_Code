@@ -419,7 +419,8 @@ def run(settings, root_folder=""):
         compute_metrics=compute_correlation,
     )
 
-    trainer.train()
+    history = trainer.train()
+    print(history)
     metrics = trainer.evaluate()
     print(metrics)
     return

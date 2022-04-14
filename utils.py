@@ -104,6 +104,7 @@ def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_lea
     settings = {'empathy_type': default_empathy_type,'learning_rate': default_learning_rate, 'seed': default_seed, 'batch_size': default_batch_size, 'epochs': default_epochs, 'bert-type': default_bert_type, "train_only_bias": default_train_only_bias, "adapter_type": default_adapter_type, "model_name": default_model_name, "save_settings":default_save_settings, 'early_stopping':default_early_stopping}
 
     if '--show_settings' in args:
+        print("\nYou are using the following settings:")
         print(settings)
         sys.exit(-1)
 
