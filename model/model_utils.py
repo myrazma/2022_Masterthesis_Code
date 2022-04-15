@@ -6,6 +6,7 @@ import torch.nn as nn
 class RegressionHead(nn.Module):
 
     def __init__(self, dropout=0.2, D_in=768, D_hidden1=100, D_hidden2=10, D_out=1):
+        super(RegressionHead, self).__init__()
         self.bert_head = nn.Sequential(
             nn.Dropout(dropout),
             nn.Linear(D_in, D_hidden1))
