@@ -71,7 +71,7 @@ class BertRegressor(nn.Module):
                     p.requires_grad = False
                 print(f"{n}: {p.requires_grad}")
 
-        self.after_bert = nn.Sequential(
+        self.bert_head = nn.Sequential(
             nn.Dropout(0.2),
             nn.Linear(768, 100))
 
@@ -79,7 +79,7 @@ class BertRegressor(nn.Module):
             nn.Linear(101, 10),
 	        nn.ReLU(),
             nn.Linear(10, 1))
-            
+
         #self.bert_head = nn.Sequential(
         #    nn.Dropout(0.2),
         #    nn.Linear(D_in, Bert_out))
