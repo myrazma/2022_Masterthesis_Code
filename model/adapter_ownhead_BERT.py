@@ -35,8 +35,8 @@ from scipy.stats import pearsonr
 from transformers import logging
 
 
-
 # import own module
+import model_utils
 from pathlib import Path
 import sys
 path_root = Path(__file__).parents[1]
@@ -70,34 +70,18 @@ class RegressionModelAdapters(nn.Module):
         self.bert.train_adapter(adapter_name)  # set adapter into training mode and freeze parameters in the transformer model
         
         # print frozen parameters
-        if True:
+        if False:
             names = [n for n, p in self.bert.named_parameters()]
             paramsis = [param for param in self.bert.parameters()]
             for n, p in zip(names, paramsis):
                 print(f"{n}: {p.requires_grad}")
-            
-        self.bert_head = nn.Sequential(
-            nn.Dropout(0.2),
-            nn.Linear(D_in, Bert_out))
-
-        # if multiinput should be added, do it here
-        self.regressor = nn.Sequential(
-            nn.Linear(Regressor_in, Hidden_Regressor),
-            nn.Dropout(0.1),
-            nn.ReLU(),
-            nn.Linear(Hidden_Regressor, 10),
-            nn.Linear(10, D_out))
+        
+        self.regression_head = model_utils.RegressionHead()
+        
 
     def forward(self, input_ids, attention_masks):
         bert_outputs = self.bert(input_ids, attention_masks)
-        bert_output = bert_outputs[1]
-    
-        bert_head_output = self.bert_head(bert_output)
-    
-        # concat bert output with multi iput - lexical data
-        # combine bert output (after short ffn) with lexical features
-        #concat = torch.cat((bert_head_output, lexical_features), 1)
-        outputs = self.regressor(bert_head_output)
+        outputs = self.regression_head(bert_outputs)
         return outputs
 
 

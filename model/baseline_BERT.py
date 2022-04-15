@@ -65,44 +65,23 @@ class BertRegressor(nn.Module):
             self.bert = BertModel.from_pretrained(bert_type)
 
         if train_only_bias:
-            names = [n for n, p in self.bert.named_parameters()]
-            paramsis = [param for param in self.bert.parameters()]
-            for n, p in zip(names, paramsis):
-                if 'bias' in n:
-                    p.requires_grad = True
-                else:
-                    p.requires_grad = False
-                print(f"{n}: {p.requires_grad}")
+            print('\n------------ Train only the bias ------------\n')
+            if False:  # printing of layers
+                names = [n for n, p in self.bert.named_parameters()]
+                paramsis = [param for param in self.bert.parameters()]
+                for n, p in zip(names, paramsis):
+                    if 'bias' in n:
+                        p.requires_grad = True
+                    else:
+                        p.requires_grad = False
+                    print(f"{n}: {p.requires_grad}")
 
-                
+
         self.regression_head = model_utils.RegressionHead()
-        
-        #self.bert_head = nn.Sequential(
-        #    nn.Dropout(0.2),
-        #    nn.Linear(768, 100))
-
-        #self.regressor = nn.Sequential(
-        #    nn.Linear(100, 10),
-	    #    nn.ReLU(),
-        #    nn.Linear(10, 1))
-
-        #self.bert_head = nn.Sequential(
-        #    nn.Dropout(0.2),
-        #    nn.Linear(D_in, Bert_out))
-
-        #self.regressor = nn.Sequential(
-        #    nn.Linear(Regressor_in, Hidden_Regressor),
-        #    nn.Dropout(0.1),
-        #    nn.ReLU(),
-        #    nn.Linear(Hidden_Regressor, 10),
-        #    nn.Linear(10, D_out))
 
     def forward(self, input_ids, attention_masks):
         bert_outputs = self.bert(input_ids, attention_masks)
         outputs = self.regression_head(bert_outputs)
-        #bert_output = bert_outputs[1]
-        #bert_head_output = self.bert_head(bert_output)
-        #outputs = self.regressor(bert_head_output)
         return outputs
 
 

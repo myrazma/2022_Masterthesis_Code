@@ -101,7 +101,19 @@ def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_lea
     if default_model_name=="":  # set model name to timestamp
         default_model_name = time.strftime("%y-%m-%d_%H%M", time.localtime())
     # provide default settings
-    settings = {'empathy_type': default_empathy_type,'learning_rate': default_learning_rate, 'seed': default_seed, 'batch_size': default_batch_size, 'epochs': default_epochs, 'bert-type': default_bert_type, "train_only_bias": default_train_only_bias, "adapter_type": default_adapter_type, "model_name": default_model_name, "save_settings":default_save_settings, 'early_stopping':default_early_stopping, 'weight_decay':default_weight_decay}
+    settings = {'empathy_type': default_empathy_type,
+                'learning_rate': default_learning_rate, 
+                'seed': default_seed, 
+                'batch_size': default_batch_size, 
+                'epochs': default_epochs, 
+                'bert-type': default_bert_type, 
+                "train_only_bias": default_train_only_bias, 
+                "adapter_type": default_adapter_type, 
+                "model_name": default_model_name, 
+                "save_settings":default_save_settings, 
+                'early_stopping':default_early_stopping, 
+                'weight_decay':default_weight_decay, 
+                'save_model':False}
 
     if '--show_settings' in args:
         print("\nYou are using the following settings:")
@@ -118,6 +130,9 @@ def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_lea
                 settings[arg_name] = arg_name
                 continue
             elif arg_name == 'save_settings':
+                settings[arg_name] = True
+                continue
+            elif arg_name == 'save_model':
                 settings[arg_name] = True
                 continue
             elif arg_name == 'early_stopping':
@@ -155,7 +170,8 @@ def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_lea
     settings['epochs'] = int(settings['epochs'])
     settings['batch_size'] = int(settings['batch_size'])
 
-
+    
+    print('\n------------ Model name: ' + settings['model_name'] + ' ------------\n')
     if settings["save_settings"]:
         with open('output/settings_' + settings['model_name'] + '.json', 'w') as fp:
             json.dump(settings, fp)

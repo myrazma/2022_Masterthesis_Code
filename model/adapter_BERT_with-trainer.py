@@ -63,24 +63,6 @@ class RegressionModelAdapters(nn.Module):
         self.bert.set_active_adapters(adapter_name)
         self.bert.train_adapter(adapter_name)  # set adapter into training mode and freeze parameters in the transformer model
 
-        #self.bert = RobertaAdapterModel.from_pretrained(bert_type)
-        #self.bert.add_adapter("mam_adapter", config=mam_config)
-        #self.bert.register_custom_head("regression_head", CustomHead)
-        #self.bert.add_custom_head(head_type="regression_head", head_name="regression_head_1", **kwargs)
-        #self.bert.add_adapter("regression_head_1", config="pfeiffer")
-        #self.bert.set_active_adapters("regression_head_1")
-        
-        #self.bert_head = nn.Sequential(
-        #    nn.Dropout(0.2),
-        #    nn.Linear(D_in, Bert_out))
-
-        #self.regressor = nn.Sequential(
-        #    nn.Linear(Multi_in, Hidden_Regressor),
-        #    nn.Dropout(0.1),
-        #    nn.ReLU(),
-        #    nn.Linear(Hidden_Regressor, 10),
-        #    nn.Linear(10, D_out))
-
     def forward(self, input_ids, attention_masks):
         outputs = self.bert(input_ids, attention_masks)
         return outputs
