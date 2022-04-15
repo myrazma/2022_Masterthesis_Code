@@ -32,6 +32,8 @@ from transformers import logging
 
 
 # import own module
+import model_utils
+
 from pathlib import Path
 import sys
 path_root = Path(__file__).parents[1]
@@ -56,6 +58,7 @@ class BertRegressor(nn.Module):
         #stride = 2
         #kernel_size = 3
         #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
+
         if bert_type == 'roberta-base':
             self.bert = RobertaModel.from_pretrained(bert_type)
         else:
@@ -71,14 +74,17 @@ class BertRegressor(nn.Module):
                     p.requires_grad = False
                 print(f"{n}: {p.requires_grad}")
 
-        self.bert_head = nn.Sequential(
-            nn.Dropout(0.2),
-            nn.Linear(768, 100))
+                
+        self.regression_head = model_utils.RegressionHead()
+        
+        #self.bert_head = nn.Sequential(
+        #    nn.Dropout(0.2),
+        #    nn.Linear(768, 100))
 
-        self.regressor = nn.Sequential(
-            nn.Linear(100, 10),
-	        nn.ReLU(),
-            nn.Linear(10, 1))
+        #self.regressor = nn.Sequential(
+        #    nn.Linear(100, 10),
+	    #    nn.ReLU(),
+        #    nn.Linear(10, 1))
 
         #self.bert_head = nn.Sequential(
         #    nn.Dropout(0.2),
@@ -93,9 +99,10 @@ class BertRegressor(nn.Module):
 
     def forward(self, input_ids, attention_masks):
         bert_outputs = self.bert(input_ids, attention_masks)
-        bert_output = bert_outputs[1]
-        bert_head_output = self.bert_head(bert_output)
-        outputs = self.regressor(bert_head_output)
+        outputs = self.regression_head(bert_outputs)
+        #bert_output = bert_outputs[1]
+        #bert_head_output = self.bert_head(bert_output)
+        #outputs = self.regressor(bert_head_output)
         return outputs
 
 
