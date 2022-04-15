@@ -66,15 +66,15 @@ class BertRegressor(nn.Module):
 
         if train_only_bias:
             print('\n------------ Train only the bias ------------\n')
-            if False:  # printing of layers
-                names = [n for n, p in self.bert.named_parameters()]
-                paramsis = [param for param in self.bert.parameters()]
-                for n, p in zip(names, paramsis):
-                    if 'bias' in n:
-                        p.requires_grad = True
-                    else:
-                        p.requires_grad = False
-                    print(f"{n}: {p.requires_grad}")
+
+            names = [n for n, p in self.bert.named_parameters()]
+            params = [param for param in self.bert.parameters()]
+            for n, p in zip(names, params):
+                if 'bias' in n:
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+                #print(f"{n}: {p.requires_grad}")
 
 
         self.regression_head = model_utils.RegressionHead()
