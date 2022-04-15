@@ -71,16 +71,25 @@ class BertRegressor(nn.Module):
                     p.requires_grad = False
                 print(f"{n}: {p.requires_grad}")
 
-        self.bert_head = nn.Sequential(
+        self.after_bert = nn.Sequential(
             nn.Dropout(0.2),
-            nn.Linear(D_in, Bert_out))
+            nn.Linear(768, 100))
 
         self.regressor = nn.Sequential(
-            nn.Linear(Regressor_in, Hidden_Regressor),
-            nn.Dropout(0.1),
-            nn.ReLU(),
-            nn.Linear(Hidden_Regressor, 10),
-            nn.Linear(10, D_out))
+            nn.Linear(101, 10),
+	        nn.ReLU(),
+            nn.Linear(10, 1))
+            
+        #self.bert_head = nn.Sequential(
+        #    nn.Dropout(0.2),
+        #    nn.Linear(D_in, Bert_out))
+
+        #self.regressor = nn.Sequential(
+        #    nn.Linear(Regressor_in, Hidden_Regressor),
+        #    nn.Dropout(0.1),
+        #    nn.ReLU(),
+        #    nn.Linear(Hidden_Regressor, 10),
+        #    nn.Linear(10, D_out))
 
     def forward(self, input_ids, attention_masks):
         bert_outputs = self.bert(input_ids, attention_masks)
