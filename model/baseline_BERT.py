@@ -76,7 +76,7 @@ class BertRegressor(nn.Module):
             nn.Linear(768, 100))
 
         self.regressor = nn.Sequential(
-            nn.Linear(101, 10),
+            nn.Linear(100, 10),
 	        nn.ReLU(),
             nn.Linear(10, 1))
 
