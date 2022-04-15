@@ -107,10 +107,10 @@ def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_lea
                 'batch_size': default_batch_size, 
                 'epochs': default_epochs, 
                 'bert-type': default_bert_type, 
-                "train_only_bias": default_train_only_bias, 
-                "adapter_type": default_adapter_type, 
-                "model_name": default_model_name, 
-                "save_settings":default_save_settings, 
+                'train_only_bias': default_train_only_bias, 
+                'adapter_type': default_adapter_type, 
+                'model_name': default_model_name, 
+                'save_settings':default_save_settings, 
                 'early_stopping':default_early_stopping, 
                 'weight_decay':default_weight_decay, 
                 'save_model':False}
@@ -127,7 +127,7 @@ def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_lea
                 settings[arg_name] = True
                 continue
             elif arg_name == 'empathy' or arg_name == 'distress':
-                settings[arg_name] = arg_name
+                settings['empathy_type'] = arg_name
                 continue
             elif arg_name == 'save_settings':
                 settings[arg_name] = True
