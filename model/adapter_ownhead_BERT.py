@@ -210,8 +210,9 @@ def get_adapter_config(config_name, print_config=True):
     myprefixtuning_config = PrefixTuningConfig(flat=False, prefix_length=30, bottleneck_size=200)
     configs_dict['myprefixtuning'] = myprefixtuning_config
 
-    # adapted from from He2021; with reduction factor = 4 it comes closer to 200 dim than with reduction factor of 2 (from 768 to 384)
-    mymam_config = MAMConfig(PrefixTuningConfig(bottleneck_size=30), ParallelConfig(reduction_factor=4))
+    # adapted from from He2021; with reduction factor = 1.5 it comes closer to 512 dim than with reduction factor of 2 (from 768 to 384)
+    # however, it cant be an integer, so we need to leave it like that
+    mymam_config = MAMConfig(PrefixTuningConfig(bottleneck_size=30), ParallelConfig(reduction_factor=2))
     configs_dict['mymam'] = mymam_config
     
     # select config
