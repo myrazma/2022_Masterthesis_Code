@@ -189,7 +189,7 @@ def get_adapter_config(config_name, print_config=True):
     "houlsby+inv": HoulsbyInvConfig(),
     "compacter++": CompacterPlusPlusConfig(),
     "compacter": CompacterConfig(),
-    "prefix_tuning": PrefixTuningConfig(),
+    "prefix_tuning": PrefixTuningConfig(),  # Li and Liang (2021)
     "prefix_tuning_flat": PrefixTuningConfig(flat=True),
     "parallel": ParallelConfig(),  # He2021
     "scaled_parallel": ParallelConfig(scaling="learned"),
@@ -384,7 +384,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
         
     if model_best is None:
         # This is the case if no early stopping is used
-        print('Saving last model state...')
+        print('Returning last model state...')
         model_best = model
     # save at which state we saved the model
     model_saved_at_arr = np.zeros(history.shape[0])
@@ -592,9 +592,11 @@ def run(settings, root_folder=""):
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_early_stopping=use_early_stopping)
 
     if settings['save_settings']:
+        print(f"\nSave settings using model name: {settings['model_name']}\n")
         history.to_csv(output_root_folder + 'history_adapters_' + empathy_type + '_' + settings['model_name'] +  '.csv')
         
     if settings['save_model']:
+        print(f"\nSave model using model name: {settings['model_name']}\n")
         torch.save(model.state_dict(), output_root_folder + 'model_adapters_' + empathy_type + '_' + settings['model_name'])
     print('Done')
     return model, history
