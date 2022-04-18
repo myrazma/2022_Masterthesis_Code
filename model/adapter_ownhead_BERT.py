@@ -574,7 +574,7 @@ def run(settings, root_folder=""):
     model = RegressionModelAdapters(bert_type=bert_type,task_type=empathy_type, adapter_config=adapter_config)
     model.to(device)
     print(model)
-    return
+
     # -------------------------------
     # --- optimizer ---
     # low learning rate to not get into catastrophic forgetting - Sun 2019
@@ -591,9 +591,11 @@ def run(settings, root_folder=""):
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_early_stopping=use_early_stopping)
 
-    history.to_csv(output_root_folder + 'history_adapters_' + empathy_type + '_' + settings['model_name'] +  '.csv')
-    
-    torch.save(model.state_dict(), output_root_folder + 'model_adapters_' + empathy_type + '_' + settings['model_name'])
+    if settings['save_settings']:
+        history.to_csv(output_root_folder + 'history_adapters_' + empathy_type + '_' + settings['model_name'] +  '.csv')
+        
+    if settings['save_model']:
+        torch.save(model.state_dict(), output_root_folder + 'model_adapters_' + empathy_type + '_' + settings['model_name'])
     print('Done')
     return model, history
 
