@@ -4,6 +4,10 @@
 #   https://huggingface.co/docs/transformers/training
 # [2] Bert for regression task: 
 #   https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
+# [3] Adapter versions config:
+#   https://adapterhub.ml/blog/2022/03/adapter-transformers-v3-unifying-efficient-fine-tuning/
+# [4] Unify parameter efficient training
+#   https://github.com/jxhe/unify-parameter-efficient-tuning
 #
 # ------------------------------
 
@@ -22,7 +26,9 @@ from transformers import BertTokenizer, RobertaTokenizer
 from transformers import TrainingArguments, AdapterTrainer, EvalPrediction
 from transformers import get_linear_schedule_with_warmup
 import transformers.adapters as adapters
-from transformers.adapters import AutoAdapterModel, RobertaAdapterModel, PredictionHead, MAMConfig, AdapterConfig
+from transformers.adapters import AutoAdapterModel, RobertaAdapterModel, PredictionHead
+from transformers.adapters import MAMConfig, AdapterConfig, PrefixTuningConfig, ParallelConfig
+from transformers.adapters import configuration as adapter_configs
 from datasets import Dataset, DatasetDict
 import torch
 import torch.nn as nn
@@ -30,7 +36,6 @@ from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.utils.data import TensorDataset, DataLoader
 from torch.utils.data import Dataset as PyTorchDataset
 from torch.optim import AdamW
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from scipy.stats import pearsonr
 from transformers import logging
 
@@ -161,6 +166,7 @@ def create_dataloaders(inputs, masks, labels, batch_size):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     return dataloader
 
+
 def create_dataloaders_multi_in(inputs, masks, labels, lexical_features, batch_size):
     # Source: [2]
     input_tensor = torch.tensor(inputs)
@@ -170,6 +176,63 @@ def create_dataloaders_multi_in(inputs, masks, labels, lexical_features, batch_s
     dataset = TensorDataset(input_tensor, mask_tensor, labels_tensor, lexical_features_tensor)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     return dataloader
+
+
+def get_adapter_config(config_name, print_config=True):
+    """available adapters from adapter hub (18.04.22):
+    (They can be used passing a string)
+    
+    ADAPTER_CONFIG_MAP = {
+    "pfeiffer": PfeifferConfig(),  # Pfeiffer2020
+    "houlsby": HoulsbyConfig(),
+    "pfeiffer+inv": PfeifferInvConfig(),
+    "houlsby+inv": HoulsbyInvConfig(),
+    "compacter++": CompacterPlusPlusConfig(),
+    "compacter": CompacterConfig(),
+    "prefix_tuning": PrefixTuningConfig(),
+    "prefix_tuning_flat": PrefixTuningConfig(flat=True),
+    "parallel": ParallelConfig(),  # He2021
+    "scaled_parallel": ParallelConfig(scaling="learned"),
+    "mam": MAMConfig(),  # He2021
+    }
+    
+    mam config is the same as according to [3]
+    config = ConfigUnion(
+        PrefixTuningConfig(bottleneck_size=800),
+        ParallelConfig(),
+        )
+    """
+
+    # load the predefined adapter configurations from the hub
+    configs_dict = copy.deepcopy(adapter_configs.ADAPTER_CONFIG_MAP)
+
+    # create own config options using some configs from here: https://adapterhub.ml/blog/2022/03/adapter-transformers-v3-unifying-efficient-fine-tuning/
+    myprefixtuning_config = PrefixTuningConfig(flat=False, prefix_length=30)
+    configs_dict['myprefixtuning'] = myprefixtuning_config
+
+    mymam_config = MAMConfig(PrefixTuningConfig(bottleneck_size=512, prefix_length=30), ParallelConfig())
+    configs_dict['mymam'] = mymam_config
+    
+    # select config
+    if config_name in configs_dict.keys():
+        config = configs_dict[config_name]
+    else:
+        print(f'\nMyWarning: Could not find an adapter configuration for {config_name}. Please select one of the following:\n {configs_dict.keys()}\n')
+        sys.exit(-1)
+    if print_config: print(config)
+    """
+    Source: Flexible configurations with ConfigUnion 
+    https://adapterhub.ml/blog/2022/03/adapter-transformers-v3-unifying-efficient-fine-tuning/
+    
+    from transformers.adapters import AdapterConfig, ConfigUnion
+
+    config = ConfigUnion(
+        AdapterConfig(mh_adapter=True, output_adapter=False, reduction_factor=16, non_linearity="relu"),
+        AdapterConfig(mh_adapter=False, output_adapter=True, reduction_factor=2, non_linearity="relu"),
+    )
+    model.add_adapter("union_adapter", config=config)
+    """
+    return config
 
 
 def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, bert_update_epochs=10, early_stop_toleance=2, use_early_stopping=True):
@@ -405,25 +468,11 @@ def run(settings, root_folder=""):
     learning_rate = settings['learning_rate']
     epochs = settings['epochs']
     train_only_bias = settings['train_only_bias']
-    adapter_config = settings['adapter_type']
+    adapter_type = settings['adapter_type']
     use_early_stopping = settings['early_stopping']
     weight_decay = settings['weight_decay']
 
-
-    """ADAPTER_CONFIG_MAP = {
-    "pfeiffer": PfeifferConfig(),  # Pfeiffer2020
-    "houlsby": HoulsbyConfig(),
-    "pfeiffer+inv": PfeifferInvConfig(),
-    "houlsby+inv": HoulsbyInvConfig(),
-    "compacter++": CompacterPlusPlusConfig(),
-    "compacter": CompacterConfig(),
-    "prefix_tuning": PrefixTuningConfig(),
-    "prefix_tuning_flat": PrefixTuningConfig(flat=True),
-    "parallel": ParallelConfig(),  # He2021
-    "scaled_parallel": ParallelConfig(scaling="learned"),
-    "mam": MAMConfig(),  # He2021
-    }"""
-
+    adapter_config = get_adapter_config(adapter_type)
     # -------------------
     #   load data
     # -------------------
@@ -524,6 +573,8 @@ def run(settings, root_folder=""):
     print('------------ initializing Model ------------')
     model = RegressionModelAdapters(bert_type=bert_type,task_type=empathy_type, adapter_config=adapter_config)
     model.to(device)
+    print(model)
+    return
     # -------------------------------
     # --- optimizer ---
     # low learning rate to not get into catastrophic forgetting - Sun 2019
