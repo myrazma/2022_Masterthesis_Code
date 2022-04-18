@@ -27,7 +27,7 @@ from transformers import TrainingArguments, AdapterTrainer, EvalPrediction
 from transformers import get_linear_schedule_with_warmup
 import transformers.adapters as adapters
 from transformers.adapters import AutoAdapterModel, RobertaAdapterModel, PredictionHead
-from transformers.adapters import MAMConfig, AdapterConfig, PrefixTuningConfig, ParallelConfig
+from transformers.adapters import MAMConfig, AdapterConfig, PrefixTuningConfig, ParallelConfig, HoulsbyConfig
 from transformers.adapters import configuration as adapter_configs
 from datasets import Dataset, DatasetDict
 import torch
@@ -207,10 +207,11 @@ def get_adapter_config(config_name, print_config=True):
     configs_dict = copy.deepcopy(adapter_configs.ADAPTER_CONFIG_MAP)
 
     # create own config options using some configs from here: https://adapterhub.ml/blog/2022/03/adapter-transformers-v3-unifying-efficient-fine-tuning/
-    myprefixtuning_config = PrefixTuningConfig(flat=False, prefix_length=30)
+    myprefixtuning_config = PrefixTuningConfig(flat=False, prefix_length=30, bottleneck_size=200)
     configs_dict['myprefixtuning'] = myprefixtuning_config
 
-    mymam_config = MAMConfig(PrefixTuningConfig(bottleneck_size=512, prefix_length=30), ParallelConfig())
+    # adapted from from He2021; with reduction factor = 4 it comes closer to 200 dim than with reduction factor of 2 (from 768 to 384)
+    mymam_config = MAMConfig(PrefixTuningConfig(bottleneck_size=30), ParallelConfig(reduction_factor=4))
     configs_dict['mymam'] = mymam_config
     
     # select config
@@ -591,9 +592,8 @@ def run(settings, root_folder=""):
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_early_stopping=use_early_stopping)
 
-    if settings['save_settings']:
-        print(f"\nSave settings using model name: {settings['model_name']}\n")
-        history.to_csv(output_root_folder + 'history_adapters_' + empathy_type + '_' + settings['model_name'] +  '.csv')
+    print(f"\nSave settings using model name: {settings['model_name']}\n")
+    history.to_csv(output_root_folder + 'history_adapters_' + empathy_type + '_' + settings['model_name'] +  '.csv')
         
     if settings['save_model']:
         print(f"\nSave model using model name: {settings['model_name']}\n")

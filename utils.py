@@ -97,7 +97,7 @@ def load_articles(data_root_folder="../data/"):
     return articles
 
 
-def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_learning_rate=2e-5, default_seed=17, default_batch_size=4, default_epochs=5, default_bert_type='roberta-base', default_train_only_bias=False, default_adapter_type="pfeiffer", default_model_name="", default_save_settings=False, default_early_stopping=False, default_weight_decay=0.01):
+def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_learning_rate=2e-5, default_seed=17, default_batch_size=4, default_epochs=5, default_bert_type='roberta-base', default_train_only_bias=False, default_adapter_type="pfeiffer", default_model_name="", default_save_settings=False, default_early_stopping=False, default_weight_decay=0.01, default_save_model=False):
     if default_model_name=="":  # set model name to timestamp
         default_model_name = time.strftime("%y-%m-%d_%H%M", time.localtime())
     # provide default settings
@@ -113,7 +113,7 @@ def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_lea
                 'save_settings':default_save_settings, 
                 'early_stopping':default_early_stopping, 
                 'weight_decay':default_weight_decay, 
-                'save_model':False}
+                'save_model':default_save_model}
 
     if '--show_settings' in args:
         print("\nYou are using the following settings:")
