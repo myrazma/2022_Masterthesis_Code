@@ -48,16 +48,6 @@ class BertRegressor(nn.Module):
     def __init__(self, bert_type="bert-base-uncased", train_only_bias=False, train_bias_mlp=False):
         super(BertRegressor, self).__init__()
         D_in, D_out = 768, 1
-        Bert_out = 100
-        Add_Input_Dim = 0  # Input dim of additonal input
-        Regressor_in = Bert_out + Add_Input_Dim
-        Hidden_Regressor = 50
-        # calcuate output size of pooling layer
-        #padding = 0
-        #dilation = 1
-        #stride = 2
-        #kernel_size = 3
-        #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
 
         if bert_type == 'roberta-base':
             self.bert = RobertaModel.from_pretrained(bert_type)
@@ -67,7 +57,7 @@ class BertRegressor(nn.Module):
         if train_only_bias == 'all' or train_only_bias == 'mlp':
             print(f'\n------------ Train only the bias: {train_only_bias} ------------\n')
             bias_filter = lambda x: 'bias' in x
-            if train_only_bias == 'mlp':
+            if train_only_bias == 'mlp':  # train only the mlp layer (excluding all biases in the attention layers)
                 bias_filter = lambda x: 'bias' in x and not 'attention' in x
 
             names = [n for n, p in self.bert.named_parameters()]
@@ -77,10 +67,9 @@ class BertRegressor(nn.Module):
                     p.requires_grad = True
                 else:
                     p.requires_grad = False
-                print(f"{n}: {p.requires_grad}")
+                #print(f"{n}: {p.requires_grad}")
 
-
-        self.regression_head = model_utils.RegressionHead()
+        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out)
 
     def forward(self, input_ids, attention_masks):
         bert_outputs = self.bert(input_ids, attention_masks)
@@ -416,7 +405,7 @@ def run(settings, root_folder=""):
     loss_function = nn.MSELoss()
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
-    
+
     print(f"\nSave settings using model name: {settings['model_name']}\n")
     history.to_csv(root_folder + 'output/history_baseline_' + empathy_type + '_' + settings['model_name'] +  '.csv')
     

@@ -54,18 +54,11 @@ import preprocessing
 class RegressionModelAdapters(nn.Module):
     def __init__(self, bert_type, task_type, adapter_config):
         super(RegressionModelAdapters, self).__init__()
-        D_in = 768
-        Bert_out = 100
-        Add_Input_Dim = 0  # Input dim of additonal input
-        Regressor_in = Bert_out + Add_Input_Dim
-        Hidden_Regressor = 50
-        D_out = 1
-
-        head_name = task_type + '_head'
+        D_in, D_out = 768, 1 
+        
         adapter_name = task_type + '_adapter'
         self.bert = RobertaAdapterModel.from_pretrained(bert_type)
 
-            
         # Enable adapter training
         # task adapter - only add if not existing
         if adapter_name not in self.bert.config.adapters:
@@ -81,7 +74,7 @@ class RegressionModelAdapters(nn.Module):
             for n, p in zip(names, paramsis):
                 print(f"{n}: {p.requires_grad}")
         
-        self.regression_head = model_utils.RegressionHead()
+        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out)
         
 
     def forward(self, input_ids, attention_masks):
@@ -264,14 +257,6 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
 
     for epoch_i in range(epochs):
         print('------ epoch ' + str(epoch_i + 1) + ' ------')
-
-        # only train bert for 2 epochs, otherwise bert might 'forget too much'
-        #if epoch_i == bert_update_epochs:
-        #    for p in model.bert.parameters():
-        #        p.requires_grad = False
-        #    for p in model.bert.embeddings.parameters():
-        #        p.requires_grad = False
-        #    print('------- Bert parameter is not being updated anymore -------')
 
         # -------------------
         #      Training 
