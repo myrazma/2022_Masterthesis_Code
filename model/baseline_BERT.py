@@ -381,7 +381,7 @@ def run(settings, root_folder=""):
     # --- init model ---
     print('------------ initializing Model ------------')
     model = BertRegressor(bert_type=bert_type, train_only_bias=train_only_bias)
-    return
+
     # --- choose dataset ---
     # per default use empathy label
     dataloader_train = dataloader_emp_train
@@ -416,9 +416,13 @@ def run(settings, root_folder=""):
     loss_function = nn.MSELoss()
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
+    
+    print(f"\nSave settings using model name: {settings['model_name']}\n")
     history.to_csv(root_folder + 'output/history_baseline_' + empathy_type + '_' + settings['model_name'] +  '.csv')
     
-    torch.save(model.state_dict(), root_folder + 'output/model_baseline_' + empathy_type + '_' + settings['model_name'])
+    if settings['save_model']:
+        print(f"\nSave model using model name: {settings['model_name']}\n")
+        torch.save(model.state_dict(), root_folder + 'output/model_baseline_' + empathy_type + '_' + settings['model_name'])
     print('Done')
     return model, history
 
