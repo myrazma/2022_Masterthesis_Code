@@ -607,7 +607,7 @@ if __name__ == '__main__':
     # check if there is an input argument
     args = sys.argv[1:]  # ignore first arg as this is the call of this python script
 
-    settings = utils.arg_parsing_to_settings(args, default_learning_rate=5e-5, default_batch_size=16, default_epochs=10)
+    settings = utils.arg_parsing_to_settings(args, learning_rate=5e-5, batch_size=16, epochs=10)
     # ---- end function ----
     
     run(settings=settings)

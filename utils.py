@@ -97,23 +97,23 @@ def load_articles(data_root_folder="../data/"):
     return articles
 
 
-def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_learning_rate=2e-5, default_seed=17, default_batch_size=4, default_epochs=5, default_bert_type='roberta-base', default_train_only_bias=False, default_adapter_type="pfeiffer", default_model_name="", default_save_settings=False, default_early_stopping=False, default_weight_decay=0.01, default_save_model=False):
-    if default_model_name=="":  # set model name to timestamp
-        default_model_name = time.strftime("%y-%m-%d_%H%M", time.localtime())
+def arg_parsing_to_settings(args, empathy_type = 'distress', learning_rate=2e-5, seed=17, batch_size=4, epochs=5, bert_type='roberta-base', train_only_bias='none', adapter_type="pfeiffer", model_name="", save_settings=False, early_stopping=False, weight_decay=0.01, save_model=False):
+    if model_name=="":  # set model name to timestamp
+        model_name = time.strftime("%y-%m-%d_%H%M", time.localtime())
     # provide default settings
-    settings = {'empathy_type': default_empathy_type,
-                'learning_rate': default_learning_rate, 
-                'seed': default_seed, 
-                'batch_size': default_batch_size, 
-                'epochs': default_epochs, 
-                'bert-type': default_bert_type, 
-                'train_only_bias': default_train_only_bias, 
-                'adapter_type': default_adapter_type, 
-                'model_name': default_model_name, 
-                'save_settings':default_save_settings, 
-                'early_stopping':default_early_stopping, 
-                'weight_decay':default_weight_decay, 
-                'save_model':default_save_model}
+    settings = {'empathy_type': empathy_type,
+                'learning_rate': learning_rate, 
+                'seed': seed, 
+                'batch_size': batch_size, 
+                'epochs': epochs, 
+                'bert-type': bert_type, 
+                'train_only_bias': train_only_bias,
+                'adapter_type': adapter_type, 
+                'model_name': model_name, 
+                'save_settings':save_settings, 
+                'early_stopping':early_stopping, 
+                'weight_decay':weight_decay, 
+                'save_model':save_model}
 
     if '--show_settings' in args:
         print("\nYou are using the following settings:")
@@ -123,9 +123,19 @@ def arg_parsing_to_settings(args, default_empathy_type = 'distress', default_lea
     for idx, arg in enumerate(args):
         if '--' in arg:  # this is a key, value following afterwards
             arg_name = arg[2:]  # remove the two lines before the actual name
-            if arg_name == 'train_only_bias':
-                settings[arg_name] = True
-                continue
+            if arg_name == 'train_only_bias':  # only train the bias parameters
+                if len(args) > (idx + 1):
+                    value = args[idx + 1]
+                    if '--' in value:
+                        settings[arg_name] = 'all'
+                        continue
+                    else:
+                        val = str(value).lower()
+                        settings[arg_name] = val
+                        args.pop(idx+1)
+                        continue
+                else: 
+                    settings[arg_name] = 'all'
             elif arg_name == 'empathy' or arg_name == 'distress':
                 settings['empathy_type'] = arg_name
                 continue
