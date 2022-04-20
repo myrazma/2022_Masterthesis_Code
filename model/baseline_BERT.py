@@ -67,9 +67,12 @@ class BertRegressor(nn.Module):
                     p.requires_grad = True
                 else:
                     p.requires_grad = False
-                #print(f"{n}: {p.requires_grad}")
 
         self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out)
+
+        # get the size of the model parameters (head and bert separated)
+        self.bert_parameter_count = model_utils.count_updated_parameters(self.bert.parameters())
+        self.head_parameter_count = model_utils.count_updated_parameters(self.regression_head.parameters())
 
     def forward(self, input_ids, attention_masks):
         bert_outputs = self.bert(input_ids, attention_masks)
@@ -182,7 +185,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
 
             clip_grad_norm_(model.parameters(), clip_value)
             optimizer.step()
-            scheduler.step() 
+            #scheduler.step() 
 
             # backward
             #optimizer.zero_grad()
@@ -370,6 +373,10 @@ def run(settings, root_folder=""):
     # --- init model ---
     print('------------ initializing Model ------------')
     model = BertRegressor(bert_type=bert_type, train_only_bias=train_only_bias)
+    # get parameter size
+    print(model.bert_parameter_count)
+    print(model.model_parameter_count)
+    print(model.head_parameter_count)
 
     # --- choose dataset ---
     # per default use empathy label
@@ -405,6 +412,10 @@ def run(settings, root_folder=""):
     loss_function = nn.MSELoss()
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
+    
+    # add model parameter size to history
+    history['bert_param_size'] = np.zeros(history.shape[0]) + model.bert_parameter_count
+    history['head_param_size'] = np.zeros(history.shape[0]) + model.head_parameter_count
 
     print(f"\nSave settings using model name: {settings['model_name']}\n")
     history.to_csv(root_folder + 'output/history_baseline_' + empathy_type + '_' + settings['model_name'] +  '.csv')
@@ -420,7 +431,7 @@ if __name__ == '__main__':
     # check if there is an input argument
     args = sys.argv[1:]  # ignore first arg as this is the call of this python script
 
-    settings = utils.arg_parsing_to_settings(args, early_stopping=False, learning_rate=2e-5, batch_size=16, bert_type='roberta-base', epochs=10, weight_decay=0.01)
+    settings = utils.arg_parsing_to_settings(args, early_stopping=False, learning_rate=2e-5, batch_size=16, bert_type='roberta-base', epochs=10, weight_decay=0.01, save_settings=True)
     # ---- end function ----
     
     run(settings=settings)

@@ -110,10 +110,10 @@ def arg_parsing_to_settings(args, empathy_type = 'distress', learning_rate=2e-5,
                 'train_only_bias': train_only_bias,
                 'adapter_type': adapter_type, 
                 'model_name': model_name, 
-                'save_settings':save_settings, 
-                'early_stopping':early_stopping, 
-                'weight_decay':weight_decay, 
-                'save_model':save_model}
+                'save_settings': save_settings, 
+                'early_stopping': early_stopping, 
+                'weight_decay': weight_decay, 
+                'save_model': save_model}
 
     if '--show_settings' in args:
         print("\nYou are using the following settings:")

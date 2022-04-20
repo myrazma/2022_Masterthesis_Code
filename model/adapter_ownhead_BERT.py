@@ -75,6 +75,9 @@ class RegressionModelAdapters(nn.Module):
                 print(f"{n}: {p.requires_grad}")
         
         self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out)
+
+        self.bert_parameter_count = model_utils.count_updated_parameters(self.bert.parameters())
+        self.head_parameter_count = model_utils.count_updated_parameters(self.regression_head.parameters())
         
 
     def forward(self, input_ids, attention_masks):
@@ -301,7 +304,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
 
             clip_grad_norm_(model.parameters(), clip_value)
             optimizer.step()
-            scheduler.step() 
+            # scheduler.step() 
 
             # backward
             #optimizer.zero_grad()
@@ -577,6 +580,10 @@ def run(settings, root_folder=""):
     loss_function = nn.MSELoss()
    
     model, history = train(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_early_stopping=use_early_stopping)
+    
+    # add model parameter size to history
+    history['bert_param_size'] = np.zeros(history.shape[0]) + model.bert_parameter_count
+    history['head_param_size'] = np.zeros(history.shape[0]) + model.head_parameter_count
 
     print(f"\nSave settings using model name: {settings['model_name']}\n")
     history.to_csv(output_root_folder + 'history_adapters_' + empathy_type + '_' + settings['model_name'] +  '.csv')
@@ -592,7 +599,7 @@ if __name__ == '__main__':
     # check if there is an input argument
     args = sys.argv[1:]  # ignore first arg as this is the call of this python script
 
-    settings = utils.arg_parsing_to_settings(args, learning_rate=5e-5, batch_size=16, epochs=10)
+    settings = utils.arg_parsing_to_settings(args, learning_rate=2e-5, batch_size=16, epochs=10, save_settings=True, bert_type='roberta-base', weight_decay=0.01, save_settings=True)
     # ---- end function ----
     
     run(settings=settings)
