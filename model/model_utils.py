@@ -21,8 +21,8 @@ class RegressionHead(nn.Module):
         self.regressor = nn.Sequential(
             nn.Linear(100, 10),
             nn.ReLU(),
-            nn.Dropout(0.1),
             nn.Linear(10, 1))
+
 
     def forward(self, bert_outputs):
         bert_output = bert_outputs[1]
@@ -45,3 +45,11 @@ def count_updated_parameters(model_params):
         if p.requires_grad:  # only count if the parameter is updated during training
             model_size += p.flatten().size()[0]
     return model_size
+
+
+def train_model():
+    pass
+
+
+def eval_model():
+    pass
