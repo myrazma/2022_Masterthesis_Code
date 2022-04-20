@@ -374,9 +374,6 @@ def run(settings, root_folder=""):
     print('------------ initializing Model ------------')
     model = BertRegressor(bert_type=bert_type, train_only_bias=train_only_bias)
     # get parameter size
-    print(model.bert_parameter_count)
-    print(model.model_parameter_count)
-    print(model.head_parameter_count)
 
     # --- choose dataset ---
     # per default use empathy label
