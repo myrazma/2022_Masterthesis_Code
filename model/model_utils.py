@@ -22,26 +22,36 @@ class RegressionHead(nn.Module):
         super(RegressionHead, self).__init__()
 
         # calcuate output size of pooling layer
-        #padding = 0
-        #dilation = 1
-        #stride = 2
-        #kernel_size = 3
-        #pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
+        padding = 0
+        dilation = 1
+        stride = 2
+        kernel_size = 3
+        pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
 
         first_hid = int(np.ceil(D_in / 2))  # 384
         self.bert_head = nn.Sequential(
+            nn.AvgPool1d(kernel_size, stride, padding),
             nn.Dropout(0.2),
-            nn.Linear(D_in, first_hid),
+            nn.Linear(pool_out_size, first_hid),
             nn.Tanh())
 
+        #self.regressor = nn.Sequential(
+        #    nn.Dropout(0.1),
+        #    nn.Linear(first_hid, 100),
+        #    nn.Tanh(),
+        #    nn.Linear(100, 50),
+        #    nn.Tanh(),
+        #    nn.Dropout(0.1),
+        #    nn.Linear(50, 10),
+        #    nn.Linear(10, 1))
+
+        self.bert_head = nn.Sequential(
+            nn.Dropout(0.2),
+            nn.Linear(768, 100))
+
         self.regressor = nn.Sequential(
-            nn.Dropout(0.1),
-            nn.Linear(first_hid, 100),
+            nn.Linear(100, 10),
             nn.Tanh(),
-            nn.Linear(100, 50),
-            nn.Tanh(),
-            nn.Dropout(0.1),
-            nn.Linear(50, 10),
             nn.Linear(10, 1))
 
 
