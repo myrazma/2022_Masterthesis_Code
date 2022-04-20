@@ -18,10 +18,10 @@ class RegressionHead(nn.Module):
 	        nn.ReLU())
 
         self.regressor = nn.Sequential(
-            nn.Linear(D_hidden1, D_hidden2),
-	        nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(D_hidden2, D_out))
+            #nn.Dropout(0.1),
+            #nn.Linear(D_hidden1, D_hidden2),
+	        #nn.ReLU(),
+            nn.Linear(D_hidden1, D_out))
 
     def forward(self, bert_outputs):
         bert_output = bert_outputs[1]
