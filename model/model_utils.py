@@ -20,7 +20,7 @@ class RegressionHead(nn.Module):
 
     def __init__(self, dropout=0.2, D_in=768, D_hidden1=100, D_hidden2=10, D_out=1):
         super(RegressionHead, self).__init__()
-        first_hid = np.ceil(D_in / 2)  # 384
+        first_hid = int(np.ceil(D_in / 2))  # 384
         self.bert_head = nn.Sequential(
             nn.Dropout(0.2),
             nn.Linear(D_in, first_hid),
