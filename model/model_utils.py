@@ -21,13 +21,10 @@ class RegressionHead(nn.Module):
 
         self.regressor = nn.Sequential(
             nn.Dropout(0.1),
-            nn.Linear(first_hid, 100),
-	        nn.ReLU(),
-            nn.Linear(100, 50),
+            nn.Linear(first_hid, 50),
 	        nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Linear(50, 10),
-            nn.Linear(10, 1))
+            nn.Linear(50, 1))
 
     def forward(self, bert_outputs):
         bert_output = bert_outputs[1]
