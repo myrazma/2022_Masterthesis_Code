@@ -13,12 +13,11 @@ class RegressionHead(nn.Module):
     def __init__(self, dropout=0.2, D_in=768, D_hidden1=100, D_hidden2=10, D_out=1):
         super(RegressionHead, self).__init__()
         self.bert_head = nn.Sequential(
-            nn.Dropout(0.5),
+            nn.Dropout(0.2),
             nn.Linear(D_in, D_hidden1),
 	        nn.ReLU())
 
         self.regressor = nn.Sequential(
-            nn.Dropout(0.2),
             nn.Linear(D_hidden1, D_hidden2),
 	        nn.ReLU(),
             nn.Dropout(0.1),
