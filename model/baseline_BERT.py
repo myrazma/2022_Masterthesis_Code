@@ -185,7 +185,7 @@ def train(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler,
 
             clip_grad_norm_(model.parameters(), clip_value)
             optimizer.step()
-            #scheduler.step() 
+            scheduler.step() 
 
             # backward
             #optimizer.zero_grad()
