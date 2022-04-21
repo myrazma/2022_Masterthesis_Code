@@ -21,43 +21,33 @@ class RegressionHead(nn.Module):
     def __init__(self, dropout=0.2, D_in=768, D_hidden1=100, D_hidden2=10, D_out=1, activation_func='relu'):
         super(RegressionHead, self).__init__()
 
-        self.bert_head = nn.Sequential(
-            nn.Dropout(0.2),
-            nn.Linear(768, 100))
 
-        activation_layer = nn.ReLU()  # per default_use relu
         if activation_func == 'tanh':
+            print('Using Tanh as activation function.')
             activation_layer = nn.Tanh()
+        else:
+            print('Using ReLU as activation function.')
+            activation_layer = nn.ReLU()  # per default_use relu
             
-        self.regressor = nn.Sequential(
-            nn.Linear(100, 10),
+            # calcuate output size of pooling layer
+        padding = 0
+        dilation = 1
+        stride = 2
+        kernel_size = 3
+        pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
+        print(f'-------------- pool output size: {pool_out_size} --------------')
+        first_hid = int(np.ceil(D_in / 2))  # 384
+        self.bert_head = nn.Sequential(
+            nn.MaxPool1d(kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation),
+            nn.Linear(pool_out_size, 128),
             activation_layer,
-            nn.Linear(10, 1))
-        #self.regressor = nn.Sequential(
-        #    nn.Dropout(0.1),
-        #    nn.Linear(first_hid, 100),
-        #    nn.Tanh(),
-        #    nn.Linear(100, 50),
-        #    nn.Tanh(),
-        #    nn.Dropout(0.1),
-        #    nn.Linear(50, 10),
-        #    nn.Linear(10, 1))
+            nn.Dropout(0.2))
 
-        #self.bert_head = nn.Sequential(
-        #    nn.Dropout(0.2),
-        #    nn.Linear(768, 100))
-        #self.regressor = nn.Sequential(
-        #    nn.Dropout(0.1),
-        #    nn.Linear(100, 50),
-        #    nn.Tanh(),
-        #    nn.Dropout(0.1),
-        #    nn.Linear(50, 10),
-        #    nn.Linear(10, 1))
-        #self.regressor = nn.Sequential(
-        #    nn.Linear(100, 10),
-        #    nn.Dropout(0.2),
-        #    nn.Tanh(),
-        #    nn.Linear(10, 1))
+        self.regressor = nn.Sequential(
+            nn.Linear(128, 10),
+            activation_layer,
+            nn.Dropout(0.2),
+            nn.Linear(10, 1))
 
 
     def forward(self, bert_outputs):
