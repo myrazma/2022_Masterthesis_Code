@@ -27,12 +27,12 @@ class RegressionHead(nn.Module):
         stride = 2
         kernel_size = 3
         pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
-
+        print(f'-------------- pool output size: {pool_out_size} --------------')
         first_hid = int(np.ceil(D_in / 2))  # 384
         self.bert_head = nn.Sequential(
             nn.AvgPool1d(kernel_size, stride, padding),
+            nn.Linear(pool_out_size, 100),
             nn.Dropout(0.2),
-            nn.Linear(pool_out_size, first_hid),
             nn.Tanh())
 
         #self.regressor = nn.Sequential(
@@ -45,12 +45,13 @@ class RegressionHead(nn.Module):
         #    nn.Linear(50, 10),
         #    nn.Linear(10, 1))
 
-        self.bert_head = nn.Sequential(
-            nn.Dropout(0.2),
-            nn.Linear(768, 100))
+        #self.bert_head = nn.Sequential(
+        #    nn.Dropout(0.2),
+        #    nn.Linear(768, 100))
 
         self.regressor = nn.Sequential(
             nn.Linear(100, 10),
+            nn.Dropout(0.2),
             nn.Tanh(),
             nn.Linear(10, 1))
 
@@ -151,7 +152,7 @@ def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, sche
             # optimizer.step()
         
             # Print the loss values and time elapsed for every 1000 batches
-            if (step % 50 == 0) or (step == len(train_dataloader) - 1):
+            if ((step % 50 == 0) and (step != 0)) or (step == len(train_dataloader) - 1):
             
                 # Calculate time elapsed
                 time_elapsed = time.time() - t0_batch
