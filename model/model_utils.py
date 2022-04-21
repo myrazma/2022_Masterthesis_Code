@@ -8,8 +8,11 @@ import time
 import copy
 import math
 import torch
+from sklearn.model_selection import KFold
 from torch.nn.utils.clip_grad import clip_grad_norm_
-from torch.utils.data import Dataset, DataLoader,TensorDataset, random_split,SubsetRandomSampler, ConcatDataset
+from torch.utils.data import DataLoader, TensorDataset, random_split,SubsetRandomSampler, ConcatDataset
+from torch.utils.data.dataset import Subset
+from torch.utils.data import Dataset as PyTorchDataset
 from scipy.stats import pearsonr
 
 class RegressionHead(nn.Module):
@@ -36,7 +39,7 @@ class RegressionHead(nn.Module):
         stride = 2
         kernel_size = 3
         pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
-        print(f'-------------- pool output size: {pool_out_size} --------------')
+        #print(f'-------------- pool output size: {pool_out_size} --------------')
         first_hid = int(np.ceil(D_in / 2))  # 384
         self.bert_head = nn.Sequential(
             nn.Dropout(dropout),
@@ -65,6 +68,38 @@ class RegressionHead(nn.Module):
         bert_head_output = self.bert_head(bert_output)
         outputs = self.regressor(bert_head_output)
         return outputs
+
+
+class MyDataset(PyTorchDataset):
+    def __init__(self, input_ids, attention_mask, labels, device):
+        """Initializer for SeqDataset
+        Args:
+            seq (np.array) [x, y]: The sequences of shape (sample_size, max_seq_size)
+            labels (np.array) [x, y]: The labels of shape (sample_size, max_seq_size)
+        """
+        self.labels = torch.from_numpy(labels).type(torch.FloatTensor)
+        self.input_ids = torch.from_numpy(input_ids).type(torch.FloatTensor)
+        self.attention_mask = torch.from_numpy(attention_mask).type(torch.LongTensor)
+
+    def __len__(self):
+        """Implement len function of type Dataset
+        Returns:
+            int: The length of the dataset
+        """
+        return len(self.labels)
+            
+    def __getitem__(self, idx):
+        """Implement get_item function of type Dataset
+        Args:
+            idx (int): The index of the item to get
+        Returns:
+            tensor [y], tensor [y]: The sequence, The labels
+        """
+        item = {}
+        item['attention_masks'] = self.attention_mask[idx].int()
+        item['input_ids'] = self.input_ids[idx].int()
+        item['label'] = self.labels[idx].float()
+        return item
 
 
 def count_updated_parameters(model_params):
@@ -104,7 +139,6 @@ def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, sche
     # init variables for early stopping
     worse_loss, epoch_model_saved = 0, 0
     model_best = None
-
     for epoch_i in range(epochs):
         # -------------------
         #      Training 
@@ -276,7 +310,6 @@ def predict(model, test_dataloader, device):
     return all_outputs, all_labels, test_corr
 
 
-
 def score_correlation(y_pred, y_true):
     """Correlate prediciton and true value using pearson r
 
@@ -291,5 +324,45 @@ def score_correlation(y_pred, y_true):
     return r, p
 
 
-def kfold_cross_val(model, train_dataloader, dev_dataloader, epochs):
-    pass
+def tokenize(batch, tokenizer, column):
+    # Source: [1] - https://huggingface.co/docs/transformers/training
+    # longest is around 200
+    return tokenizer(batch[column], padding='max_length', truncation=True, max_length=256)
+
+
+def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
+    # partly source from https://medium.com/dataseries/k-fold-cross-validation-with-pytorch-and-sklearn-d094aa00105f
+    batch_size = settings['batch_size']
+    seed = settings['seed']
+    epochs = settings['epochs']
+    fold_histories = []
+
+    seg_size = int(np.ceil(len(dataset_train) / k))
+    # create folds
+    for i, fold in enumerate(range(k)):
+        print(f"\n ---------------- Fold {i} ---------------- \n")
+        # init model each time
+        model_fold = copy.deepcopy(model)
+        fold_range = (seg_size*i, seg_size*i + seg_size)
+        if fold_range[1] >= len(dataset_train):  # woudl be out of bound
+            fold_range = (fold_range[0], len(dataset_train)-1) ## replace second with the lengt of the data set - 1
+
+        dev_indices = np.arange(fold_range[0], fold_range[1])  # get the indices of the current dev data
+        train_indices = np.delete(np.arange(0, len(dataset_train)), dev_indices)  # the rest is the training data for this fold
+
+        fold_dataset_train = Subset(dataset_train, train_indices)
+        fold_dataset_dev = Subset(dataset_train, dev_indices)
+        fold_loader_train = DataLoader(fold_dataset_train, batch_size=batch_size, shuffle=True)
+        print(type(fold_loader_train))
+        fold_loader_dev = DataLoader(fold_dataset_dev, batch_size=batch_size, shuffle=True)
+
+        model_fold, history = train_model(model_fold, fold_loader_train, fold_loader_dev, epochs, optimizer, scheduler, loss_function, device, use_early_stopping=False, use_scheduler=settings['scheduler'])
+        fold_histories.append(history)
+
+    # average all score in the histories
+    avrg_history = fold_histories[0]
+    for hist in fold_histories[1:]:
+        avrg_history + hist
+    avrg_history = avrg_history / len(fold_histories)
+    print('Average folds history:', avrg_history)
+    return model, avrg_history  # TODO: which model to return?

@@ -32,6 +32,7 @@ from transformers import logging
 
 
 # import own module
+import model_utils
 from pathlib import Path
 import sys
 path_root = Path(__file__).parents[1]
@@ -96,38 +97,6 @@ class RegressionModelAdapters(nn.Module):
         #concat = torch.cat((after_bert_outputs, lexical_features), 1)
         #outputs = self.regressor(concat)
         return after_bert_outputs
-
-
-class MyDataset(PyTorchDataset):
-    def __init__(self, input_ids, attention_mask, labels, device):
-        """Initializer for SeqDataset
-        Args:
-            seq (np.array) [x, y]: The sequences of shape (sample_size, max_seq_size)
-            labels (np.array) [x, y]: The labels of shape (sample_size, max_seq_size)
-        """
-        self.labels = torch.from_numpy(labels).type(torch.FloatTensor)
-        self.input_ids = torch.from_numpy(input_ids).type(torch.FloatTensor)
-        self.attention_mask = torch.from_numpy(attention_mask).type(torch.LongTensor)
-
-    def __len__(self):
-        """Implement len function of type Dataset
-        Returns:
-            int: The length of the dataset
-        """
-        return len(self.labels)
-            
-    def __getitem__(self, idx):
-        """Implement get_item function of type Dataset
-        Args:
-            idx (int): The index of the item to get
-        Returns:
-            tensor [y], tensor [y]: The sequence, The labels
-        """
-        item = {}
-        item['attention_masks'] = self.attention_mask[idx].int()
-        item['input_ids'] = self.input_ids[idx].int()
-        item['label'] = self.labels[idx].float()
-        return item
 
 
 def pd_to_dataset(data_df):
@@ -338,10 +307,10 @@ def run(settings, root_folder=""):
     #dataloader_dis_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_distress_train, batch_size)
     #dataloader_dis_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, batch_size)
     
-    pytorch_dataset_emp_train = MyDataset(input_ids_train, attention_mask_train, label_scaled_empathy_train, device)
-    pytorch_dataset_emp_dev = MyDataset(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, device)
-    pytorch_dataset_dis_train = MyDataset(input_ids_train, attention_mask_train, label_scaled_distress_train, device)
-    pytorch_dataset_dis_dev = MyDataset(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, device)
+    pytorch_dataset_emp_train = model_utils.MyDataset(input_ids_train, attention_mask_train, label_scaled_empathy_train, device)
+    pytorch_dataset_emp_dev = model_utils.MyDataset(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev, device)
+    pytorch_dataset_dis_train = model_utils.MyDataset(input_ids_train, attention_mask_train, label_scaled_distress_train, device)
+    pytorch_dataset_dis_dev = model_utils.MyDataset(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, device)
   
     # --- choose dataset ---
     # per default use empathy label
@@ -374,7 +343,13 @@ def run(settings, root_folder=""):
     model.add_adapter(adapter_name, config=adapter_config)
     model.set_active_adapters(adapter_name)
     model.train_adapter(adapter_name)  # set adapter into training mode and freeze parameters in the transformer model
-
+    # --- run on GPU if available ---
+    if torch.cuda.is_available():       
+        device = torch.device("cuda")
+        print("Using GPU.")
+    else:
+        print("No GPU available, using the CPU instead.")
+        device = torch.device("cpu")
     model.to(device)
 
 

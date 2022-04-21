@@ -108,23 +108,32 @@ def pd_to_datasetdict(train, dev):
     whole_dataset = DatasetDict({'train': dataset_train, 'dev': dataset_dev})
     return whole_dataset
 
-
-def tokenize(batch, tokenizer, column):
-    # Source: [1] - https://huggingface.co/docs/transformers/training
-    # longest is around 200
-    return tokenizer(batch[column], padding='max_length', truncation=True, max_length=256)
-
-def create_dataloaders(inputs, masks, labels, batch_size):
+def create_tensor_data(inputs, masks, labels):
     # Source: [2]
     input_tensor = torch.tensor(inputs)
     mask_tensor = torch.tensor(masks)
     labels_tensor = torch.tensor(labels)
     dataset = TensorDataset(input_tensor, mask_tensor, labels_tensor)
+    return dataset
+
+
+def create_dataloaders(inputs, masks, labels, batch_size):
+    # Source: [2]
+    dataset = create_tensor_data(inputs, masks, labels)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     return dataloader
 
 
 def run(settings, root_folder=""):
+
+    # --- run on GPU if available ---
+    if torch.cuda.is_available():       
+        device = torch.device("cuda")
+        print("Using GPU.")
+    else:
+        print("No GPU available, using the CPU instead.")
+        device = torch.device("cpu")
+
     #logging.set_verbosity_warning()
     #logging.set_verbosity_error()
     data_root_folder = root_folder + 'data/'
@@ -158,8 +167,8 @@ def run(settings, root_folder=""):
     
     # --- Create hugginface datasets ---
     # TODO: Use all data later on
-    data_train = pd_to_dataset(data_train_pd)
-    data_dev = pd_to_dataset(data_dev_pd)
+    data_train = pd_to_dataset(data_train_pd[:10])
+    data_dev = pd_to_dataset(data_dev_pd[:5])
 
     #  Create hugginface datasetsdict
     # data_train_dev = pd_to_datasetdict(data_train, data_dev)
@@ -174,8 +183,8 @@ def run(settings, root_folder=""):
     else:
         tokenizer = BertTokenizer.from_pretrained(bert_type)
 
-    data_train_encoded = data_train.map(lambda x: tokenize(x, tokenizer, 'essay'), batched=True, batch_size=None)
-    data_dev_encoded = data_dev.map(lambda x: tokenize(x, tokenizer, 'essay'), batched=True, batch_size=None)
+    data_train_encoded = data_train.map(lambda x: model_utils.tokenize(x, tokenizer, 'essay'), batched=True, batch_size=None)
+    data_dev_encoded = data_dev.map(lambda x: model_utils.tokenize(x, tokenizer, 'essay'), batched=True, batch_size=None)
 
     # --- shuffle data ---
     data_train_encoded_shuff = data_train_encoded.shuffle(seed=my_seed)
@@ -199,6 +208,14 @@ def run(settings, root_folder=""):
     label_scaled_distress_train = preprocessing.normalize_scores(label_distress_train, (1,7))
     label_scaled_distress_dev = preprocessing.normalize_scores(label_distress_dev, (1,7))
     
+    # --- create datasets ---
+    # for empathy
+    pytorch_dataset_emp_train = create_tensor_data(input_ids_train, attention_mask_train, label_scaled_empathy_train)
+    pytorch_dataset_emp_dev = create_tensor_data(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev)
+    # for distress
+    pytorch_dataset_dis_train = create_tensor_data(input_ids_train, attention_mask_train, label_scaled_distress_train)
+    pytorch_dataset_dis_dev = create_tensor_data(input_ids_dev, attention_mask_dev, label_scaled_distress_dev)
+
     # --- create dataloader ---
     # for empathy
     dataloader_emp_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_empathy_train, batch_size)
@@ -206,6 +223,7 @@ def run(settings, root_folder=""):
     # for distress
     dataloader_dis_train = create_dataloaders(input_ids_train, attention_mask_train, label_scaled_distress_train, batch_size)
     dataloader_dis_dev = create_dataloaders(input_ids_dev, attention_mask_dev, label_scaled_distress_dev, batch_size)
+
 
     # -------------------
     #  initialize model 
@@ -216,27 +234,22 @@ def run(settings, root_folder=""):
     # --- init model ---
     print('------------ initializing Model ------------')
     model = BertRegressor(bert_type=bert_type, train_only_bias=train_only_bias, activation_func=activation_func, dropout=dropout)
-    # get parameter size
+    model.to(device)
 
-    # --- choose dataset ---
+    # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
     dataloader_train = dataloader_emp_train
     dataloader_dev = dataloader_emp_dev
+    dataset_train = pytorch_dataset_emp_train
+    dataset_dev = pytorch_dataset_emp_dev
     display_text = 'Using empathy data'
     if empathy_type == 'distress':
-        dataloader_train = dataloader_dis_train
-        dataloader_dev = dataloader_dis_dev
+        dataloader_train = dataloader_dis_train  # needed for k fold
+        dataloader_dev = dataloader_dis_dev  # needed for k fold
+        dataset_train = pytorch_dataset_dis_train  # needed for k fold
+        dataset_dev = pytorch_dataset_dis_dev  # needed for k fold
         display_text = "Using distress data"
     print('\n------------ ' + display_text + ' ------------\n')
-
-    # --- run on GPU if available ---
-    if torch.cuda.is_available():       
-        device = torch.device("cuda")
-        print("Using GPU.")
-    else:
-        print("No GPU available, using the CPU instead.")
-        device = torch.device("cpu")
-    model.to(device)
 
     # --- optimizer ---
     # low learning rate to not get into catastrophic forgetting - Sun 2019
@@ -250,12 +263,16 @@ def run(settings, root_folder=""):
 
     # epochs
     loss_function = nn.MSELoss()
-   
-    model, history = model_utils.train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
     
-    # add model parameter size to history
-    history['bert_param_size'] = np.zeros(history.shape[0]) + model.bert_parameter_count
-    history['head_param_size'] = np.zeros(history.shape[0]) + model.head_parameter_count
+    if settings['kfold'] > 0:  # if kfold = 0, we ar enot doing kfold
+        print('\n------------ Using kfold cross validation ------------\n')
+        model, history = run_kfold(model, settings, dataset_dev, dataset_train, epochs, optimizer, scheduler, loss_function, device=device, k=settings['kfold'])
+    else:
+        model, history = model_utils.train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device=device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
+    
+        # add model parameter size to history
+        history['bert_param_size'] = np.zeros(history.shape[0]) + model.bert_parameter_count
+        history['head_param_size'] = np.zeros(history.shape[0]) + model.head_parameter_count
 
     print(f"\nSave settings using model name: {settings['model_name']}\n")
     history.to_csv(root_folder + 'output/history_baseline_' + empathy_type + '_' + settings['model_name'] +  '.csv')
@@ -267,11 +284,18 @@ def run(settings, root_folder=""):
     return model, history
 
 
+def run_kfold(model, settings, dataset_dev, dataset_train, epochs, optimizer, scheduler, loss_function, device, k=5):
+    model, history = model_utils.kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=k, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False)
+    # TODO, which model to save?
+    return model, history
+
+    
+
 if __name__ == '__main__':
     # check if there is an input argument
     args = sys.argv[1:]  # ignore first arg as this is the call of this python script
 
-    settings = utils.arg_parsing_to_settings(args, early_stopping=False, learning_rate=2e-5, batch_size=16, bert_type='roberta-base', epochs=10, weight_decay=0.01, save_settings=True, use_scheduler=True, dropout=0.2)
+    settings = utils.arg_parsing_to_settings(args, early_stopping=False, learning_rate=2e-5, batch_size=16, bert_type='roberta-base', epochs=10, weight_decay=0.01, save_settings=True, use_scheduler=True, dropout=0.2, kfold=0)
     # ---- end function ----
     
     run(settings=settings)
