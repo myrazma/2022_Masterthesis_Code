@@ -24,8 +24,8 @@ class RegressionHead(nn.Module):
         # calcuate output size of pooling layer
         padding = 0
         dilation = 1
-        stride = 2
-        kernel_size = 5
+        stride = 1
+        kernel_size = 3
         pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
         print(f'-------------- pool output size: {pool_out_size} --------------')
         first_hid = int(np.ceil(D_in / 2))  # 384
