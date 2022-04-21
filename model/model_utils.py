@@ -30,13 +30,14 @@ class RegressionHead(nn.Module):
         print(f'-------------- pool output size: {pool_out_size} --------------')
         first_hid = int(np.ceil(D_in / 2))  # 384
         self.bert_head = nn.Sequential(
-            nn.Dropout(0.2),
             nn.MaxPool1d(kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation),
             #nn.AvgPool1d(kernel_size, stride, padding),
-            nn.Linear(pool_out_size, 100),
-            nn.Dropout(0.2),
-            nn.Tanh())
+            nn.Linear(pool_out_size, 128),
+            nn.Tanh(),
+            nn.Dropout(0.2))
 
+        self.regressor = nn.Sequential(
+            nn.Linear(128, 1))
         #self.regressor = nn.Sequential(
         #    nn.Dropout(0.1),
         #    nn.Linear(first_hid, 100),
@@ -50,12 +51,18 @@ class RegressionHead(nn.Module):
         #self.bert_head = nn.Sequential(
         #    nn.Dropout(0.2),
         #    nn.Linear(768, 100))
-
-        self.regressor = nn.Sequential(
-            nn.Linear(100, 10),
-            nn.Dropout(0.2),
-            nn.Tanh(),
-            nn.Linear(10, 1))
+        #self.regressor = nn.Sequential(
+        #    nn.Dropout(0.1),
+        #    nn.Linear(100, 50),
+        #    nn.Tanh(),
+        #    nn.Dropout(0.1),
+        #    nn.Linear(50, 10),
+        #    nn.Linear(10, 1))
+        #self.regressor = nn.Sequential(
+        #    nn.Linear(100, 10),
+        #    nn.Dropout(0.2),
+        #    nn.Tanh(),
+        #    nn.Linear(10, 1))
 
 
     def forward(self, bert_outputs):
