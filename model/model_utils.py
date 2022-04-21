@@ -30,7 +30,7 @@ class RegressionHead(nn.Module):
         print(f'-------------- pool output size: {pool_out_size} --------------')
         first_hid = int(np.ceil(D_in / 2))  # 384
         self.bert_head = nn.Sequential(
-            nn.Dropout(0.1),
+            nn.Dropout(0.2),
             nn.AvgPool1d(kernel_size, stride, padding),
             nn.Linear(pool_out_size, 100),
             nn.Dropout(0.2),
@@ -80,7 +80,7 @@ def count_updated_parameters(model_params):
     return model_size
 
 
-def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, early_stop_toleance=2, use_early_stopping=True):
+def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, early_stop_toleance=2, use_early_stopping=True, use_scheduler=False):
     """Train the model on train dataset and evelautate on the dev dataset
     Source parly from [2]
     Args:
@@ -143,7 +143,7 @@ def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, sche
 
             clip_grad_norm_(model.parameters(), clip_value)
             optimizer.step()
-            scheduler.step() 
+            if use_scheduler: scheduler.step() 
 
             # backward
             #optimizer.zero_grad()

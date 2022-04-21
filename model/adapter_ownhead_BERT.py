@@ -265,6 +265,7 @@ def run(settings, root_folder=""):
     adapter_type = settings['adapter_type']
     use_early_stopping = settings['early_stopping']
     weight_decay = settings['weight_decay']
+    use_scheduler = settings['scheduler']
 
     adapter_config = get_adapter_config(adapter_type)
     # -------------------
@@ -383,7 +384,7 @@ def run(settings, root_folder=""):
     # epochs
     loss_function = nn.MSELoss()
    
-    model, history = model_utils.train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_early_stopping=use_early_stopping)
+    model, history = model_utils.train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_early_stopping=use_early_stopping, use_scheduler=use_scheduler)
     
     # add model parameter size to history
     history['bert_param_size'] = np.zeros(history.shape[0]) + model.bert_parameter_count

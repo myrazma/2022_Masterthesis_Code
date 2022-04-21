@@ -140,6 +140,7 @@ def run(settings, root_folder=""):
     epochs = settings['epochs']
     train_only_bias = settings['train_only_bias']
     weight_decay = settings['weight_decay']
+    use_scheduler = settings['scheduler']
 
     using_roberta = False
     if bert_type == 'roberta-base':
@@ -247,7 +248,7 @@ def run(settings, root_folder=""):
     # epochs
     loss_function = nn.MSELoss()
    
-    model, history = model_utils.train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2)
+    model, history = model_utils.train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device, clip_value=2, use_scheduler=use_scheduler)
     
     # add model parameter size to history
     history['bert_param_size'] = np.zeros(history.shape[0]) + model.bert_parameter_count
