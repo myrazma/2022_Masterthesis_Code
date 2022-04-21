@@ -28,16 +28,22 @@ class RegressionHead(nn.Module):
         kernel_size = 3
         pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
         print(f'-------------- pool output size: {pool_out_size} --------------')
-        first_hid = int(np.ceil(D_in / 2))  # 384
+        first_hid = np.ceil(D_in / 2)  # 384
         self.bert_head = nn.Sequential(
-            nn.MaxPool1d(kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation),
-            #nn.AvgPool1d(kernel_size, stride, padding),
-            nn.Linear(pool_out_size, 128),
-            nn.Tanh(),
-            nn.Dropout(0.2))
+            nn.Dropout(0.2),
+            nn.Linear(D_in, first_hid),
+            nn.Tanh())
 
         self.regressor = nn.Sequential(
-            nn.Linear(128, 1))
+            nn.Dropout(0.2),
+            nn.Linear(first_hid, 128),
+            nn.Tanh(),
+            nn.Dropout(0.2),
+            nn.Linear(128, 50),
+            nn.Tanh(),
+            nn.Dropout(0.2),
+            nn.Linear(50, 10),
+            nn.Linear(10, 1))
         #self.regressor = nn.Sequential(
         #    nn.Dropout(0.1),
         #    nn.Linear(first_hid, 100),
