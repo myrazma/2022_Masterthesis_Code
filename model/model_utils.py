@@ -9,6 +9,7 @@ import copy
 import math
 import torch
 from torch.nn.utils.clip_grad import clip_grad_norm_
+from torch.utils.data import Dataset, DataLoader,TensorDataset, random_split,SubsetRandomSampler, ConcatDataset
 from scipy.stats import pearsonr
 
 class RegressionHead(nn.Module):
@@ -37,17 +38,26 @@ class RegressionHead(nn.Module):
         pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
         print(f'-------------- pool output size: {pool_out_size} --------------')
         first_hid = int(np.ceil(D_in / 2))  # 384
-        self.bert_head = nn.Sequential(
-            nn.MaxPool1d(kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation),
-            nn.Linear(pool_out_size, 128),
-            activation_layer,
-            nn.Dropout(0.5))
+        self.after_bert = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(768, 100))
 
         self.regressor = nn.Sequential(
-            nn.Linear(128, 10),
+            nn.Linear(100, 10),
             activation_layer,
-            nn.Dropout(0.5),
             nn.Linear(10, 1))
+
+        #self.bert_head = nn.Sequential(
+        #    nn.MaxPool1d(kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation),
+        #    nn.Linear(pool_out_size, 128),
+        #    activation_layer,
+        #    nn.Dropout(0.5))
+
+        #self.regressor = nn.Sequential(
+        #    nn.Linear(128, 10),
+        #    activation_layer,
+        #    nn.Dropout(0.5),
+        #    nn.Linear(10, 1))
 
 
     def forward(self, bert_outputs):
@@ -73,7 +83,7 @@ def count_updated_parameters(model_params):
     return model_size
 
 
-def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, early_stop_toleance=2, use_early_stopping=True, use_scheduler=False):
+def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
     """Train the model on train dataset and evelautate on the dev dataset
     Source parly from [2]
     Args:
@@ -279,3 +289,7 @@ def score_correlation(y_pred, y_true):
     """
     r, p = pearsonr(y_true, y_pred)
     return r, p
+
+
+def kfold_cross_val(model, train_dataloader, dev_dataloader, epochs):
+    pass
