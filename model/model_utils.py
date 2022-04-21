@@ -31,7 +31,8 @@ class RegressionHead(nn.Module):
         first_hid = int(np.ceil(D_in / 2))  # 384
         self.bert_head = nn.Sequential(
             nn.Dropout(0.2),
-            nn.AvgPool1d(kernel_size, stride, padding),
+            nn.MaxPool1d(kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation),
+            #nn.AvgPool1d(kernel_size, stride, padding),
             nn.Linear(pool_out_size, 100),
             nn.Dropout(0.2),
             nn.Tanh())
