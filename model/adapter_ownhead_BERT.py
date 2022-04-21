@@ -52,7 +52,7 @@ import preprocessing
 # TODO: I need to structure for adapters
 # TODO: Use Trainer / Adaptertrainer
 class RegressionModelAdapters(nn.Module):
-    def __init__(self, bert_type, task_type, adapter_config):
+    def __init__(self, bert_type, task_type, adapter_config, activation_func='relu'):
         super(RegressionModelAdapters, self).__init__()
         D_in, D_out = 768, 1 
         
@@ -74,7 +74,7 @@ class RegressionModelAdapters(nn.Module):
             for n, p in zip(names, paramsis):
                 print(f"{n}: {p.requires_grad}")
         
-        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out)
+        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out, activation_func=activation_func)
 
         self.bert_parameter_count = model_utils.count_updated_parameters(self.bert.parameters())
         self.head_parameter_count = model_utils.count_updated_parameters(self.regression_head.parameters())
@@ -266,6 +266,7 @@ def run(settings, root_folder=""):
     use_early_stopping = settings['early_stopping']
     weight_decay = settings['weight_decay']
     use_scheduler = settings['scheduler']
+    activation_func = settings['activation']
 
     adapter_config = get_adapter_config(adapter_type)
     # -------------------
@@ -366,7 +367,7 @@ def run(settings, root_folder=""):
 
     # --- init model ---
     print('------------ initializing Model ------------')
-    model = RegressionModelAdapters(bert_type=bert_type,task_type=empathy_type, adapter_config=adapter_config)
+    model = RegressionModelAdapters(bert_type=bert_type,task_type=empathy_type, adapter_config=adapter_config, activation_func=activation_func)
     model.to(device)
     print(model)
 

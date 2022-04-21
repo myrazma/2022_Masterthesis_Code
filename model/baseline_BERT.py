@@ -45,7 +45,7 @@ class BertRegressor(nn.Module):
     # source (changed some things): [2]  
     # https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
     
-    def __init__(self, bert_type="bert-base-uncased", train_only_bias=False, train_bias_mlp=False):
+    def __init__(self, bert_type="bert-base-uncased", train_only_bias=False, train_bias_mlp=False, activation_func='relu'):
         super(BertRegressor, self).__init__()
         D_in, D_out = 768, 1
 
@@ -68,7 +68,7 @@ class BertRegressor(nn.Module):
                 else:
                     p.requires_grad = False
 
-        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out)
+        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out, activation_func=activation_func)
 
         # get the size of the model parameters (head and bert separated)
         self.bert_parameter_count = model_utils.count_updated_parameters(self.bert.parameters())
@@ -141,6 +141,7 @@ def run(settings, root_folder=""):
     train_only_bias = settings['train_only_bias']
     weight_decay = settings['weight_decay']
     use_scheduler = settings['scheduler']
+    activation_func = settings['activation']
 
     using_roberta = False
     if bert_type == 'roberta-base':
@@ -212,7 +213,7 @@ def run(settings, root_folder=""):
     
     # --- init model ---
     print('------------ initializing Model ------------')
-    model = BertRegressor(bert_type=bert_type, train_only_bias=train_only_bias)
+    model = BertRegressor(bert_type=bert_type, train_only_bias=train_only_bias, activation_func=activation_func)
     # get parameter size
 
     # --- choose dataset ---

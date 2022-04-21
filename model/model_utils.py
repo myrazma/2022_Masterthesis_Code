@@ -18,16 +18,20 @@ class RegressionHead(nn.Module):
         nn (nn.Module): Inherit from nn.Module
     """
 
-    def __init__(self, dropout=0.2, D_in=768, D_hidden1=100, D_hidden2=10, D_out=1):
+    def __init__(self, dropout=0.2, D_in=768, D_hidden1=100, D_hidden2=10, D_out=1, activation_func='relu'):
         super(RegressionHead, self).__init__()
 
         self.bert_head = nn.Sequential(
             nn.Dropout(0.2),
             nn.Linear(768, 100))
 
+        activation_layer = nn.ReLU()  # per default_use relu
+        if activation_func == 'tanh':
+            activation_layer = nn.Tanh()
+            
         self.regressor = nn.Sequential(
             nn.Linear(100, 10),
-            nn.ReLU(),
+            activation_layer,
             nn.Linear(10, 1))
         #self.regressor = nn.Sequential(
         #    nn.Dropout(0.1),
