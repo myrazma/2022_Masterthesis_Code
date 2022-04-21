@@ -21,28 +21,13 @@ class RegressionHead(nn.Module):
     def __init__(self, dropout=0.2, D_in=768, D_hidden1=100, D_hidden2=10, D_out=1):
         super(RegressionHead, self).__init__()
 
-        # calcuate output size of pooling layer
-        padding = 0
-        dilation = 1
-        stride = 1
-        kernel_size = 3
-        pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
-        print(f'-------------- pool output size: {pool_out_size} --------------')
-        first_hid = int(np.ceil(D_in / 2))  # 384
         self.bert_head = nn.Sequential(
             nn.Dropout(0.2),
-            nn.Linear(D_in, first_hid),
-            nn.Tanh())
+            nn.Linear(768, 100))
 
         self.regressor = nn.Sequential(
-            nn.Dropout(0.2),
-            nn.Linear(first_hid, 128),
-            nn.Tanh(),
-            nn.Dropout(0.2),
-            nn.Linear(128, 50),
-            nn.Tanh(),
-            nn.Dropout(0.2),
-            nn.Linear(50, 10),
+            nn.Linear(100, 10),
+            nn.ReLU(),
             nn.Linear(10, 1))
         #self.regressor = nn.Sequential(
         #    nn.Dropout(0.1),
@@ -264,6 +249,27 @@ def evaluate_model(model, loss_function, test_dataloader, device):
     # remove inf and nan, do not count for average
     filtered_dev_loss = [val for val in dev_loss if not (math.isinf(val) or math.isnan(val))]
     return filtered_dev_loss, dev_corr
+
+
+def predict(model, test_dataloader, device):
+    model.eval()
+    all_outputs, all_labels = np.array([]), np.array([])
+    dev_loss = []
+    for batch in test_dataloader:
+        batch_inputs, batch_masks, batch_labels = \
+                                 tuple(b.to(device) for b in batch)
+        with torch.no_grad():
+            outputs = model(batch_inputs, batch_masks)
+
+        all_outputs = np.concatenate((all_outputs, outputs.detach().cpu().numpy()), axis = None)
+        all_labels = np.concatenate((all_labels, batch_labels.detach().cpu().numpy()), axis = None)
+
+    all_outputs = np.array(all_outputs)
+    all_labels = np.array(all_labels)
+    # -- pearson correlation --
+    test_corr, _ = score_correlation(all_outputs, all_labels)
+
+    return all_outputs, all_labels, test_corr
 
 
 
