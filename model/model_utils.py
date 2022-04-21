@@ -41,12 +41,12 @@ class RegressionHead(nn.Module):
             nn.MaxPool1d(kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation),
             nn.Linear(pool_out_size, 128),
             activation_layer,
-            nn.Dropout(0.2))
+            nn.Dropout(0.5))
 
         self.regressor = nn.Sequential(
             nn.Linear(128, 10),
             activation_layer,
-            nn.Dropout(0.2),
+            nn.Dropout(0.5),
             nn.Linear(10, 1))
 
 
