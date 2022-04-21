@@ -28,7 +28,7 @@ class RegressionHead(nn.Module):
         kernel_size = 3
         pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
         print(f'-------------- pool output size: {pool_out_size} --------------')
-        first_hid = np.ceil(D_in / 2)  # 384
+        first_hid = int(np.ceil(D_in / 2))  # 384
         self.bert_head = nn.Sequential(
             nn.Dropout(0.2),
             nn.Linear(D_in, first_hid),
