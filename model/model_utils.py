@@ -339,7 +339,7 @@ def score_correlation(y_pred, y_true):
     return r, p
 
 
-def kfold_cross_val(model_type, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
+def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
     # partly source from https://medium.com/dataseries/k-fold-cross-validation-with-pytorch-and-sklearn-d094aa00105f
     batch_size = settings['batch_size']
     seed = settings['seed']
@@ -347,8 +347,8 @@ def kfold_cross_val(model_type, settings, dataset_train, dataset_dev, optimizer,
     fold_histories = []
     dataset = ConcatDataset([dataset_train, dataset_dev])
 
-    model = model_type(settings)
-    model.to(device)
+    #model = model_type(settings)
+    #model.to(device)
     seg_size = int(np.ceil(len(dataset) / k))
     # create folds
     for i, fold in enumerate(range(k)):
@@ -468,7 +468,7 @@ def run_model(model, settings, device, model_type, root_folder=""):
     
     if settings['kfold'] > 0:  # if kfold = 0, we ar enot doing kfold
         print('\n------------ Using kfold cross validation ------------\n')
-        model, history = kfold_cross_val(model_type, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler)
+        model, history = kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler)
     else:
         model, history = train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device=device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
     
