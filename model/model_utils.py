@@ -8,12 +8,33 @@ import time
 import copy
 import math
 import torch
+from transformers import AutoTokenizer, BertModel, BertConfig, BertForSequenceClassification, AutoModel, RobertaModel
+from transformers import RobertaConfig, RobertaModelWithHeads
+from transformers import BertTokenizer, RobertaTokenizer
+from transformers import TrainingArguments, AdapterTrainer, EvalPrediction
+from transformers import get_linear_schedule_with_warmup
+import transformers.adapters as adapters
+from transformers.adapters import AutoAdapterModel, RobertaAdapterModel, PredictionHead
+from transformers.adapters import MAMConfig, AdapterConfig, PrefixTuningConfig, ParallelConfig, HoulsbyConfig
+from transformers.adapters import configuration as adapter_configs
 from sklearn.model_selection import KFold
 from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.utils.data import DataLoader, TensorDataset, random_split,SubsetRandomSampler, ConcatDataset
 from torch.utils.data.dataset import Subset
 from torch.utils.data import Dataset as PyTorchDataset
+from torch.optim import AdamW
+
 from scipy.stats import pearsonr
+
+# import own module
+import model_utils
+from pathlib import Path
+import sys
+path_root = Path(__file__).parents[1]
+sys.path.append(str(path_root))
+import utils
+import preprocessing
+
 
 class RegressionHead(nn.Module):
     """Regression head for Bert model
@@ -324,13 +345,11 @@ def score_correlation(y_pred, y_true):
     return r, p
 
 
-def tokenize(batch, tokenizer, column):
-    # Source: [1] - https://huggingface.co/docs/transformers/training
-    # longest is around 200
-    return tokenizer(batch[column], padding='max_length', truncation=True, max_length=256)
-
-
 def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
+    def reset_weights(m):
+        # TODO: What should be reset? - Do not reset pretrained bert weights
+        if isinstance(m, nn.Linear):
+            m.reset_parameters()
     # partly source from https://medium.com/dataseries/k-fold-cross-validation-with-pytorch-and-sklearn-d094aa00105f
     batch_size = settings['batch_size']
     seed = settings['seed']
@@ -342,7 +361,7 @@ def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, sche
     for i, fold in enumerate(range(k)):
         print(f"\n ---------------- Fold {i} ---------------- \n")
         # init model each time
-        model_fold = copy.deepcopy(model)
+        model.apply(reset_weights)
         fold_range = (seg_size*i, seg_size*i + seg_size)
         if fold_range[1] >= len(dataset_train):  # woudl be out of bound
             fold_range = (fold_range[0], len(dataset_train)-1) ## replace second with the lengt of the data set - 1
@@ -353,7 +372,6 @@ def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, sche
         fold_dataset_train = Subset(dataset_train, train_indices)
         fold_dataset_dev = Subset(dataset_train, dev_indices)
         fold_loader_train = DataLoader(fold_dataset_train, batch_size=batch_size, shuffle=True)
-        print(type(fold_loader_train))
         fold_loader_dev = DataLoader(fold_dataset_dev, batch_size=batch_size, shuffle=True)
 
         model_fold, history = train_model(model_fold, fold_loader_train, fold_loader_dev, epochs, optimizer, scheduler, loss_function, device, use_early_stopping=False, use_scheduler=settings['scheduler'])
@@ -366,3 +384,112 @@ def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, sche
     avrg_history = avrg_history / len(fold_histories)
     print('Average folds history:', avrg_history)
     return model, avrg_history  # TODO: which model to return?
+
+
+def run_model(model, settings, device, root_folder=""):
+    """Method for running (training, evaluation and (optional) saving) a model
+
+    Args:
+        model (nn.Module): The model (should already be all setup)
+        settings (dict): The settings / parameter dictionary
+        device (_type_): The device
+        root_folder (str, optional): _description_. Defaults to "".
+
+    Returns:
+        nn.Module, pd.DataFrame: model, history
+    """
+
+    data_root_folder = root_folder + 'data/'
+    output_root_folder = root_folder + 'output/'
+    # -------------------
+    #     parameters
+    # -------------------
+
+    empathy_type = settings['empathy_type']
+    bert_type = settings['bert_type']
+    my_seed = settings['seed']
+    batch_size = settings['batch_size']
+    learning_rate = settings['learning_rate']
+    epochs = settings['epochs']
+    train_only_bias = settings['train_only_bias']
+    weight_decay = settings['weight_decay']
+    use_scheduler = settings['scheduler']
+    use_early_stopping = settings['early_stopping']
+    activation_func = settings['activation']
+    dropout = settings['dropout']
+
+    using_roberta = False
+    if bert_type == 'roberta-base':
+        using_roberta = True
+
+    # -------------------
+    #   load data
+    # -------------------
+    data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
+    data_train_pd = utils.clean_raw_data(data_train_pd[:5])
+    data_dev_pd = utils.clean_raw_data(data_dev_pd[:5])
+
+    # --- get the tokenizer ---   
+    if 'roberta' in bert_type:
+        tokenizer = RobertaTokenizer.from_pretrained(bert_type)
+    else:
+        tokenizer = BertTokenizer.from_pretrained(bert_type)
+
+    # --- get fully preprocessed data ---
+    dataset_emp_train, dataset_emp_dev, dataset_dis_train, dataset_dis_dev = preprocessing.get_preprocessed_dataset(settings, data_train_pd, data_dev_pd, tokenizer, data_root_folder)
+    # --- create dataloader ---
+    # for empathy
+    dataloader_emp_train = DataLoader(dataset_emp_train, batch_size=batch_size, shuffle=True)
+    dataloader_emp_dev = DataLoader(dataset_emp_dev, batch_size=batch_size, shuffle=True)
+    # for distress
+    dataloader_dis_train = DataLoader(dataset_dis_train, batch_size=batch_size, shuffle=True)
+    dataloader_dis_dev = DataLoader(dataset_dis_dev, batch_size=batch_size, shuffle=True)
+
+
+
+    # --- choose dataset and data loader based on empathy ---
+    # per default use empathy label
+    dataloader_train = dataloader_emp_train
+    dataloader_dev = dataloader_emp_dev
+    dataset_train = dataset_emp_train
+    dataset_dev = dataset_emp_dev
+    display_text = 'Using empathy data'
+    if empathy_type == 'distress':
+        dataloader_train = dataloader_dis_train  # needed for k fold
+        dataloader_dev = dataloader_dis_dev  # needed for k fold
+        dataset_train = dataloader_dis_train  # needed for k fold
+        dataset_dev = dataloader_dis_dev  # needed for k fold
+        display_text = "Using distress data"
+    print('\n------------ ' + display_text + ' ------------\n')
+
+    # --- optimizer ---
+    # low learning rate to not get into catastrophic forgetting - Sun 2019
+    # default epsilon by pytorch is 1e-8
+    optimizer = AdamW(model.parameters(), lr=learning_rate, eps=1e-8, weight_decay=weight_decay)
+
+    # scheduler
+    total_steps = len(dataloader_train) * epochs
+    scheduler = get_linear_schedule_with_warmup(optimizer,       
+                    num_warmup_steps=0, num_training_steps=total_steps)
+
+    # epochs
+    loss_function = nn.MSELoss()
+    
+    if settings['kfold'] > 0:  # if kfold = 0, we ar enot doing kfold
+        print('\n------------ Using kfold cross validation ------------\n')
+        model, history = kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler)
+    else:
+        model, history = train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device=device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
+    
+        # add model parameter size to history
+        history['bert_param_size'] = np.zeros(history.shape[0]) + model.bert_parameter_count
+        history['head_param_size'] = np.zeros(history.shape[0]) + model.head_parameter_count
+
+    print(f"\nSave settings using model name: {settings['model_name']}\n")
+    history.to_csv(root_folder + 'output/history_baseline_' + empathy_type + '_' + settings['model_name'] +  '.csv')
+    
+    if settings['save_model']:
+        print(f"\nSave model using model name: {settings['model_name']}\n")
+        torch.save(model.state_dict(), root_folder + 'output/model_baseline_' + empathy_type + '_' + settings['model_name'])
+    print('Done')
+    return model, history
