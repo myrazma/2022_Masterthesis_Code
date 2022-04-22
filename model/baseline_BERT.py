@@ -28,25 +28,12 @@ class BertRegressor(nn.Module):
     # source (changed some things): [2]  
     # https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
     
-    def __init__(self, bert_type="bert-base-uncased", train_only_bias=False, train_bias_mlp=False, activation_func='relu', dropout=0.5):
+    def __init__(self, settings): #bert_type="roberta-base", train_only_bias=False, train_bias_mlp=False, activation_func='relu', dropout=0.5):
         super(BertRegressor, self).__init__()
         D_in, D_out = 768, 1
-        self.bert_type = bert_type
-        self.train_only_bias = train_only_bias
+        self.bert_type = settings['bert_type']
+        self.train_only_bias = settings['train_only_bias']
 
-        self.__init_bert()
-        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out, activation_func=activation_func, dropout=dropout)
-
-        # get the size of the model parameters (head and bert separated)
-        self.bert_parameter_count = model_utils.count_updated_parameters(self.bert.parameters())
-        self.head_parameter_count = model_utils.count_updated_parameters(self.regression_head.parameters())
-
-    def forward(self, input_ids, attention_masks):
-        bert_outputs = self.bert(input_ids, attention_masks)
-        outputs = self.regression_head(bert_outputs)
-        return outputs
-
-    def __init_bert(self):
         if self.bert_type == 'roberta-base':
             self.bert = RobertaModel.from_pretrained(self.bert_type)
         else:
@@ -66,16 +53,16 @@ class BertRegressor(nn.Module):
                 else:
                     p.requires_grad = False
 
-    def reset_model_weights(self):
-        self.__init_bert()  # reset bert to pre trained state
+        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out, activation_func=settings['activation'], dropout=settings['dropout'])
 
-        #for layer in self.bert.children():
-        #    layer.parameter
-        #    break
-        for layer in self.regression_head.children():
-            if hasattr(layer, 'reset_parameters'):
-                print(f'Reset trainable parameters of layer = {layer}')
-                layer.reset_parameters()
+        # get the size of the model parameters (head and bert separated)
+        self.bert_parameter_count = model_utils.count_updated_parameters(self.bert.parameters())
+        self.head_parameter_count = model_utils.count_updated_parameters(self.regression_head.parameters())
+
+    def forward(self, input_ids, attention_masks):
+        bert_outputs = self.bert(input_ids, attention_masks)
+        outputs = self.regression_head(bert_outputs)
+        return outputs
         
 
 def run(settings, root_folder=""):
@@ -95,9 +82,9 @@ def run(settings, root_folder=""):
     # -------------------
     # --- init model ---
     print('------------ initializing Model ------------')
-    model = BertRegressor(bert_type=settings['bert_type'], train_only_bias=settings['train_only_bias'], activation_func=settings['activation'], dropout=settings['dropout'])
+    model = BertRegressor(settings)
     model.to(device)
-    model, history = model_utils.run_model(model, settings, device, root_folder="")
+    model, history = model_utils.run_model(model, settings, device, root_folder="", model_type=BertRegressor)
     return model, history
 
 

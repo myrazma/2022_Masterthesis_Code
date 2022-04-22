@@ -27,13 +27,15 @@ from torch.optim import AdamW
 from scipy.stats import pearsonr
 
 # import own module
-import model_utils
+from baseline_BERT import BertRegressor
+from adapter_ownhead_BERT import RegressionModelAdapters
 from pathlib import Path
 import sys
 path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
 import utils
 import preprocessing
+
 
 
 class RegressionHead(nn.Module):
@@ -195,20 +197,12 @@ def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, sche
             batch_loss += loss.item()
             total_epoch_loss.append(loss.item())
 
-
             optimizer.zero_grad()
             loss.backward()
 
             clip_grad_norm_(model.parameters(), clip_value)
             optimizer.step()
             if use_scheduler: scheduler.step() 
-
-            # backward
-            #optimizer.zero_grad()
-            #loss.backward()
-
-            # adam step
-            # optimizer.step()
         
             # Print the loss values and time elapsed for every 1000 batches
             if ((step % 50 == 0) and (step != 0)) or (step == len(train_dataloader) - 1):
@@ -345,7 +339,7 @@ def score_correlation(y_pred, y_true):
     return r, p
 
 
-def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
+def kfold_cross_val(model_type, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
     # partly source from https://medium.com/dataseries/k-fold-cross-validation-with-pytorch-and-sklearn-d094aa00105f
     batch_size = settings['batch_size']
     seed = settings['seed']
@@ -357,9 +351,9 @@ def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, sche
     # create folds
     for i, fold in enumerate(range(k)):
         print(f"\n ---------------- Fold {i} ---------------- \n")
-        # init model each time
-        #model.reset_model_weights()
-        #model.to(device)
+        # init model each time using model_type
+        model = model_type(settings)
+        model.to(device)
         fold_range = (seg_size*i, seg_size*i + seg_size)
         if fold_range[1] >= len(dataset):  # woudl be out of bound
             fold_range = (fold_range[0], len(dataset)-1) ## replace second with the lengt of the data set - 1
@@ -384,7 +378,7 @@ def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, sche
     return model, avrg_history  # TODO: which model to return?
 
 
-def run_model(model, settings, device, root_folder=""):
+def run_model(model, settings, device, model_type, root_folder=""):
     """Method for running (training, evaluation and (optional) saving) a model
 
     Args:
@@ -473,7 +467,7 @@ def run_model(model, settings, device, root_folder=""):
     
     if settings['kfold'] > 0:  # if kfold = 0, we ar enot doing kfold
         print('\n------------ Using kfold cross validation ------------\n')
-        model, history = kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler)
+        model, history = kfold_cross_val(model_type, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler)
     else:
         model, history = train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device=device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
     

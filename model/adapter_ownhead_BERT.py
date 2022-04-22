@@ -33,28 +33,14 @@ import preprocessing
 # TODO: I need to structure for adapters
 # TODO: Use Trainer / Adaptertrainer
 class RegressionModelAdapters(nn.Module):
-    def __init__(self, bert_type, task_type, adapter_config, activation_func='relu', dropout=0.5):
+    def __init__(self, settings): #bert_type, task_type, adapter_config, activation_func='relu', dropout=0.5):
         super(RegressionModelAdapters, self).__init__()
         D_in, D_out = 768, 1 
-        self.bert_type = bert_type
-        self.adapter_name = task_type + '_adapter'
-        self.adapter_config = adapter_config
+        self.bert_type = settings['bert_type']
+        self.adapter_name = settings['empathy_type'] + '_adapter'
+        self.adapter_config = get_adapter_config(settings['adapter_type'])
 
 
-        self.__init_bert()
-        
-        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out, activation_func=activation_func, dropout=dropout)
-
-        self.bert_parameter_count = model_utils.count_updated_parameters(self.bert.parameters())
-        self.head_parameter_count = model_utils.count_updated_parameters(self.regression_head.parameters())
-        
-
-    def forward(self, input_ids, attention_masks):
-        bert_outputs = self.bert(input_ids, attention_masks)
-        outputs = self.regression_head(bert_outputs)
-        return outputs
-
-    def __init_bert(self):
         self.bert = RobertaAdapterModel.from_pretrained(self.bert_type)
 
         # Enable adapter training
@@ -71,15 +57,18 @@ class RegressionModelAdapters(nn.Module):
             paramsis = [param for param in self.bert.parameters()]
             for n, p in zip(names, paramsis):
                 print(f"{n}: {p.requires_grad}")
+        
+        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out, activation_func=settings['activation'], dropout=settings['dropout'])
 
-    def reset_model_weights(self):
-        self.__init_bert()  # reset bert to pre trained state
-        for layer in self.regression_head.children():
-            if hasattr(layer, 'reset_parameters'):
-                print(f'Reset trainable parameters of layer = {layer}')
-                layer.reset_parameters()
+        self.bert_parameter_count = model_utils.count_updated_parameters(self.bert.parameters())
+        self.head_parameter_count = model_utils.count_updated_parameters(self.regression_head.parameters())
+        
 
-
+    def forward(self, input_ids, attention_masks):
+        bert_outputs = self.bert(input_ids, attention_masks)
+        outputs = self.regression_head(bert_outputs)
+        return outputs
+  
 
 def get_adapter_config(config_name, print_config=True):
     """available adapters from adapter hub (18.04.22):
@@ -155,12 +144,11 @@ def run(settings, root_folder=""):
 
     # --- init model ---
     print('------------ initializing Model ------------')
-    adapter_config = get_adapter_config(settings['adapter_type'])
 
-    model = RegressionModelAdapters(bert_type=settings['bert_type'], task_type=settings['empathy_type'], adapter_config=adapter_config, activation_func=settings['activation'], dropout=settings['dropout'])
+    model = RegressionModelAdapters(settings)
     model.to(device)
     print(model)
-    model, history = model_utils.run_model(model, settings, device, root_folder="")
+    model, history = model_utils.run_model(model, settings, device, root_folder="", model_type=RegressionModelAdapters)
     return model, history
 
 
