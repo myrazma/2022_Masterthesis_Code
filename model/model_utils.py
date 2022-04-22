@@ -358,8 +358,8 @@ def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, sche
     for i, fold in enumerate(range(k)):
         print(f"\n ---------------- Fold {i} ---------------- \n")
         # init model each time
-        model.reset_model_weights()
-        model.to(device)
+        #model.reset_model_weights()
+        #model.to(device)
         fold_range = (seg_size*i, seg_size*i + seg_size)
         if fold_range[1] >= len(dataset):  # woudl be out of bound
             fold_range = (fold_range[0], len(dataset)-1) ## replace second with the lengt of the data set - 1
