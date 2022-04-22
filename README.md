@@ -6,7 +6,7 @@ The models can be found in the directory [model](model).
 
 The script [baseline_BERT.py](model/baseline_BERT.py) is implementing a baseline RoBERTa model with the possibility of BitFit training (by setting --train_only_bias in cmd parameters]. BitFit (BIas-Term FIne-Tuning: https://arxiv.org/abs/2106.10199) is a version of parameter-efficient training where only the bias in a pre-trained transformer model are trained. There is even the option to only train the bias parameters in the mlp of the transformers (no attention layers).
 
-adapter_ownhead_BERT.py is implementing a RoBERTa model with different parameter-efficient training methods like adapters and prefix tuning using the adapter hub.
+The script [adapter_ownhead_BERT.py](model/adapter_ownhead_BERT.py) is implementing a RoBERTa model with different parameter-efficient training methods like adapters and prefix tuning using the adapter hub.
 
 The script model_utils.py has model shared methods and class like the RegressionHead and training / evaluation methods.
 
