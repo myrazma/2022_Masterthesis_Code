@@ -54,46 +54,22 @@ class RegressionHead(nn.Module):
             print('Using ReLU as activation function.')
             activation_layer = nn.ReLU()  # per default_use relu
             
-            # calcuate output size of pooling layer
-        padding = 0
-        dilation = 1
-        stride = 2
-        kernel_size = 3
-        pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
+        # calcuate output size of pooling layer
+        kernel_size, stride, padding, dilation = 3, 2, 0, 1
+        cal_pool_output_dim(D_in=D_in, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation)
+
         #print(f'-------------- pool output size: {pool_out_size} --------------')
         first_hid = int(np.ceil(D_in / 2))  # 384
+
         self.bert_head = nn.Sequential(
-            nn.MaxPool1d(kernel_size,stride,padding, dilation=dilation),
-            nn.Linear(pool_out_size, 128),
-            activation_layer,
-            nn.Dropout(0.2))
+            nn.Dropout(dropout),
+            nn.Linear(768, 100))
 
         self.regressor = nn.Sequential(
-            nn.Linear(128, 10),
+            nn.Linear(100, 10),
             activation_layer,
-            nn.Dropout(0.2),
             nn.Linear(10, 1))
 
-        #self.bert_head = nn.Sequential(
-        #    nn.Dropout(dropout),
-        #    nn.Linear(768, 100))
-
-        #self.regressor = nn.Sequential(
-        #    nn.Linear(100, 10),
-        #    activation_layer,
-        #    nn.Linear(10, 1))
-
-        #self.bert_head = nn.Sequential(
-        #    nn.MaxPool1d(kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation),
-        #    nn.Linear(pool_out_size, 128),
-        #    activation_layer,
-        #    nn.Dropout(0.5))
-
-        #self.regressor = nn.Sequential(
-        #    nn.Linear(128, 10),
-        #    activation_layer,
-        #    nn.Dropout(0.5),
-        #    nn.Linear(10, 1))
 
 
     def forward(self, bert_outputs):
@@ -133,6 +109,10 @@ class MyDataset(PyTorchDataset):
         item['input_ids'] = self.input_ids[idx].int()
         item['label'] = self.labels[idx].float()
         return item
+
+
+def cal_pool_output_dim(D_in, kernel_size, stride, padding, dilation=1):
+    return int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
 
 
 def count_updated_parameters(model_params):

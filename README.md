@@ -5,18 +5,22 @@ The Code for my master thesis.
 # models
 The models can be found in the directory model/.
 
-The model_utils class has model shared methods and class like the RegressionHead and training / evaluation methods.
+baseline_BERT.py is implementing a baseline RoBERTa model with the possibility of BitFit training (by setting --train_only_bias in cmd parameters]. BitFit (BIas-Term FIne-Tuning: https://arxiv.org/abs/2106.10199) is a version of parameter-efficient training where only the bias in a pre-trained transformer model are trained. There is even the option to only train the bias parameters in the mlp of the transformers (no attention layers).
 
-# run
+adapter_ownhead_BERT.py is implementing a RoBERTa model with different parameter-efficient training methods like adapters and prefix tuning using the adapter hub.
+
+The script model_utils.py has model shared methods and class like the RegressionHead and training / evaluation methods.
+
+# Running the Code
 
 ## Docker
 
-Build the Dockerfile and run in bash.
+Build the Dockerfile
 ```
 docker build -t <docker-name> .
 ```
 
-To run in bash and use gpus:
+and run in bash (using gpus here, container will be removed after exit)
 
 ```
 docker run --gpus all --rm -it -v "$PWD":/mzmarsly <docker-name> bash
@@ -44,3 +48,7 @@ While calling the model in bash, you can enter specific hyperparameters of the m
 |  activation  |  --activation tanh     |   Options: tanh, relu. Default: relu. Sets the activation function in the model                  | 
 |  dropout  |   --dropout 0.2    |   Sets the dropout layers in the model. Default: 0.2.                  | 
 | kfold  | --kfold 10  | Use kfold cross validation if kfold higher than 0. Default: 0, no cross validation used and use regular training.  |
+
+
+# Note
+I'm still currently working on the code and trying new things, therefore cleaner, more structured code will follow for scripts under construction :). Also I'm running the code on another device and commiting even small changes that might have a difference in model training.
