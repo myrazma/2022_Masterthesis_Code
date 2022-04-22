@@ -1,5 +1,5 @@
 # 2022_Masterthesis_Code
-The code for my master's thesis ([Note](-Note)).
+The code for my master's thesis.
 
 # Models
 The models can be found in the directory [model](model).
