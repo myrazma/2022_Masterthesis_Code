@@ -351,22 +351,24 @@ def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, sche
     seed = settings['seed']
     epochs = settings['epochs']
     fold_histories = []
+    dataset = ConcatDataset([dataset_train, dataset_dev])
 
-    seg_size = int(np.ceil(len(dataset_train) / k))
+    seg_size = int(np.ceil(len(dataset) / k))
     # create folds
     for i, fold in enumerate(range(k)):
         print(f"\n ---------------- Fold {i} ---------------- \n")
         # init model each time
         model.reset_model_weights()
+        model.to(device)
         fold_range = (seg_size*i, seg_size*i + seg_size)
-        if fold_range[1] >= len(dataset_train):  # woudl be out of bound
-            fold_range = (fold_range[0], len(dataset_train)-1) ## replace second with the lengt of the data set - 1
+        if fold_range[1] >= len(dataset):  # woudl be out of bound
+            fold_range = (fold_range[0], len(dataset)-1) ## replace second with the lengt of the data set - 1
 
         dev_indices = np.arange(fold_range[0], fold_range[1])  # get the indices of the current dev data
-        train_indices = np.delete(np.arange(0, len(dataset_train)), dev_indices)  # the rest is the training data for this fold
+        train_indices = np.delete(np.arange(0, len(dataset)), dev_indices)  # the rest is the training data for this fold
 
-        fold_dataset_train = Subset(dataset_train, train_indices)
-        fold_dataset_dev = Subset(dataset_train, dev_indices)
+        fold_dataset_train = Subset(dataset, train_indices)
+        fold_dataset_dev = Subset(dataset, dev_indices)
         fold_loader_train = DataLoader(fold_dataset_train, batch_size=batch_size, shuffle=True)
         fold_loader_dev = DataLoader(fold_dataset_dev, batch_size=batch_size, shuffle=True)
      
