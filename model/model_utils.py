@@ -62,6 +62,18 @@ class RegressionHead(nn.Module):
         pool_out_size = int(np.floor((D_in + 2 * padding - dilation * (kernel_size-1)-1)/stride +1))
         #print(f'-------------- pool output size: {pool_out_size} --------------')
         first_hid = int(np.ceil(D_in / 2))  # 384
+        #self.bert_head = nn.Sequential(
+        #    nn.MaxPool1d(kernel_size,stride,padding, dilation=dilation),
+        #    nn.Linear(pool_out_size, 128),
+        ##    activation_layer,
+        #    nn.Dropout(0.2))
+
+        #self.regressor = nn.Sequential(
+        #    nn.Linear(128, 10),
+        ##    activation_layer,
+        #    nn.Dropout(0.2),
+        #    nn.Linear(10, 1))
+
         self.bert_head = nn.Sequential(
             nn.Dropout(dropout),
             nn.Linear(768, 100))
@@ -433,8 +445,8 @@ def run_model(model, settings, device, model_type, root_folder=""):
     #   load data
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
-    data_train_pd = utils.clean_raw_data(data_train_pd[:10])
-    data_dev_pd = utils.clean_raw_data(data_dev_pd[:5])
+    data_train_pd = utils.clean_raw_data(data_train_pd)
+    data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
     # --- get the tokenizer ---   
     if 'roberta' in bert_type:
