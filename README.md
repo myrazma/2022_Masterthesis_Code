@@ -3,7 +3,7 @@ The Code for my master thesis.
 
 
 # models
-The models can be found in the directory model/.
+The models can be found in the directory [model](model).
 
 baseline_BERT.py is implementing a baseline RoBERTa model with the possibility of BitFit training (by setting --train_only_bias in cmd parameters]. BitFit (BIas-Term FIne-Tuning: https://arxiv.org/abs/2106.10199) is a version of parameter-efficient training where only the bias in a pre-trained transformer model are trained. There is even the option to only train the bias parameters in the mlp of the transformers (no attention layers).
 
