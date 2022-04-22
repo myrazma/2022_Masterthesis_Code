@@ -39,7 +39,22 @@ class RegressionModelAdapters(nn.Module):
         self.bert_type = bert_type
         self.adapter_name = task_type + '_adapter'
         self.adapter_config = adapter_config
+
+
+        self.__init_bert()
         
+        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out, activation_func=activation_func, dropout=dropout)
+
+        self.bert_parameter_count = model_utils.count_updated_parameters(self.bert.parameters())
+        self.head_parameter_count = model_utils.count_updated_parameters(self.regression_head.parameters())
+        
+
+    def forward(self, input_ids, attention_masks):
+        bert_outputs = self.bert(input_ids, attention_masks)
+        outputs = self.regression_head(bert_outputs)
+        return outputs
+
+    def __init_bert(self):
         self.bert = RobertaAdapterModel.from_pretrained(self.bert_type)
 
         # Enable adapter training
@@ -56,19 +71,14 @@ class RegressionModelAdapters(nn.Module):
             paramsis = [param for param in self.bert.parameters()]
             for n, p in zip(names, paramsis):
                 print(f"{n}: {p.requires_grad}")
-        
-        self.regression_head = model_utils.RegressionHead(D_in=D_in, D_out=D_out, activation_func=activation_func, dropout=dropout)
 
-        self.bert_parameter_count = model_utils.count_updated_parameters(self.bert.parameters())
-        self.head_parameter_count = model_utils.count_updated_parameters(self.regression_head.parameters())
-        
+    def reset_model_weights(self):
+        self.__init_bert()  # reset bert to pre trained state
+        for layer in self.regression_head.children():
+            if hasattr(layer, 'reset_parameters'):
+                print(f'Reset trainable parameters of layer = {layer}')
+                layer.reset_parameters()
 
-    def forward(self, input_ids, attention_masks):
-        bert_outputs = self.bert(input_ids, attention_masks)
-        outputs = self.regression_head(bert_outputs)
-        return outputs
-
-        
 
 
 def get_adapter_config(config_name, print_config=True):
@@ -132,6 +142,9 @@ def get_adapter_config(config_name, print_config=True):
 
 def run(settings, root_folder=""):
 
+    # Set seed
+    torch.manual_seed(settings['seed'])
+    
     # --- run on GPU if available ---
     if torch.cuda.is_available():       
         device = torch.device("cuda")

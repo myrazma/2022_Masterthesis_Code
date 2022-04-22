@@ -346,10 +346,6 @@ def score_correlation(y_pred, y_true):
 
 
 def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
-    def reset_weights(m):
-        # TODO: What should be reset? - Do not reset pretrained bert weights
-        if isinstance(m, nn.Linear):
-            m.reset_parameters()
     # partly source from https://medium.com/dataseries/k-fold-cross-validation-with-pytorch-and-sklearn-d094aa00105f
     batch_size = settings['batch_size']
     seed = settings['seed']
@@ -361,7 +357,7 @@ def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, sche
     for i, fold in enumerate(range(k)):
         print(f"\n ---------------- Fold {i} ---------------- \n")
         # init model each time
-        model.apply(reset_weights)
+        model.reset_model_weights()
         fold_range = (seg_size*i, seg_size*i + seg_size)
         if fold_range[1] >= len(dataset_train):  # woudl be out of bound
             fold_range = (fold_range[0], len(dataset_train)-1) ## replace second with the lengt of the data set - 1
@@ -373,8 +369,8 @@ def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, sche
         fold_dataset_dev = Subset(dataset_train, dev_indices)
         fold_loader_train = DataLoader(fold_dataset_train, batch_size=batch_size, shuffle=True)
         fold_loader_dev = DataLoader(fold_dataset_dev, batch_size=batch_size, shuffle=True)
-
-        model_fold, history = train_model(model_fold, fold_loader_train, fold_loader_dev, epochs, optimizer, scheduler, loss_function, device, use_early_stopping=False, use_scheduler=settings['scheduler'])
+     
+        model, history = train_model(model, fold_loader_train, fold_loader_dev, epochs, optimizer, scheduler, loss_function, device, use_early_stopping=False, use_scheduler=settings['scheduler'])
         fold_histories.append(history)
 
     # average all score in the histories
@@ -426,8 +422,8 @@ def run_model(model, settings, device, root_folder=""):
     #   load data
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
-    data_train_pd = utils.clean_raw_data(data_train_pd[:5])
-    data_dev_pd = utils.clean_raw_data(data_dev_pd[:5])
+    data_train_pd = utils.clean_raw_data(data_train_pd)
+    data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
     # --- get the tokenizer ---   
     if 'roberta' in bert_type:
@@ -445,8 +441,6 @@ def run_model(model, settings, device, root_folder=""):
     dataloader_dis_train = DataLoader(dataset_dis_train, batch_size=batch_size, shuffle=True)
     dataloader_dis_dev = DataLoader(dataset_dis_dev, batch_size=batch_size, shuffle=True)
 
-
-
     # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
     dataloader_train = dataloader_emp_train
@@ -457,8 +451,8 @@ def run_model(model, settings, device, root_folder=""):
     if empathy_type == 'distress':
         dataloader_train = dataloader_dis_train  # needed for k fold
         dataloader_dev = dataloader_dis_dev  # needed for k fold
-        dataset_train = dataloader_dis_train  # needed for k fold
-        dataset_dev = dataloader_dis_dev  # needed for k fold
+        dataset_train = dataset_dis_train  # needed for k fold
+        dataset_dev = dataset_dis_dev  # needed for k fold
         display_text = "Using distress data"
     print('\n------------ ' + display_text + ' ------------\n')
 
