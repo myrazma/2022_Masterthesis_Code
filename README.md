@@ -1,8 +1,7 @@
 # 2022_Masterthesis_Code
-The Code for my master thesis.
+The code for my master's thesis ([Note](-Note)).
 
-
-# models
+# Models
 The models can be found in the directory [model](model).
 
 The script [baseline_BERT.py](model/baseline_BERT.py) is implementing a baseline RoBERTa model with the possibility of BitFit training (by setting --train_only_bias in cmd parameters]. BitFit (BIas-Term FIne-Tuning: https://arxiv.org/abs/2106.10199) is a version of parameter-efficient training where only the bias in a pre-trained transformer model are trained. There is even the option to only train the bias parameters in the mlp of the transformers (no attention layers).
@@ -24,6 +23,12 @@ and run in bash (using gpus here, container will be removed after exit)
 
 ```
 docker run --gpus all --rm -it -v "$PWD":/mzmarsly <docker-name> bash
+```
+
+Right now, you can run the code by calling one of the model scripts with desired parameters. A Docker container for running the code with any further adjustment will follow after the code experimentation phase of this part of the thesis. For example you can run **BitFit** with the following command
+
+```
+python model/baseline_BERT.py --train_only_bias --epochs 10 --learning_rate 1e-4
 ```
 
 ## Parameter setting
@@ -51,4 +56,4 @@ While calling the model in bash, you can enter specific hyperparameters of the m
 
 
 # Note
-I'm still currently working on the code and trying new things, therefore cleaner, more structured code will follow for scripts under construction :). Also I'm running the code on another device and commiting even small changes that might have a difference in model training.
+I'm still currently working on the code and trying new things, therefore cleaner, more structured code will follow for the scripts currently under construction :). Also I'm running the code on another device and commiting even small changes that might have a difference in model training.
