@@ -63,6 +63,13 @@ class BertRegressor(nn.Module):
         bert_outputs = self.bert(input_ids, attention_masks)
         outputs = self.regression_head(bert_outputs)
         return outputs
+
+    def reset_head_weights(self):
+        for module in self.regression_head.children():
+            for layer in module:
+                if isinstance(layer, nn.Linear):
+                    print('reset parameters')
+                    layer.reset_parameters()
         
 
 def run(settings, root_folder=""):

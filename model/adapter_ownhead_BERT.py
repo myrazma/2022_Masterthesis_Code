@@ -62,12 +62,19 @@ class RegressionModelAdapters(nn.Module):
 
         self.bert_parameter_count = model_utils.count_updated_parameters(self.bert.parameters())
         self.head_parameter_count = model_utils.count_updated_parameters(self.regression_head.parameters())
-        
 
     def forward(self, input_ids, attention_masks):
         bert_outputs = self.bert(input_ids, attention_masks)
         outputs = self.regression_head(bert_outputs)
         return outputs
+
+    def reset_head_weights(self):
+        for module in self.regression_head.children():
+            for layer in module:
+                if isinstance(layer, nn.Linear):
+                    print('reset parameters')
+                    layer.reset_parameters()
+        
   
 
 def get_adapter_config(config_name, print_config=True):

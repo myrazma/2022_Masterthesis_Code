@@ -368,6 +368,7 @@ def kfold_cross_val(model, model_type, settings, dataset_train, dataset_dev, dev
         # --- init model each time using model_type --- 
         model = model_type(settings)
         model.to(device)
+        model.reset_head_weights()
         # --- set up for training --- 
         optimizer = AdamW(model.parameters(), lr=settings['learning_rate'], eps=1e-8, weight_decay=settings['weight_decay'])
         # scheduler
@@ -377,6 +378,7 @@ def kfold_cross_val(model, model_type, settings, dataset_train, dataset_dev, dev
         loss_function = nn.MSELoss()
 
         model, history = train_model(model, fold_loader_train, fold_loader_dev, epochs, optimizer, scheduler, loss_function, device, use_early_stopping=False, use_scheduler=settings['scheduler'])
+        history['fold'] = i
         fold_histories.append(history)
 
     # average all score in the histories
@@ -384,8 +386,11 @@ def kfold_cross_val(model, model_type, settings, dataset_train, dataset_dev, dev
     for hist in fold_histories[1:]:
         avrg_history = avrg_history + hist
     avrg_history = avrg_history / len(fold_histories)
+    avrg_history['fold'] = -1  # -1 means average
+    fold_histories.append(avrg_history)
+    kfold_hist = pd.concat(fold_histories)
     print('Average folds history:', avrg_history)
-    return model, avrg_history  # TODO: which model to return?
+    return model, kfold_hist  # TODO: which model to return?
 
 
 def run_model(model, settings, device, model_type, root_folder=""):
@@ -428,8 +433,8 @@ def run_model(model, settings, device, model_type, root_folder=""):
     #   load data
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
-    data_train_pd = utils.clean_raw_data(data_train_pd)
-    data_dev_pd = utils.clean_raw_data(data_dev_pd)
+    data_train_pd = utils.clean_raw_data(data_train_pd[:10])
+    data_dev_pd = utils.clean_raw_data(data_dev_pd[:5])
 
     # --- get the tokenizer ---   
     if 'roberta' in bert_type:
