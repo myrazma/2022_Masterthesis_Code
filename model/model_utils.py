@@ -369,7 +369,8 @@ def kfold_cross_val(model, model_type, settings, dataset_train, dataset_dev, opt
      
         model, history = train_model(model, fold_loader_train, fold_loader_dev, epochs, optimizer, scheduler, loss_function, device, use_early_stopping=False, use_scheduler=settings['scheduler'])
         fold_histories.append(history)
-        model = model_type(settings)
+        # TODO
+        model = BertRegressor(settings)
         model.to(device)
 
     # average all score in the histories
