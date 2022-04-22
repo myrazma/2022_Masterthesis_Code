@@ -347,13 +347,14 @@ def kfold_cross_val(model_type, settings, dataset_train, dataset_dev, optimizer,
     fold_histories = []
     dataset = ConcatDataset([dataset_train, dataset_dev])
 
+    model = model_type(settings)
+    model.to(device)
     seg_size = int(np.ceil(len(dataset) / k))
     # create folds
     for i, fold in enumerate(range(k)):
         print(f"\n ---------------- Fold {i} ---------------- \n")
         # init model each time using model_type
-        model = model_type(settings)
-        model.to(device)
+
         fold_range = (seg_size*i, seg_size*i + seg_size)
         if fold_range[1] >= len(dataset):  # woudl be out of bound
             fold_range = (fold_range[0], len(dataset)-1) ## replace second with the lengt of the data set - 1
