@@ -520,7 +520,7 @@ def run_model(model, settings, device, model_type, root_folder=""):
     
     if settings['kfold'] > 0:  # if kfold = 0, we ar enot doing kfold
         print('\n------------ Using kfold cross validation ------------\n')
-        model, history = kfold_cross_val(model, model_type, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler)
+        model, history = kfold_cross_val(model, model_type, settings, dataset_train, dataset_dev, device, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler)
     else:
         model, history = train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device=device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
     
