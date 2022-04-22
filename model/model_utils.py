@@ -27,7 +27,7 @@ from torch.optim import AdamW
 from scipy.stats import pearsonr
 
 # import own module
-from baseline_BERT import BertRegressor
+#from baseline_BERT import BertRegressor
 from adapter_ownhead_BERT import RegressionModelAdapters
 from pathlib import Path
 import sys
@@ -36,6 +36,47 @@ sys.path.append(str(path_root))
 import utils
 import preprocessing
 
+
+class BertRegressor(nn.Module):
+    # source (changed some things): [2]  
+    # https://medium.com/@anthony.galtier/fine-tuning-bert-for-a-regression-task-is-a-description-enough-to-predict-a-propertys-list-price-cf97cd7cb98a
+    
+    def __init__(self, settings): #bert_type="roberta-base", train_only_bias=False, train_bias_mlp=False, activation_func='relu', dropout=0.5):
+        super(BertRegressor, self).__init__()
+        D_in, D_out = 768, 1
+        self.bert_type = settings['bert_type']
+        self.train_only_bias = settings['train_only_bias']
+
+        if self.bert_type == 'roberta-base':
+            self.bert = RobertaModel.from_pretrained(self.bert_type)
+        else:
+            self.bert = BertModel.from_pretrained(self.bert_type)
+
+        if self.train_only_bias == 'all' or self.train_only_bias == 'mlp':
+            print(f'\n------------ Train only the bias: {self.train_only_bias} ------------\n')
+            bias_filter = lambda x: 'bias' in x
+            if self.train_only_bias == 'mlp':  # train only the mlp layer (excluding all biases in the attention layers)
+                bias_filter = lambda x: 'bias' in x and not 'attention' in x
+
+            names = [n for n, p in self.bert.named_parameters()]
+            params = [param for param in self.bert.parameters()]
+            for n, p in zip(names, params):
+                if bias_filter(n):
+                    p.requires_grad = True
+                else:
+                    p.requires_grad = False
+
+        self.regression_head = RegressionHead(D_in=D_in, D_out=D_out, activation_func=settings['activation'], dropout=settings['dropout'])
+
+        # get the size of the model parameters (head and bert separated)
+        self.bert_parameter_count = count_updated_parameters(self.bert.parameters())
+        self.head_parameter_count = count_updated_parameters(self.regression_head.parameters())
+
+    def forward(self, input_ids, attention_masks):
+        bert_outputs = self.bert(input_ids, attention_masks)
+        outputs = self.regression_head(bert_outputs)
+        return outputs
+        
 
 
 class RegressionHead(nn.Module):
@@ -339,7 +380,7 @@ def score_correlation(y_pred, y_true):
     return r, p
 
 
-def kfold_cross_val(model, model_type, settings, dataset_train, dataset_dev, optimizer, scheduler, loss_function, device, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
+def kfold_cross_val(model, model_type, settings, dataset_train, dataset_dev, device, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
     # partly source from https://medium.com/dataseries/k-fold-cross-validation-with-pytorch-and-sklearn-d094aa00105f
     batch_size = settings['batch_size']
     seed = settings['seed']
@@ -366,7 +407,15 @@ def kfold_cross_val(model, model_type, settings, dataset_train, dataset_dev, opt
         fold_dataset_dev = Subset(dataset, dev_indices)
         fold_loader_train = DataLoader(fold_dataset_train, batch_size=batch_size, shuffle=True)
         fold_loader_dev = DataLoader(fold_dataset_dev, batch_size=batch_size, shuffle=True)
-     
+
+        # set up for training 
+        optimizer = AdamW(model.parameters(), lr=settings['learning_rate'], eps=1e-8, weight_decay=settings['weight_decay'])
+        # scheduler
+        total_steps = len(fold_loader_train) * epochs
+        scheduler = get_linear_schedule_with_warmup(optimizer,       
+                        num_warmup_steps=0, num_training_steps=total_steps)
+        loss_function = nn.MSELoss()
+
         model, history = train_model(model, fold_loader_train, fold_loader_dev, epochs, optimizer, scheduler, loss_function, device, use_early_stopping=False, use_scheduler=settings['scheduler'])
         fold_histories.append(history)
         # TODO
