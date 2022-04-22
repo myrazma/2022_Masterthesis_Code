@@ -422,8 +422,8 @@ def run_model(model, settings, device, root_folder=""):
     #   load data
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
-    data_train_pd = utils.clean_raw_data(data_train_pd[:10])
-    data_dev_pd = utils.clean_raw_data(data_dev_pd[:5])
+    data_train_pd = utils.clean_raw_data(data_train_pd)
+    data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
     # --- get the tokenizer ---   
     if 'roberta' in bert_type:
