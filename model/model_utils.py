@@ -376,7 +376,7 @@ def kfold_cross_val(model, settings, dataset_train, dataset_dev, optimizer, sche
     # average all score in the histories
     avrg_history = fold_histories[0]
     for hist in fold_histories[1:]:
-        avrg_history + hist
+        avrg_history = avrg_history + hist
     avrg_history = avrg_history / len(fold_histories)
     print('Average folds history:', avrg_history)
     return model, avrg_history  # TODO: which model to return?
@@ -422,8 +422,8 @@ def run_model(model, settings, device, root_folder=""):
     #   load data
     # -------------------
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
-    data_train_pd = utils.clean_raw_data(data_train_pd)
-    data_dev_pd = utils.clean_raw_data(data_dev_pd)
+    data_train_pd = utils.clean_raw_data(data_train_pd[:10])
+    data_dev_pd = utils.clean_raw_data(data_dev_pd[:5])
 
     # --- get the tokenizer ---   
     if 'roberta' in bert_type:
