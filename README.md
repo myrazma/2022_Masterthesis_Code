@@ -12,15 +12,16 @@ The model_utils class has model shared methods and class like the RegressionHead
 ## Docker
 
 Build the Dockerfile and run in bash.
-"""
+```
 docker build -t <docker-name> .
-"""
+```
 
 To run in bash and use gpus:
 
-"""
+```
 docker run --gpus all --rm -it -v "$PWD":/mzmarsly <docker-name> bash
-"""
+```
+
 ## Parameter setting
 While calling the model in bash, you can enter specific hyperparameters of the model. It should have the form of f.e. "--epochs 10", where the parameter name has "--" as a prefix. Possible parameters with example settings are:
 
