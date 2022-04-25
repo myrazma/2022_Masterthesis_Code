@@ -416,7 +416,9 @@ def run_model(model, settings, device, model_type, root_folder=""):
     Returns:
         nn.Module, pd.DataFrame: model, history
     """
-
+    #print(model.bert_parameter_count)
+    #print(model.head_parameter_count)
+    #return
     data_root_folder = root_folder + 'data/'
     output_root_folder = root_folder + 'output/'
     # -------------------
@@ -497,9 +499,9 @@ def run_model(model, settings, device, model_type, root_folder=""):
     else:
         model, history = train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device=device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
     
-        # add model parameter size to history
-        history['bert_param_size'] = np.zeros(history.shape[0]) + model.bert_parameter_count
-        history['head_param_size'] = np.zeros(history.shape[0]) + model.head_parameter_count
+    # add model parameter size to history
+    history['bert_param_size'] = np.zeros(history.shape[0]) + model.bert_parameter_count
+    history['head_param_size'] = np.zeros(history.shape[0]) + model.head_parameter_count
 
     print(f"\nSave settings using model name: {settings['model_name']}\n")
     history.to_csv(root_folder + 'output/history_baseline_' + empathy_type + '_' + settings['model_name'] +  '.csv')
