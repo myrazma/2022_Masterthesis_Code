@@ -19,7 +19,6 @@ from transformers.adapters import MAMConfig, AdapterConfig, PrefixTuningConfig, 
 from transformers.adapters import configuration as adapter_configs
 import torch
 import torch.nn as nn
-import loralib as lora
 
 
 # import own module
