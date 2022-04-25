@@ -187,6 +187,7 @@ def arg_parsing_to_settings(args, empathy_type = 'distress', learning_rate=2e-5,
     settings['epochs'] = int(settings['epochs'])
     settings['batch_size'] = int(settings['batch_size'])
     settings['kfold'] = int(settings['kfold'])
+    settings['seed'] = int(settings['seed'])
 
     
     print('\n------------ Model name: ' + settings['model_name'] + ' ------------\n')
