@@ -87,8 +87,8 @@ def get_adapter_config(config_name, print_config=True):
     "houlsby+inv": HoulsbyInvConfig(),
     "compacter++": CompacterPlusPlusConfig(),
     "compacter": CompacterConfig(),
-    "prefix_tuning": PrefixTuningConfig(),  # Li and Liang (2021)
-    "prefix_tuning_flat": PrefixTuningConfig(flat=True),
+    "prefix_tuning": PrefixTuningConfig(),  # Li and Liang (2021) # with reparametrisation through bottleneck
+    "prefix_tuning_flat": PrefixTuningConfig(flat=True),  # without reparametrisation through bottleneck
     "parallel": ParallelConfig(),  # He2021
     "scaled_parallel": ParallelConfig(scaling="learned"),
     "mam": MAMConfig(),  # He2021
@@ -162,7 +162,7 @@ if __name__ == '__main__':
     # check if there is an input argument
     args = sys.argv[1:]  # ignore first arg as this is the call of this python script
 
-    settings = utils.arg_parsing_to_settings(args, learning_rate=2e-5, batch_size=16, epochs=10, save_settings=True, bert_type='roberta-base', weight_decay=0.01, dropout=0.2, use_scheduler=True)
+    settings = utils.arg_parsing_to_settings(args, learning_rate=2e-5, batch_size=16, epochs=10, save_settings=True, bert_type='roberta-base', weight_decay=0.01, dropout=0.2, use_scheduler=False)
     # ---- end function ----
     
     run(settings=settings)
