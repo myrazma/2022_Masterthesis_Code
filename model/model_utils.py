@@ -253,7 +253,7 @@ def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, sche
         # This is the case if no early stopping is used
         print('Returning last model state...')
         model_best = model
-        epoch_model_saved = epochs  # at the last epoch
+        epoch_model_saved = epochs - 1  # at the last epoch
     # save at which state we saved the model
     model_saved_at_arr = np.zeros(history.shape[0])
     model_saved_at_arr[epoch_model_saved] = 1  # set to one at this epoch
