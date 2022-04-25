@@ -42,7 +42,6 @@ class BertRegressor(nn.Module):
         if self.train_only_bias == 'all' or self.train_only_bias == 'mlp':
             print(f'\n------------ Train only the bias: {self.train_only_bias} ------------\n')
             bias_filter = lambda x: 'bias' in x
-            
             if self.train_only_bias == 'mlp':  # train only the mlp layer (excluding all biases in the attention layers)
                 bias_filter = lambda x: 'bias' in x and not 'attention' in x
 
@@ -87,7 +86,6 @@ def run(settings, root_folder=""):
     # -------------------
     #  initialize model 
     # -------------------
-    # --- init model ---
     print('------------ initializing Model ------------')
     model = BertRegressor(settings)
     model.to(device)

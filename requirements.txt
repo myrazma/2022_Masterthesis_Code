@@ -8,3 +8,4 @@ transformers==4.17.0
 datasets==2.0.0
 torch==1.11.0
 adapter-transformers==3.0.0
+loralib==0.1.1

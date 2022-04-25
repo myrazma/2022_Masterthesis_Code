@@ -19,11 +19,13 @@ from transformers.adapters import MAMConfig, AdapterConfig, PrefixTuningConfig, 
 from transformers.adapters import configuration as adapter_configs
 import torch
 import torch.nn as nn
+import loralib as lora
 
 
 # import own module
 import model_utils
 from pathlib import Path
+
 import sys
 path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
@@ -42,7 +44,8 @@ class RegressionModelAdapters(nn.Module):
 
 
         self.bert = RobertaAdapterModel.from_pretrained(self.bert_type)
-
+        #self.bert = lora.RobertaModel.from_pretrained(self.bert_type)
+        #lora.mark_only_lora_as_trainable(self.bert)
         # Enable adapter training
         # task adapter - only add if not existing
         if self.adapter_name not in self.bert.config.adapters:
@@ -153,7 +156,6 @@ def run(settings, root_folder=""):
 
     model = RegressionModelAdapters(settings)
     model.to(device)
-    print(model)
     model, history = model_utils.run_model(model, settings, device, root_folder="", model_type=RegressionModelAdapters)
     return model, history
 
