@@ -40,7 +40,7 @@ class RegressionModelAdapters(nn.Module):
         D_in, D_out = 768, 1 
         self.bert_type = settings['bert_type']
         self.adapter_name = settings['empathy_type'] + '_adapter'
-        self.adapter_config = get_adapter_config(settings['adapter_type'])
+        self.adapter_config = get_adapter_config(settings['adapter_type'], print_config=True)
 
 
         self.bert = RobertaAdapterModel.from_pretrained(self.bert_type)
