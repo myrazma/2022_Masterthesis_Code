@@ -42,7 +42,6 @@ class RegressionHead(nn.Module):
     Args:
         nn (nn.Module): Inherit from nn.Module
     """
-
     def __init__(self, dropout=0.2, D_in=768, D_hidden1=100, D_hidden2=10, D_out=1, activation_func='relu'):
         super(RegressionHead, self).__init__()
 
@@ -69,8 +68,6 @@ class RegressionHead(nn.Module):
             nn.Linear(100, 10),
             activation_layer,
             nn.Linear(10, 1))
-
-
 
     def forward(self, bert_outputs):
         bert_output = bert_outputs[1]
@@ -329,13 +326,35 @@ def score_correlation(y_pred, y_true):
     return r, p
 
 
-def kfold_cross_val(model, model_type, settings, dataset_train, dataset_dev, device, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
+def kfold_cross_val(model, model_type, settings, device, dataset_train, dataset_dev=None, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
+    """Perform k-fold cross validation
+    - concat the train and dev data to use for cross validation
+
+    Args:
+        model_type (_type_): The model type to use (class)
+        settings (_type_): The model settings containing the parameters
+        dataset_train (_type_): _description_
+        dataset_dev (_type_): The dev data set. Default: None. If None, the training dataset will be used alone, 
+                            if not None, concat the datasets (dev and train) will be concatenated for cross validation training
+        device (_type_): The device to train the model on
+        k (int, optional): The number of folds. Defaults to 10.
+        clip_value (int, optional): _description_. Defaults to 2.
+        early_stop_toleance (int, optional): _description_. Defaults to 2.
+        use_early_stopping (bool, optional): _description_. Defaults to False.
+        use_scheduler (bool, optional): _description_. Defaults to False.
+
+    Returns:
+        model, kfold_hist: the model, the history of all folds and the average (indicated with -1 in the column 'fold')
+    """
     # partly source from https://medium.com/dataseries/k-fold-cross-validation-with-pytorch-and-sklearn-d094aa00105f
     batch_size = settings['batch_size']
     seed = settings['seed']
     epochs = settings['epochs']
     fold_histories = []
-    dataset = ConcatDataset([dataset_train, dataset_dev])
+    if dataset_dev == None:
+        dataset = dataset_train
+    else:
+        dataset = ConcatDataset([dataset_train, dataset_dev])
 
     #model = model_type(settings)
     #model.to(device)
@@ -474,7 +493,7 @@ def run_model(model, settings, device, model_type, root_folder=""):
     
     if settings['kfold'] > 0:  # if kfold = 0, we ar enot doing kfold
         print('\n------------ Using kfold cross validation ------------\n')
-        model, history = kfold_cross_val(model, model_type, settings, dataset_train, dataset_dev, device, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler)
+        model, history = kfold_cross_val(model, model_type, settings, device, dataset_train, dataset_dev, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler)
     else:
         model, history = train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device=device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
     

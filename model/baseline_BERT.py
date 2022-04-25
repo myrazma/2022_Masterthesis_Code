@@ -68,7 +68,6 @@ class BertRegressor(nn.Module):
         for module in self.regression_head.children():
             for layer in module:
                 if isinstance(layer, nn.Linear):
-                    print('reset parameters')
                     layer.reset_parameters()
         
 
