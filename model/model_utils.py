@@ -384,7 +384,7 @@ def kfold_cross_val(model, model_type, settings, device, dataset_train, dataset_
         # --- set up for training --- 
         optimizer = AdamW(model.parameters(), lr=settings['learning_rate'], eps=1e-8, weight_decay=settings['weight_decay'])
         # scheduler
-        total_steps = len(fold_loader_train) * 30 #epochs
+        total_steps = len(fold_loader_train) * epochs
         scheduler = get_linear_schedule_with_warmup(optimizer,       
                         num_warmup_steps=0, num_training_steps=total_steps)
         loss_function = nn.MSELoss()
@@ -487,9 +487,8 @@ def run_model(model, settings, device, model_type, root_folder=""):
     optimizer = AdamW(model.parameters(), lr=learning_rate, eps=1e-8, weight_decay=weight_decay)
 
     # scheduler
-    total_steps = len(dataloader_train) * 30  # epochs
-    scheduler = get_linear_schedule_with_warmup(optimizer,       
-                    num_warmup_steps=0, num_training_steps=total_steps)
+    total_steps = len(dataloader_train) * epochs
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
 
     # epochs
     loss_function = nn.MSELoss()
