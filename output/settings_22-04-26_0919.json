@@ -1,0 +1,1 @@
+{"empathy_type": "distress", "learning_rate": 5e-05, "seed": 17, "batch_size": 16, "epochs": 20, "bert_type": "roberta-base", "train_only_bias": "none", "adapter_type": "prefix_tuning", "model_name": "22-04-26_0919", "save_settings": true, "early_stopping": false, "weight_decay": 0.1, "save_model": false, "scheduler": true, "activation": "relu", "dropout": 0.1, "kfold": 5}
