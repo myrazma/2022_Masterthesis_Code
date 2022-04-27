@@ -97,7 +97,7 @@ def load_articles(data_root_folder="../data/"):
     return articles
 
 
-def arg_parsing_to_settings(args, empathy_type = 'distress', learning_rate=2e-5, seed=17, batch_size=4, epochs=5, bert_type='roberta-base', train_only_bias='none', adapter_type="pfeiffer", model_name="", save_settings=False, early_stopping=False, weight_decay=0.01, save_model=False, use_scheduler=False, activation_func='relu', dropout=0.5, kfold=0):
+def arg_parsing_to_settings(args, empathy_type = 'distress', learning_rate=2e-5, seed=17, batch_size=4, epochs=5, bert_type='roberta-base', train_only_bias='none', adapter_type="pfeiffer", model_name="", save_settings=False, early_stopping=False, weight_decay=0.01, save_model=False, use_scheduler=False, activation_func='relu', dropout=0.5, kfold=0, tensorboard=False):
     if model_name=="":  # set model name to timestamp
         model_name = time.strftime("%y-%m-%d_%H%M", time.localtime())
     # provide default settings
@@ -117,7 +117,8 @@ def arg_parsing_to_settings(args, empathy_type = 'distress', learning_rate=2e-5,
                 'scheduler': use_scheduler,
                 'activation': activation_func,
                 'dropout': dropout,
-                'kfold': kfold}  # if set to 0, we dont use kfold cross validation
+                'kfold': kfold,
+                'tensorboard':tensorboard}  # if set to 0, we dont use kfold cross validation
 
     if '--show_settings' in args:
         print("\nYou are using the following settings:")
@@ -144,6 +145,9 @@ def arg_parsing_to_settings(args, empathy_type = 'distress', learning_rate=2e-5,
                 settings['empathy_type'] = arg_name
                 continue
             elif arg_name == 'scheduler':
+                settings[arg_name] = True
+                continue
+            elif arg_name == 'tensorboard':
                 settings[arg_name] = True
                 continue
             elif arg_name == 'save_settings':

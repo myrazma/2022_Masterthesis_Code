@@ -9,7 +9,7 @@ import copy
 import math
 import torch
 from transformers import AutoTokenizer, BertModel, BertConfig, BertForSequenceClassification, AutoModel, RobertaModel
-from transformers import RobertaConfig, RobertaModelWithHeads
+from transformers import RobertaConfig
 from transformers import BertTokenizer, RobertaTokenizer
 from transformers import TrainingArguments, AdapterTrainer, EvalPrediction
 from transformers import get_linear_schedule_with_warmup
@@ -23,6 +23,8 @@ from torch.utils.data import DataLoader, TensorDataset, random_split,SubsetRando
 from torch.utils.data.dataset import Subset
 from torch.utils.data import Dataset as PyTorchDataset
 from torch.optim import AdamW
+
+from torch.utils.tensorboard import SummaryWriter
 
 from scipy.stats import pearsonr
 
@@ -128,9 +130,9 @@ def count_updated_parameters(model_params):
     return model_size
 
 
-def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
+def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, scheduler, loss_function, device, tensorboard_writer=None, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
     """Train the model on train dataset and evelautate on the dev dataset
-    Source parly from [2]
+    Source partly from [2]
     Args:
         model (BILSTM): The model that should be trained
         train_loader (DataLoader): The DataLoader of the train SeqDataset
@@ -223,9 +225,13 @@ def train_model(model, train_dataloader, dev_dataloader, epochs, optimizer, sche
 
         current_step_df = pd.DataFrame({'epoch': int(epoch_i), 'avrg_dev_loss':avrg_dev_loss, 'dev_corr': dev_corr, 'train_corr': train_corr, 'avrg_train_loss': avrg_train_loss, 'train_time_elapsed': epoch_time_elapsed}, index=[0])
         history = pd.concat([history, current_step_df], ignore_index=True)
-
         print(f"Epoch: {epoch_i + 1:^7} | dev_corr: {dev_corr} | train_corr: {train_corr} | avrg_dev_loss: {avrg_dev_loss} | avrg_train_loss: {avrg_train_loss} | training time elapsed: {epoch_time_elapsed}")
         
+        if tensorboard_writer is not None:
+            tensorboard_writer.add_scalar('avrg_loss/dev', avrg_dev_loss, epoch_i)
+            tensorboard_writer.add_scalar('avrg_loss/train', avrg_train_loss, epoch_i)
+            tensorboard_writer.add_scalar('corr/dev', dev_corr, epoch_i)
+            tensorboard_writer.add_scalar('corr/train', train_corr, epoch_i)
         # -------------------
         #   Early stopping 
         # -------------------
@@ -389,7 +395,7 @@ def kfold_cross_val(model, model_type, settings, device, dataset_train, dataset_
                         num_warmup_steps=0, num_training_steps=total_steps)
         loss_function = nn.MSELoss()
 
-        model, history = train_model(model, fold_loader_train, fold_loader_dev, epochs, optimizer, scheduler, loss_function, device, use_early_stopping=False, use_scheduler=settings['scheduler'])
+        model, history = train_model(model, fold_loader_train, fold_loader_dev, epochs, optimizer, scheduler, loss_function, device, write_tensorboard=settings['tensorboard'], use_early_stopping=False, use_scheduler=settings['scheduler'])
         history['fold'] = i
         fold_histories.append(history)
 
@@ -497,14 +503,14 @@ def run_model(model, settings, device, model_type, root_folder=""):
         print('\n------------ Using kfold cross validation ------------\n')
         model, history = kfold_cross_val(model, model_type, settings, device, dataset_train, dataset_dev, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler)
     else:
-        model, history = train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, device=device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
+        model, history = train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, write_tensorboard=settings['tensorboard'], device=device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
     
     # add model parameter size to history
     history['bert_param_size'] = np.zeros(history.shape[0]) + model.bert_parameter_count
     history['head_param_size'] = np.zeros(history.shape[0]) + model.head_parameter_count
 
     print(f"\nSave settings using model name: {settings['model_name']}\n")
-    history.to_csv(root_folder + 'output/history_baseline_' + empathy_type + '_' + settings['model_name'] +  '.csv')
+    history.to_csv(root_folder + 'output/history_' + empathy_type + '_' + settings['model_name'] +  '.csv')
     
     if settings['save_model']:
         print(f"\nSave model using model name: {settings['model_name']}\n")
