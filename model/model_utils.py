@@ -501,7 +501,7 @@ def run_model(model, settings, device, model_type, root_folder=""):
     loss_function = nn.MSELoss()
     
     # setup tensorboard writer
-    tensorboard_writer = SummaryWriter("runs/pelt") if settings['tensorboard'] else None
+    tensorboard_writer = SummaryWriter("runs/" + settings['model_name']) if settings['tensorboard'] else None
 
     if settings['kfold'] > 0:  # if kfold = 0, we ar enot doing kfold
         print('\n------------ Using kfold cross validation ------------\n')
@@ -518,6 +518,6 @@ def run_model(model, settings, device, model_type, root_folder=""):
     
     if settings['save_model']:
         print(f"\nSave model using model name: {settings['model_name']}\n")
-        torch.save(model.state_dict(), root_folder + 'output/model_baseline_' + empathy_type + '_' + settings['model_name'])
+        torch.save(model.state_dict(), root_folder + 'output/model_' + empathy_type + '_' + settings['model_name'])
     print('Done')
     return model, history
