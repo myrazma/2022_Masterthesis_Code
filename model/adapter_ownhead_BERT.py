@@ -43,8 +43,7 @@ class RegressionModelAdapters(nn.Module):
 
 
         self.bert = RobertaAdapterModel.from_pretrained(self.bert_type)
-        #self.bert = lora.RobertaModel.from_pretrained(self.bert_type)
-        #lora.mark_only_lora_as_trainable(self.bert)
+        
         # Enable adapter training
         # task adapter - only add if not existing
         if self.adapter_name not in self.bert.config.adapters:
@@ -163,7 +162,7 @@ if __name__ == '__main__':
     # check if there is an input argument
     args = sys.argv[1:]  # ignore first arg as this is the call of this python script
 
-    settings = utils.arg_parsing_to_settings(args, learning_rate=2e-5, batch_size=16, epochs=10, save_settings=True, bert_type='roberta-base', weight_decay=0.01, dropout=0.2, use_scheduler=False)
+    settings = utils.arg_parsing_to_settings(args, tensorboard=False, learning_rate=2e-5, batch_size=16, epochs=10, save_settings=True, bert_type='roberta-base', weight_decay=0.01, dropout=0.2, use_scheduler=False)
     # ---- end function ----
     
     run(settings=settings)

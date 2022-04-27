@@ -1,6 +1,7 @@
 # containing utils like the regression head to share among different models
 # e.g. here are methods / classes that should stay the same or can be used among different models
 
+import tensorboard
 import torch.nn as nn
 import pandas as pd
 import numpy as np
@@ -333,7 +334,7 @@ def score_correlation(y_pred, y_true):
     return r, p
 
 
-def kfold_cross_val(model, model_type, settings, device, dataset_train, dataset_dev=None, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False):
+def kfold_cross_val(model, model_type, settings, device, dataset_train, dataset_dev=None, k=10, clip_value=2, early_stop_toleance=2, use_early_stopping=False, use_scheduler=False, tensorboard_writer=None):
     """Perform k-fold cross validation
     - concat the train and dev data to use for cross validation
 
@@ -395,7 +396,7 @@ def kfold_cross_val(model, model_type, settings, device, dataset_train, dataset_
                         num_warmup_steps=0, num_training_steps=total_steps)
         loss_function = nn.MSELoss()
 
-        model, history = train_model(model, fold_loader_train, fold_loader_dev, epochs, optimizer, scheduler, loss_function, device, write_tensorboard=settings['tensorboard'], use_early_stopping=False, use_scheduler=settings['scheduler'])
+        model, history = train_model(model, fold_loader_train, fold_loader_dev, epochs, optimizer, scheduler, loss_function, device, tensorboard_writer=tensorboard_writer, use_early_stopping=False, use_scheduler=settings['scheduler'])
         history['fold'] = i
         fold_histories.append(history)
 
@@ -499,11 +500,14 @@ def run_model(model, settings, device, model_type, root_folder=""):
     # epochs
     loss_function = nn.MSELoss()
     
+    # setup tensorboard writer
+    tensorboard_writer = SummaryWriter("runs/pelt") if settings['tensorboard'] else None
+
     if settings['kfold'] > 0:  # if kfold = 0, we ar enot doing kfold
         print('\n------------ Using kfold cross validation ------------\n')
-        model, history = kfold_cross_val(model, model_type, settings, device, dataset_train, dataset_dev, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler)
+        model, history = kfold_cross_val(model, model_type, settings, device, dataset_train, dataset_dev, k=settings['kfold'], use_early_stopping=False, use_scheduler=use_scheduler, tensorboard_writer=tensorboard_writer)
     else:
-        model, history = train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, write_tensorboard=settings['tensorboard'], device=device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
+        model, history = train_model(model, dataloader_train, dataloader_dev, epochs, optimizer, scheduler, loss_function, tensorboard_writer=tensorboard_writer, device=device, clip_value=2, use_scheduler=use_scheduler, use_early_stopping=use_early_stopping)
     
     # add model parameter size to history
     history['bert_param_size'] = np.zeros(history.shape[0]) + model.bert_parameter_count
