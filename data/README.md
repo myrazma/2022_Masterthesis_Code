@@ -31,7 +31,7 @@ data/
 
 ## Empathy Data set
 
-Buechel2018 - Modeling empathy and distress in reaction to news stories
+Buechel et al., 2018 - Modeling empathy and distress in reaction to news stories: https://arxiv.org/abs/1808.10399
 
 The data can be downloaded from the Codalab Competition: https://codalab.lisn.upsaclay.fr/competitions/834#learn_the_details-datasets
 
@@ -50,7 +50,7 @@ The lexical data can be downloaded at the following links and should be added in
 
 ### Lexicon for empathetic concern and personal distress
 
-Sedoc2019 - Learning word ratings for empathy and distress from document-level user responses
+Sedoc et al., 2019 - Learning word ratings for empathy and distress from document-level user responses: http://www.wwbp.org/lexica.html
 
 The lexicon dataset for word rating for empathic concern and personal distress can be downloaded here: http://www.wwbp.org/lexica.html
 
@@ -64,7 +64,7 @@ The lexicon dataset for word rating for empathic concern and personal distress c
 
 ### NRC - Affective ratings: Emotion intensity
 
-Mohammad2018 - Word Affect Intensities
+Mohammad, 2018 - Word Affect Intensities: https://aclanthology.org/L18-1027
 
 The data can be downloaded here: http://saifmohammad.com/WebPages/AffectIntensity.htm . The downloaded folder structure can be kept, just add the folder into */data/lexicon/* as seen in the [Data Tree Structure](#Data-Tree-Structure).
 
@@ -83,7 +83,7 @@ The lexicon constist of 5,961 english words with associated emotions and their e
 
 ### NRC - Valence, arousal and dominance
 
-Mohammad2018b - Obtaining Reliable Human Ratings of Valence, Arousal, and Dominance for 20,000 English Words
+Mohammad, 2018 (b) - Obtaining Reliable Human Ratings of Valence, Arousal, and Dominance for 20,000 English Words: https://aclanthology.org/P18-1017
 
 The data can be downloaded here: http://saifmohammad.com/WebPages/nrc-vad.html . The downloaded folder structure can be kept, just add the folder into */data/lexicon/* as seen in the [Data Tree Structure](#Data-Tree-Structure).
 
@@ -100,7 +100,7 @@ For around 20,000 english words, this data set contains a rating for valence, ar
 
 ##### Example
 
-Warriner2013 - Norms of valence, arousal, and dominance for 13,915 English lemmas
+Warriner et al., 2013 - Norms of valence, arousal, and dominance for 13,915 English lemmas: https://doi.org/10.3758/s13428-012-0314-x
 
 The data can be downloaded here: https://link.springer.com/article/10.3758/s13428-012-0314-x#Abs1
 
