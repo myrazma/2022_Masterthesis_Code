@@ -34,7 +34,7 @@ def load_data(data_root_folder="../data/"):
 
 
 def clean_raw_data(data_df):
-    """Preprocess data and dev data including the following steps:
+    """Preprocess raw data and dev data including the following steps:
     - remove empathy_bin and distress_bin as they are not appearing in the 
     - remove iri labels
     - remove personality labels

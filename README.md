@@ -31,6 +31,22 @@ Right now, you can run the code by calling one of the model scripts with desired
 python model/baseline_BERT.py --train_only_bias --epochs 10 --learning_rate 1e-4
 ```
 
+## Submodules
+To run code from the submodules you need to init the submodules with 
+```
+git submodule init
+```
+and 
+```
+git submodule update
+```
+
+After initialization you can run
+```
+git submodule update --recursive --remote
+```
+for more updates of this submodule.
+
 ## Parameter setting
 While calling the model in bash, you can enter specific hyperparameters of the model. It should have the form of f.e. "--epochs 10", where the parameter name has "--" as a prefix. Possible parameters with example settings are:
 
