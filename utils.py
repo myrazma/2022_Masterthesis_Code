@@ -161,7 +161,7 @@ def arg_parsing_to_settings(args, empathy_type = 'distress', learning_rate=2e-5,
                 continue
             elif len(args) > (idx + 1):
                 if arg_name not in settings.keys():
-                    print(f'--- MyWarning: Argument ({arg_name}) not found in settings. Your setting might not me recignized or used. ---')
+                    print(f"--- MyWarning: Argument ({arg_name}) not found in settings. Your setting might not me recignized or used. ---")
                     print(f"The following are possible: {list(settings.keys())}")
                     
                 value = args[idx + 1]

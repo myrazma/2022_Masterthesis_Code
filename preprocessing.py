@@ -119,10 +119,10 @@ def normalize_scores(data, input_interval):
     return normalized
 
 
-def tokenize(batch, tokenizer, column):
+def tokenize(batch, tokenizer, column, max_length=256):
     # Source: [1] - https://huggingface.co/docs/transformers/training
     # longest is around 200
-    return tokenizer(batch[column], padding='max_length', truncation=True, max_length=256)
+    return tokenizer(batch[column], padding='max_length', truncation=True, max_length=max_length)
 
 
 # ---------------------------------------------------
