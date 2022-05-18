@@ -21,7 +21,12 @@ def delete_nonempty_folder(path):
 
     
 if __name__ == '__main__':
-    path = 'submodules/2022_Masterthesis_UniPELT/testdir'
-    if path != '' or path is not None:
-        delete_nonempty_folder(path)
+    enable_deleting = False  # safety lock
+
+    if enable_deleting:
+        path = 'submodules/2022_Masterthesis_UniPELT/testdir'
+        if path != '' or path is not None:
+            delete_nonempty_folder(path)
+    else:
+        print('Set enable deleting to True in order to delet somehting. Nothing will be done now')
 
