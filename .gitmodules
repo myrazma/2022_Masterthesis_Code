@@ -1,4 +1,0 @@
-[submodule "submodules/2022_Masterthesis_UniPELT"]
-	path = submodules/2022_Masterthesis_UniPELT
-	url = git@github.com:myrazma/2022_Masterthesis_UniPELT.git
-	branch = master
