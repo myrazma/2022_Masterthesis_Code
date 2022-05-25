@@ -8,14 +8,9 @@ import torch
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-nltk.download('wordnet')
-nltk.download('omw-1.4')
+#nltk.download('wordnet')
+#nltk.download('omw-1.4')
 nltk.download('punkt')
-nltk.download('stopwords')
-
-
-# Load english stop words
-STOPWORDS_EN = set(stopwords.words('english'))
 
 
 def load_data(data_root_folder="../data/"):
