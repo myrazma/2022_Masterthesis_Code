@@ -1,3 +1,6 @@
-python EmpDim/run_empdim.py --task_name empathy \
+python EmpDim/pca.py --task_name distress \
                             --data_dir data/ \
-                            --data_size 10
+                            --data_size 10 \
+                            --data_lim 500 \
+                            --dim 3 \
+                            --store_run False
