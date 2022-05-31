@@ -1,3 +1,5 @@
+from pickle import FALSE
+from random import random
 from sqlite3 import Timestamp
 from transformers import AutoTokenizer, AutoModel
 from transformers import HfArgumentParser
@@ -9,6 +11,7 @@ import torch
 
 from sklearn.decomposition import PCA
 from sklearn.metrics import mean_squared_error
+from sklearn.utils import shuffle
 from scipy.stats import pearsonr
 from scipy.optimize import minimize
 
@@ -19,6 +22,9 @@ from nltk.corpus import wordnet as wn
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 
+import tensorboard
+from torch.utils.tensorboard import SummaryWriter
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -26,7 +32,7 @@ import numpy as np
 import os
 import sys
 import pandas as pd
-import json
+import random
 from datetime import datetime
 
 
@@ -37,6 +43,9 @@ from torch.utils.data import DataLoader
 import utils
 import preprocessing
 import matplotlib.pyplot as plt
+
+
+START_TS = datetime.timestamp(datetime.now())
 
 @dataclass
 class MyArguments:
@@ -71,22 +80,19 @@ class MyArguments:
         default=False,
         metadata={"help": "If True, the run will be stored in json."},
     )
-
-
-
-def select_vocab_deprecated(lexicon, count):
-    """Select the vocabulary with max and min ranking score in the dictionary
-
-    Args:
-        lexicon ({str: float}}): The lexicon holding the word with a ranking
-        count (_type_): The number of datapoints to retrun per lexicon
-
-    Returns:
-        lex_min, lex_max: The sorted vocabularies
-    """
-    sorted_lex_max = sorted(lexicon.items(), key=lambda item: item[1], reverse=True)
-    sorted_lex_min = sorted(lexicon.items(), key=lambda item: item[1])
-    return sorted_lex_min[:count], sorted_lex_max[:count]
+    random_vocab: Optional[bool] = field(
+        default=False,
+        metadata={"help": "If True, the vocabulary will be chosen random."},
+    )
+    use_tensorboard: Optional[bool] = field(
+        default=True,
+        metadata={"help": "If True, tensorboard will be used."},
+    )
+    run_id: str = field(
+        default=None,
+        metadata={"help": "If True, tensorboard will be used."},
+    )
+    
 
 
 def stem_words(words):
@@ -167,6 +173,7 @@ def get_verbs(words):
     """
     verbs = []
     blacklist = ['blanket', 'home', 'shipwreck', 'cub']
+    blacklist = ['blanket', 'home', 'shipwreck', 'cub', 'joke', 'fart', 'gag', 'clown']
     if isinstance(words, list):
         if isinstance(words[0], tuple):
             for word, score in words:
@@ -183,7 +190,8 @@ def get_verbs(words):
 
     return verbs
 
-def select_words(lexicon, word_count):
+
+def select_words(lexicon, word_count, random_vocab=False):
     # return min and max sorted words with length of word_count
     print(f'Vocabulary info: \n word count: {word_count}')
     def __get_words(sorting):
@@ -192,51 +200,65 @@ def select_words(lexicon, word_count):
         word_stems = stem_words(words_sorted)
         distinct_word_stems = remove_dublicates(word_stems, sorting=sorting)
         distinct_verbs = get_verbs(distinct_word_stems)
-        distinct_verbs = distinct_verbs[:word_count]
+        distinct_verbs_selected = distinct_verbs[:word_count]
+        # shuffle for random
+        if random_vocab:
+            distinct_verbs_selected = distinct_verbs.copy()
+            random.shuffle(distinct_verbs_selected)
+            distinct_verbs_selected = distinct_verbs_selected[:word_count]
         print(f'Mode: {sorting}')
-        print(f'Range from {min([score for word, score in distinct_verbs])} to {max([score for word, score in distinct_verbs])}')
-        return distinct_verbs
+        print(f'Range from {min([score for word, score in distinct_verbs_selected])} to {max([score for word, score in distinct_verbs_selected])}')
+        return distinct_verbs_selected
     words_min = __get_words(sorting='min')
     words_max = __get_words(sorting='max')
     return words_min, words_max
 
 
-def save_run(my_args, vocab_min, vocab_max, pca_var, pca_pearsonr, pca_pearsonp, filename=None):
+def save_run(my_args, vocab_min, vocab_max, pca_var, pca_pearsonr, pca_pearsonp, filename=None, tensorboard_writer=None):
     if filename == None:
-        filename = 'empdim_settings.json'
+        filename = 'empdim_settings.csv'
 
-    print(list([float(val) for val in pca_var.reshape(-1)]))
-    print(list(pca_pearsonr))
-    print(list(pca_pearsonp))
+    df = pd.DataFrame()
+
+    if os.path.exists(filename):
+        df = pd.read_csv(filename, index_col=0)
+
+    pca_var = list([float(val) for val in pca_var.reshape(-1)])
+    pca_pearsonr = list(pca_pearsonr)
+    pca_pearsonp = list(pca_pearsonp)
+    vocab_min_words = ';'.join([item[0] for item in vocab_min])
+    vocab_min_scores = ';'.join([str(item[1]) for item in vocab_min])
+    vocab_max_words = ';'.join([item[0] for item in vocab_max])
+    vocab_max_scores = ';'.join([str(item[1]) for item in vocab_max])
 
     ts = datetime.timestamp(datetime.now())
 
-    new_row = {'timestamp': ts ,
+    #for dim, (var, r, p) in enumerate(zip(pca_var, pca_pearsonr, pca_pearsonp)):
+    new_row_dict = {'id': START_TS,  # can also be trated as the individual id
                 'dim': my_args.dim, 
                 'task_name': my_args.task_name, 
                 'data_lim': my_args.data_lim,
                 'vocab_size': my_args.data_size,
-                'pca_var': list([float(val) for val in pca_var.reshape(-1)]),  # principal components
-                'pca_pearsonr': list(pca_pearsonr),
-                'pca_pearsonp': list(pca_pearsonp), 
-                'vocab_min': vocab_min,
-                'vocab_max': vocab_max
+                'random_vocab': my_args.random_vocab,
+                'vocab_min': vocab_min_words,
+                'vocab_min_scores': vocab_min_scores,
+                'vocab_max': vocab_max_words,
+                'vocab_max_scores': vocab_max_scores,
+                'princip_comp': list(range(len(pca_pearsonr))),  # the number of the principal component
+                'pca_var': pca_var,  # principal components
+                'pca_pearsonr': pca_pearsonr,
+                'pca_pearsonp': pca_pearsonp
                 }
 
-    if os.path.exists(filename):
-        with open(filename) as fp:
-            dictionary = json.load(fp)
-        dictionary.append(new_row)
-    else:
-        dictionary = [new_row]
+    #if tensorboard_writer is not None:
+    #    with SummaryWriter() as w:
+    #        for i in range(len(pca_pearsonr)):
+    #            tensorboard_writer.add_hparams(new_row_dict, {'princip_comp': int(i), 'pca_var': float(pca_var[i]), 'pca_pearsonr': float(pca_pearsonr[i]), 'pca_pearsonp': pca_pearsonp[i]})
+    new_row = pd.DataFrame(new_row_dict)
+    df = pd.concat([df, new_row])
+    print('Saved Information:\n', new_row[:5])
     
-    # Serializing json 
-    json_object = json.dumps(dictionary, indent = 4)
-    
-    # Writing to sample.json
-    with open(filename, "w") as outfile:
-        outfile.write(json_object)
-
+    df.to_csv(filename, sep=',')
 
 def get_template():
     template = [
@@ -264,8 +286,9 @@ def run():
         my_args.task_name = 'empathy'
 
     torch.manual_seed(my_args.seed)
+    random.seed(my_args.seed)
 
-
+    tensorboard_writer = SummaryWriter('/emp_dim_runs') if my_args.use_tensorboard else None
 
     # ------------------------
     #     Load the lexicon 
@@ -285,11 +308,11 @@ def run():
     # --- select the most representative words for low and high distress and empathy ---
     # n words with highest and words with lowest ranking values
 
-    score_min, score_max = select_words(lexicon, my_args.data_size)
+    score_min, score_max = select_words(lexicon, my_args.data_size, random_vocab=my_args.random_vocab)
 
     # --- create correct data shape for min max data set---
     # create Huggingface dataset
-    def create_dataset(data_input):
+    def create_dataset(data_input, shuffle=False, seed=17):
         """create dataset from list of tuples: list((word, label))
 
         Args:
@@ -299,11 +322,14 @@ def run():
             _type_: _description_
         """
         data_dict = {'word': [item[0] for item in data_input], 'label': [item[1] for item in data_input]}
-        return Dataset.from_dict(data_dict)
+        dataset = Dataset.from_dict(data_dict)
+        if shuffle:
+            dataset = dataset.shuffle(seed=seed)
+        return dataset
 
     print('\nWords with min score:\n', score_min)
     print('\nWords with max score:\n', score_max)
-    min_max_words_dataset = create_dataset(score_min + score_max)
+    min_max_words_dataset = create_dataset(score_min + score_max, shuffle=True, seed=my_args.seed)
     # create dataset for all words
 
     # with stemming of whole lexicon
@@ -311,7 +337,7 @@ def run():
     #all_words_stemmed = stem_words(all_words_stemmed)
     #all_word_dataset = create_dataset(all_words_stemmed[:my_args.data_lim])
     # altneative wihtout stemming:
-    all_word_dataset = create_dataset([(key, lexicon[key]) for key in lexicon][:my_args.data_lim])
+    all_word_dataset = create_dataset([(key, lexicon[key]) for key in lexicon][:my_args.data_lim], shuffle=True, seed=my_args.seed)
     print('len(all_word_dataset)', len(all_word_dataset))
 
     sentences = min_max_words_dataset['word']  # get sentences
@@ -325,7 +351,8 @@ def run():
     sent_embeddings = sent_model.get_sen_embedding(sentences)
 
     # get sentence embeddings for all words dataset
-    all_words_embeddings = sent_model.get_sen_embedding(all_word_dataset['word'])
+    all_sentences = all_word_dataset['word']
+    all_words_embeddings = sent_model.get_sen_embedding(all_sentences)
     all_words_labels = np.array(all_word_dataset['label']).reshape(-1, 1)
 
 
@@ -361,11 +388,6 @@ def run():
     # - how many are there?
     var = pca.explained_variance_ratio_
     print(list(var))
-    #for i in range(label_emp.shape[0]):
-    #    print('\n', i)
-    #    print('transformed_emb', transformed_emb[i])
-    #    print('label_emp', label_emp[i])
-
     if pca.explained_variance_ratio_.shape[0] > 1:
         pca_dim = transformed_emb[:, 0]
     else:
@@ -383,6 +405,10 @@ def run():
     plt.plot(pca.explained_variance_ratio_.cumsum())
     plt.xticks(list(range(len(pca.explained_variance_ratio_))))
     plt.savefig('EmpDim/plots/PCA_var_cumsum.pdf')
+    
+    if tensorboard_writer is not None:
+        tensorboard_writer.add_figure('Scatter_Predictions', plt.gcf())
+
     plt.close()
 
     # --- check projection on all words datatset (all words from lexicon) ---
@@ -390,75 +416,181 @@ def run():
 
     #all_words_embeddings = all_words_embeddings[:data_restrict]
     #all_words_labels = all_words_labels[:data_restrict]
-    all_word_dataset_transformed = pca.transform(all_words_embeddings)
+    def correlate_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=False, title_note=''):
+        sentence_emb = sent_model.get_sen_embedding(sentences_input)
+        sent_transformed = pca.transform(sentence_emb)
+        true_labels = np.array(true_labels)
 
-    pca_pearsonr, pca_pearsonp = [], []
-    for i in range(all_word_dataset_transformed.shape[1]):
-        #print(all_word_dataset_transformed.shape[1])
-        princ_comp = i
-        print(f'principal component {princ_comp}')
-        # version 1:
-        all_word_dataset_transformed_i = all_word_dataset_transformed[:, i]  # same result as multiplying data with the one principal component
-        r, p = pearsonr(all_word_dataset_transformed_i, all_words_labels)
-        print('r', r)
-        print('p', p)
-        pca_pearsonr.append(float(r[0]))
-        pca_pearsonp.append(float(p))
+        pca_pearsonr, pca_pearsonp = [], []
+        for i in range(sent_transformed.shape[1]):
+            princ_comp = i
+            print(f'principal component {princ_comp}')
+            # version 1:
+            sent_transformed_i = sent_transformed[:, i]  # same result as multiplying data with the one principal component
+            r, p = pearsonr(sent_transformed_i, true_labels)
+            if isinstance(r, list):
+                r = r[0]
+            print('r', r)
+            print('p', p)
+            pca_pearsonr.append(float(r))
+            pca_pearsonp.append(float(p))
 
-        # version 2: Same result as above
-        #eigen_vec_i = pca.components_[princ_comp] 
-        #all_word_dataset_transformed_i = all_words_embeddings @ eigen_vec_i
-        #r, p = pearsonr(all_word_dataset_transformed_i, all_words_labels)
+            # version 2: Same result as above
+            #eigen_vec_i = pca.components_[princ_comp] 
+            #all_word_dataset_transformed_i = all_words_embeddings @ eigen_vec_i
+            #r, p = pearsonr(all_word_dataset_transformed_i, true_labels)
 
-        filename = f'PCA_dim_all_{my_args.task_name}_dim{my_args.dim}_PC{princ_comp}'
-        title = f'PCA using {my_args.dim} dim(s), explaining {var[int(i)]} of var \n pearson r: {r} \n task: {my_args.task_name}'
-        print('all_word_dataset_transformed', all_word_dataset_transformed_i.shape)
-        print('all_words_labels', all_words_labels.shape)
-        plt.scatter(all_word_dataset_transformed_i, all_words_labels)
-        plt.ylabel('empathy / distress label')
-        plt.xlabel('PCA dim for the whole lexicon')
-        plt.title(title)
-        plt.savefig(f'EmpDim/plots/{filename}.pdf')
-        plt.close()
+            filename = f'PCA_{my_args.task_name}_dim{my_args.dim}_PC{princ_comp}_vocab{my_args.data_size}{title_note}'
+            title = f'PCA using {my_args.dim} dim(s), explaining {var[int(i)]} of var. Vocab size: {my_args.data_size}. \n pearson r: {r} \n task: {my_args.task_name}'
+            plt.scatter(sent_transformed_i, true_labels)
+            plt.ylabel('empathy / distress label')
+            plt.xlabel('PCA dim for the whole lexicon')
+            plt.title(title)
+            if my_args.store_run: plt.savefig(f'EmpDim/plots/{filename}.pdf')
+            if tensorboard_writer is not None:
+                tensorboard_writer.add_figure(f'Scatter Predictions - PC {princ_comp}', plt.gcf())
+            plt.close()
 
-    if my_args.store_run:
-        save_run(my_args, score_min, score_max, pca.explained_variance_ratio_, pca_pearsonr, pca_pearsonp)
+        if my_args.store_run:
+            save_run(my_args, score_min, score_max, pca.explained_variance_ratio_, pca_pearsonr, pca_pearsonp, tensorboard_writer=tensorboard_writer)
 
-    if my_args.dim > 1:
-        def normalize_scores(val):
-            y = (val - min(val))
-            y  = y / max(y)
-            return y
+
+    def correlate_combined_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=False):
+        sentence_emb = sent_model.get_sen_embedding(sentences_input)
+        sent_transformed = pca.transform(sentence_emb)
+        true_labels = np.array(true_labels)
+
+        if my_args.dim > 1:
+            def normalize_scores(val):
+                y = (val - min(val))
+                y  = y / max(y)
+                return y
+                
+            #labels = normalize_scores(true_labels)  # normalize labels
+            labels = true_labels.reshape((-1,))
+            weights = np.ones(sent_transformed.shape[1]).reshape((-1,1))
+
+            y_pred = sent_transformed @ weights
+            r, p = pearsonr(labels, y_pred)
+            if isinstance(r, list):
+                r = r[0]
+            print('Combined pearson r:', r)
+            print('Combined pearson p:', p)
             
-        dims = all_word_dataset_transformed
-        labels = normalize_scores(labels)  # normalize labels
-        labels = all_words_labels.reshape((-1,))
-        weights = np.ones(dims.shape[1]).reshape((-1,1))
+            filename = f'PCA_{my_args.task_name}_dim{my_args.dim}_vocab{my_args.data_size}_combined_PCs'
+            title = f'PCA using {my_args.dim} dim(s), explaining {var.cumsum()[int(my_args.dim - 1)]} of var. Vocab size: {my_args.data_size}. \n pearson r: {r} \n task: {my_args.task_name}'
+            plt.scatter(y_pred, labels)
+            plt.ylabel('empathy / distress label')
+            plt.xlabel('PCA dim for the whole lexicon')
+            plt.title(title)
+            if store_run: plt.savefig(f'EmpDim/plots/{filename}.pdf')
+            if tensorboard_writer is not None:
+                tensorboard_writer.add_figure('Scatter Predictions - Combine all dimensions', plt.gcf())
+            plt.close()
 
-        print('weights.shape', weights.shape)
-        print('dims.shape', dims.shape)
-        y_pred = dims @ weights
-        print('y_pred.shape', y_pred.shape)
-        print('labels.shape', labels.shape)
-        r, p = pearsonr(labels, y_pred)
-        print('Combined:', r)
+        if my_args.store_run:
+            save_run(my_args, score_min, score_max, pca.explained_variance_ratio_, [r], [p], tensorboard_writer=tensorboard_writer)
         
-        filename = f'PCA_dim_all_{my_args.task_name}_dim{my_args.dim}_combined_PCs'
-        title = f'PCA using {my_args.dim} dim(s), explaining {var.cumsum()[int(my_args.dim - 1)]} of var \n pearson r: {r} \n task: {my_args.task_name}'
-        print('all_word_dataset_transformed', y_pred.shape)
-        print('all_words_labels', y_pred.shape)
-        plt.scatter(y_pred, labels)
-        plt.ylabel('empathy / distress label')
-        plt.xlabel('PCA dim for the whole lexicon')
-        plt.title(title)
-        plt.savefig(f'EmpDim/plots/{filename}.pdf')
-        plt.close()
+    
+    # overwrite sentences with not whole lexicon
 
+    sentences_input = all_sentences
+    true_labels = all_words_labels
+    correlate_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=my_args.store_run)
+    #correlate_combined_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=my_args.store_run)
+
+    lim = 100
+    print(f'\n Do correlation on the words with {lim} min an max scores (insg. {lim*2} words). Add random words from middle: {lim}')
+    # get min 100 and max 100 of the words
+    # with random
+    
+    words_sorted = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
+    words_random = words_sorted[lim:-lim]
+    random.shuffle(words_random)
+    words_random = words_random[:lim]
+
+    words_min = words_sorted[:lim]
+    words_max = words_sorted[-lim:]
+    sentences_input = [item[0] for item in words_min + words_max + words_random]
+    true_labels = [item[1] for item in words_min + words_max + words_random]
+    correlate_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=my_args.store_run, title_note=f'_twotailed_{lim*2}_random{lim}')
+
+    # without random
+
+    print(f'\n Do correlation on the words with {lim} min an max scores (insg. {lim*2} words)')
+    words_sorted = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
+    words_min = words_sorted[:lim]
+    words_max = words_sorted[-lim:]
+    sentences_input = [item[0] for item in words_min + words_max]
+    true_labels = [item[1] for item in words_min + words_max]
+    correlate_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=my_args.store_run, title_note=f'_twotailed_{lim*2}')
+
+    #correlate_combined_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=my_args.store_run)
+
+
+
+
+    # -----------------
+    #   Empathy Bias
+    # -----------------
+    def correlate_emp_bias(bias_input, true_labels, norm_labels=False):
+        true_labels = np.array(true_labels)
+        score_range = (1, 7)
+        if norm_labels:
+            true_labels = (np.array(true_labels) - float(score_range[1] + 1)/2 ) / ((float(score_range[1]) - float(score_range[0]))/2)
+
+        bias_res = sent_model.bias(bias_input)
+        bias_labels = [item[0] for item in bias_res]
+
+        i = 0
+        for bias, word, score in zip(bias_labels, bias_input, true_labels):
+            if i == 10:  # only print the first 10 words
+                break
+            print(f'Word: {word}. \n True Label --> Bias \n {score} --> {bias}')
+            i += 1
+
+        r, p = pearsonr(true_labels.reshape((-1,)), bias_labels)
+        print(f'Pearson correlation of bias and true score. \n r: {r}, p: {p}\n')
+        return r, p
+
+    # --- do for all words in dictionary ---
+    if False:
+
+        lim = 100
+        print(f'\n Do correlation on the words with {lim} min an max scores (insg. {lim*2} words)')
+        # get min 100 and max 100 of the words
+        # with random
+        
+        words_sorted = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
+        words_min = words_sorted[:lim]
+        words_max = words_sorted[-lim:]
+        sentences_input = [item[0] for item in words_min + words_max]
+        true_labels = [item[1] for item in words_min + words_max]
+        
+        print('Bias: two tailed sentences') # print('all_sentences')
+        bias_input = sentences_input # all_sentences  # [item[0] for item in score_max]
+        true_labels = true_labels # all_words_labels
+        r, p = correlate_emp_bias(bias_input, true_labels, norm_labels=False)
+
+        # --- do only for only verbs in dictionary ---
+        # - random 200 verbs -
+        selected_verbs, _  = select_words(lexicon, 100, random_vocab=True)
+        print('200 selected random verbs')
+        bias_input = [item[0] for item in selected_verbs]
+        true_labels = [item[1] for item in selected_verbs]
+        r, p = correlate_emp_bias(bias_input, true_labels, norm_labels=False)
+
+        # --- Do for score min and score max ---
+        print('\n Score min and score max')
+        bias_input = [item[0] for item in score_min + score_max]
+        true_labels = [item[1] for item in score_min + score_max]
+        r, p = correlate_emp_bias(bias_input, true_labels, norm_labels=False)
 
 
     # ------------------------------
     #    Apply PCA to the essays
     # ------------------------------
+    """
     # TODO
     print('\n Apply PCA to the essays \n')
     # --- preprocess data ---
@@ -480,6 +612,7 @@ def run():
         r, p = pearsonr(train_sent_transformed_i, train_labels)
         print('r', r)
         print('p', p)
+    """
 
                                   
 
