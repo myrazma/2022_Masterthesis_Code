@@ -10,5 +10,3 @@ torch==1.11.0
 adapter-transformers==3.0.0
 tensorboard==2.7.0
 sentence-transformers
-#wandb
-#loralib==0.1.1

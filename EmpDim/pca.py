@@ -32,6 +32,8 @@ import numpy as np
 import os
 import sys
 import pandas as pd
+import decimal
+import math
 import random
 from datetime import datetime
 
@@ -212,6 +214,62 @@ def select_words(lexicon, word_count, random_vocab=False):
     words_min = __get_words(sorting='min')
     words_max = __get_words(sorting='max')
     return words_min, words_max
+
+
+def subsample_even_score_distr(lexicon_input, datapoints_per_bin, bin_size, return_binned_data=False, return_bins=False):
+    """Subsample data from a lexicon
+
+    Args:
+        lexicon (_type_): _description_
+        datapoints_per_bin (_type_): _description_
+        bin_size (_type_): _description_
+        return_binned_data (bool, optional): If set to True, the data will be returned as a 
+                                    two dimensional list, stored in ther bins. If false, a 
+                                    one dimensional list will be returned. Defaults to False.
+    """
+    # - create list of tuples: list((str, float)) -
+    if isinstance(lexicon_input, dict):
+        words_sorted = [(word, score) for word, score in sorted(lexicon_input.items(), key=lambda item: item[1])]
+    elif isinstance(lexicon_input, list):  # if list of tuples
+        if isinstance(lexicon_input[0], tuple):
+            words_sorted = [(word, score) for word, score in sorted(lexicon_input, key=lambda item: item[1])]
+    else:  # else, wecan't handle that right now
+        print('MyError: The input should be a lexicon or list of tuples -> list((str, float)). Not implement for other types.')
+        sys.exit(-1)
+
+    # - create bins -
+    decimal_count = abs(decimal.Decimal(str(bin_size)).as_tuple().exponent)
+    min_score = min([item[1] for item in words_sorted])
+    max_score = max([item[1] for item in words_sorted])
+    bins_start = math.floor(min_score * (10**decimal_count)) / (10**decimal_count)
+    bins_end = math.ceil(max_score * (10**decimal_count)) / (10**decimal_count)
+    # add the end point to the bins as well, to get the upper range for the elements
+    # this will be removed later on, since it is not actually a bin
+    bins = np.arange(bins_start, bins_end + bin_size, bin_size)
+
+    # - divide data into bins - 
+    binned_data = [[] for i in range(len(bins))]
+    for word, score in words_sorted:
+        min_idx = np.where(bins <= score)[0]
+        max_idx = np.where(bins > score)[0] - 1
+        item_bin_idx = np.intersect1d(min_idx, max_idx)[0]
+        binned_data[item_bin_idx].append((word, score))
+    # remove last bin, because it is 0 anyways, just needed it for the calculation
+    binned_data = binned_data[:-1]
+    bins = bins[:-1]
+
+    # - shuffle the bins -
+    for bin in binned_data:
+        random.shuffle(bin)
+        
+    # - select data points from those bins of size <datapoints_per_bin> -
+    binned_data = [bin[:datapoints_per_bin] for bin in binned_data]
+    
+    if return_binned_data:
+        return binned_data if not return_bins else (binned_data, bins)
+
+    unbinned_data = [item for bin in binned_data for item in bin]
+    return unbinned_data if not return_bins else (unbinned_data, bins)
 
 
 def save_run(my_args, vocab_min, vocab_max, pca_var, pca_pearsonr, pca_pearsonp, filename=None, tensorboard_writer=None):
@@ -449,6 +507,7 @@ def run():
             if my_args.store_run: plt.savefig(f'EmpDim/plots/{filename}.pdf')
             if tensorboard_writer is not None:
                 tensorboard_writer.add_figure(f'Scatter Predictions - PC {princ_comp}', plt.gcf())
+            plt.show()
             plt.close()
 
         if my_args.store_run:
@@ -493,17 +552,30 @@ def run():
         
     
     # overwrite sentences with not whole lexicon
-
+    print('correlate with original shuffled data')
     sentences_input = all_sentences
     true_labels = all_words_labels
-    correlate_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=my_args.store_run)
+    correlate_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=my_args.store_run, title_note='_random_samples')
     #correlate_combined_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=my_args.store_run)
 
+
+    # --- correlate for evenly sampled data samples ---
+    print('correlate for even subsamples 20')
+    even_subsamples = subsample_even_score_distr(lexicon, datapoints_per_bin=20, bin_size=0.1)
+    sentences_input = [item[0] for item in even_subsamples]
+    true_labels = [item[1] for item in even_subsamples]
+    correlate_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=my_args.store_run, title_note='_even_subsamples_20')
+    # --- correlate for evenly sampled data samples ---
+    print('correlate for even subsamples 15')
+    even_subsamples = subsample_even_score_distr(lexicon, datapoints_per_bin=15, bin_size=0.1)
+    sentences_input = [item[0] for item in even_subsamples]
+    true_labels = [item[1] for item in even_subsamples]
+    correlate_emp_dim_pca(pca, sent_model, sentences_input, true_labels, store_run=my_args.store_run, title_note='_even_subsamples_15')
+    return
     lim = 100
     print(f'\n Do correlation on the words with {lim} min an max scores (insg. {lim*2} words). Add random words from middle: {lim}')
     # get min 100 and max 100 of the words
     # with random
-    
     words_sorted = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
     words_random = words_sorted[lim:-lim]
     random.shuffle(words_random)
