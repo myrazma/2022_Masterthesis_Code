@@ -2,6 +2,7 @@ from pickle import FALSE
 from pyexpat import model
 from random import random
 from sqlite3 import Timestamp
+from sklearn import metrics
 from transformers import AutoTokenizer, AutoModel
 from transformers import HfArgumentParser
 from sentence_transformers import SentenceTransformer
@@ -20,6 +21,11 @@ import nltk
 from nltk.stem import *
 from nltk.stem.porter import *
 from nltk.corpus import wordnet as wn
+from nltk.probability import FreqDist
+from nltk.corpus import brown, reuters, gutenberg
+nltk.download('gutenberg')
+nltk.download('reuters')
+nltk.download('brown')
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 
@@ -48,7 +54,7 @@ import preprocessing
 import matplotlib.pyplot as plt
 
 
-START_TS = datetime.timestamp(datetime.now())
+ID = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
 @dataclass
 class MyArguments:
@@ -71,11 +77,11 @@ class MyArguments:
         default=20,
         metadata={"help": "The size of the vocabualry for max min scores."},
     )
-    vocab_type: Optional[int] = field(
+    vocab_type: Optional[str] = field(
         default='mmn',
         metadata={"help": "Available types are 'mm' (min max), 'mmn' (min max neutral)."},
     )
-    vocab_center_strategy: Optional[int] = field(
+    vocab_center_strategy: Optional[str] = field(
         default='soft',
         metadata={"help": "Available types are 'soft', 'hard'."},
     )
@@ -183,34 +189,60 @@ class DisDimPCA:
                     arguments, 
                     pearson_r=None, 
                     pearson_p=None, 
-                    explained_var=None, 
-                    vocab_min_words=None, 
-                    vocab_min_scores=None, 
-                    vocab_max_words=None, 
-                    vocab_max_scores=None, 
-                    vocab_neut_words=None, 
-                    vocab_neut_scores=None,
+                    vocab=None,
+                    center=None,
+                    note=None
                     ):
-        new_row = pd.DataFrame({'id': START_TS,  # can also be trated as the individual id
-                'dim': arguments.dim, 
-                'task_name': arguments.task_name, 
+        if self.explained_var is None:
+            print('MyWarning (update_log): PCA is not fittet yet, data will not be logged')
+            return
+
+        if vocab is not None:
+            vocab_sorted = [(word, score) for word, score in sorted(vocab, key=lambda item: item[1])]
+            vocab_words = ';'.join([item[0] for item in vocab_sorted])
+            vocab_scores = ';'.join([str(item[1]) for item in vocab_sorted])   
+                
+        new_row = pd.DataFrame({'id': str(ID),  # can also be trated as the individual id
+                'dim': arguments.dim,
+                'task_name': arguments.task_name,
                 'data_lim': arguments.data_lim,
                 'vocab_size': arguments.vocab_size,
                 'random_vocab': arguments.random_vocab,
-                'vocab_min': vocab_min_words,
-                'vocab_min_scores': vocab_min_scores,
-                'vocab_max': vocab_max_words,
-                'vocab_neut_scores': vocab_max_scores,
-                'vocab_max': vocab_max_words,
-                'vocab_neut_scores': vocab_max_scores,
+                'vocab_center_strategy': arguments.vocab_center_strategy,
+                'center': center,
+                'note':note,
+                'vocab_type': arguments.vocab_type,
+                'vocab_words': vocab_words,
+                'vocab_scores': vocab_scores,
                 'princip_comp': list(range(len(self.explained_var))),  # the number of the principal component
                 'pca_var': self.explained_var,  # principal components
                 'pca_pearsonr': pearson_r,
-                'pca_pearsonp': pearson_p
+                'pca_pearsonp': pearson_p,
                 })
 
-        df = pd.concat([df, new_row])
+        self.logging = pd.concat([self.logging, new_row])
 
+        if self.tensorboard_writer is not None:
+            hparam_dict = {'id': ID,  # can also be trated as the individual id
+                    'dim': arguments.dim, 
+                    'task_name': arguments.task_name, 
+                    'data_lim': arguments.data_lim,
+                    'vocab_size': arguments.vocab_size,
+                    'random_vocab': arguments.random_vocab,
+                    'vocab_center_strategy': arguments.vocab_center_strategy,
+                    'center': center,
+                    'note':note,
+                    'vocab_type': arguments.vocab_type,
+                    'vocab_words': vocab_words,
+                    'vocab_scores': vocab_scores}
+            with self.tensorboard_writer as w:
+                for i in range(len(self.explained_var)):
+                    metrics_dict = {'princip_comp': np.array(range(len(self.explained_var)))[i], 
+                                    'pca_var': np.array(self.explained_var)[i], 
+                                    'pca_pearsonr': np.array(pearson_r)[i], 
+                                    'pca_pearsonp': np.array(pearson_p)[i]}
+                    self.tensorboard_writer.add_hparams(hparam_dict, metrics_dict)
+        
 
 
 class DataSelector:
@@ -219,6 +251,19 @@ class DataSelector:
     def __init__(self):
         self.stemmer = PorterStemmer()
         self.blacklist = ['blanket', 'home', 'shipwreck', 'cub', 'joke', 'fart', 'gag', 'clown'] # or []
+        self.__word_fdist = None
+        self.vocab_center = None
+
+    def get_fdist(self):
+        """Create Frequency dictionary for 
+
+        Returns:
+            _type_: _description_
+        """
+        if self.__word_fdist is None:
+            corpus = reuters.words() + brown.words() + gutenberg.words()
+            self.__word_fdist = FreqDist(word.lower() for word in corpus if word.isalnum())
+        return self.__word_fdist
 
     def stem_words(self, words):
         """Stem words, capable of handling different types. words can either be
@@ -327,11 +372,18 @@ class DataSelector:
             word_stems = self.stem_words(words_sorted)
             distinct_word_stems = self.remove_dublicates(word_stems, sorting=sorting)
             distinct_verbs = self.get_verbs(distinct_word_stems)
-            distinct_verbs_selected = distinct_verbs
+
             # shuffle for random
             if random_vocab:
                 distinct_verbs_selected = distinct_verbs.copy()
                 random.shuffle(distinct_verbs_selected)
+
+            if True:
+                # select from word fequency
+                tresh = 0.000002
+                fdist = self.get_fdist()
+                distinct_verbs_selected = [(word, score) for word, score in distinct_verbs if fdist.freq(word.lower()) >= tresh]
+
             print(f'Mode: {sorting}')
             print(f'Range from {min([score for word, score in distinct_verbs_selected])} to {max([score for word, score in distinct_verbs_selected])}')
             return distinct_verbs_selected
@@ -360,6 +412,7 @@ class DataSelector:
                 upper_bound = max([item[1] for item in words])
                 center = (lower_bound + upper_bound) / 2
             print('Neutr Center:', center)
+            self.vocab_center = center
 
             # - divide words into two lists: smaller than the center, bigger than the center -
             smaller_center = [item for item in words if item[1] <= center]
@@ -455,7 +508,7 @@ def save_run_deprecated(my_args, vocab_min, vocab_max, pca_var, pca_pearsonr, pc
     ts = datetime.timestamp(datetime.now())
 
     #for dim, (var, r, p) in enumerate(zip(pca_var, pca_pearsonr, pca_pearsonp)):
-    new_row = pd.DataFrame({'id': START_TS,  # can also be trated as the individual id
+    new_row = pd.DataFrame({'id': ID,  # can also be trated as the individual id
                 'dim': my_args.dim, 
                 'task_name': my_args.task_name, 
                 'data_lim': my_args.data_lim,
@@ -470,20 +523,32 @@ def save_run_deprecated(my_args, vocab_min, vocab_max, pca_var, pca_pearsonr, pc
                 'pca_pearsonr': pca_pearsonr,
                 'pca_pearsonp': pca_pearsonp
                 })
-
-    #if tensorboard_writer is not None:
-    #    with SummaryWriter() as w:
-    #        for i in range(len(pca_pearsonr)):
-    #            tensorboard_writer.add_hparams(new_row_dict, {'princip_comp': int(i), 'pca_var': float(pca_var[i]), 'pca_pearsonr': float(pca_pearsonr[i]), 'pca_pearsonp': pca_pearsonp[i]})
     df = pd.concat([df, new_row])
     print('Saved Information:\n', new_row[:5])
     
     df.to_csv(filename, sep=',')
 
+    if tensorboard_writer is not None:
+        hparam_dict = {'id': ID,  # can also be trated as the individual id
+                'dim': my_args.dim, 
+                'task_name': my_args.task_name, 
+                'data_lim': my_args.data_lim,
+                'vocab_size': my_args.vocab_size,
+                'random_vocab': my_args.random_vocab}
+        with SummaryWriter() as w:
+            for i in range(len(pca_pearsonr)):
+                metrics_dict = {'princip_comp': int(i), 
+                                'pca_var': float(pca_var[i]), 
+                                'pca_pearsonr': float(pca_pearsonr[i]), 
+                                'pca_pearsonp': pca_pearsonp[i]}
+                tensorboard_writer.add_hparams(hparam_dict, metrics_dict)
 
-def save_run(data_dict, filename=None, tensorborad_writer=None):
+
+
+
+def save_run(data_dict, filename=None, tensorboard_writer=None):
     if filename == None:
-        filename = 'empdim_settings.csv'
+        filename = 'empdim_results.csv'
 
     df = pd.DataFrame()
 
@@ -495,8 +560,6 @@ def save_run(data_dict, filename=None, tensorborad_writer=None):
     print('Saved Information:\n', new_row[:5])
     
     df.to_csv(filename, sep=',')
-
-
 
 
 
@@ -521,9 +584,7 @@ def run():
     torch.manual_seed(my_args.seed)
     random.seed(my_args.seed)
 
-    run_history = pd.DataFrame()
-
-    tensorboard_writer = SummaryWriter('/emp_dim_runs') if my_args.use_tensorboard else None
+    tensorboard_writer = SummaryWriter(f'runs/{my_args.task_name}_{my_args.vocab_type}_{my_args.vocab_center_strategy}_{ID}') if my_args.use_tensorboard else None
 
     # ------------------------
     #     Load the lexicon 
@@ -575,15 +636,26 @@ def run():
     #scatter_vocab(vocab, 'min_max_neutr_soft')
 
     # --- min max neutr, hard center ---
-    score_min, score_max, score_neutr = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=['min', 'max', 'neut'], center_strategy=my_args.vocab_center_strategy)
-    print('min | max | neutr - hard')
-    print('score min \n', score_min)
-    print('score max \n', score_max)
-    print('score neutr \n', score_neutr)
-    vocab = score_min + score_max + score_neutr
-    random.shuffle(vocab)
-    scatter_vocab(vocab, 'min_max_neutr_hard')
+    if my_args.vocab_type == 'mmn':
+        sample_type = ['min', 'max', 'neut']
+        score_min, score_max, score_neutr = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=['min', 'max', 'neut'], center_strategy=my_args.vocab_center_strategy)
+        print('score min \n', score_min)
+        print('score max \n', score_max)
+        print('score neutr \n', score_neutr)
+        vocab = score_min + score_max + score_neutr
+    elif my_args.vocab_type == 'mm':
+        sample_type = ['min', 'max']
+        score_min, score_max = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=['min', 'max'])
+        print('min | max')
+        print('score min \n', score_min)
+        print('score max \n', score_max)
+        vocab = score_min + score_max
+    else:
+        print('Vocab type not implemented. Choose between "mmn" (min, max, neutral) or "mm" (min, max).')
+        sys.exit(-1)
 
+    random.shuffle(vocab)
+    scatter_vocab(vocab, f'{my_args.vocab_type}_{my_args.vocab_center_strategy}')
     vocab_sentences = [item[0] for item in vocab] # get sentences
     vocab_labels = np.array([item[1] for item in vocab]).reshape(-1, 1) # get the labels
 
@@ -591,7 +663,6 @@ def run():
     # Use Sentence embeddings like MoRT (using their code and functions in funcs_mcm.py): https://github.com/ml-research/MoRT_NMI/blob/master/MoRT/mort/funcs_mcm.py
     # Schramowski et al., 2021, Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do
     sent_model = BERTSentence(device=device) #, transormer_model='paraphrase-MiniLM-L6-v2') # TODO use initial model (remove transformer model varibale from head)
-    
     # get the sentence embeddings of the vocabulary
     vocab_embeddings = sent_model.get_sen_embedding(vocab_sentences)
     
@@ -599,22 +670,22 @@ def run():
     #   Do PCA with the vocab embeddings
     # ------------------------------------
     print('------------------ Start PCA ------------------')
-    dim_pca = DisDimPCA(n_components=my_args.dim, task_name=my_args.task_name)
+    dim_pca = DisDimPCA(n_components=my_args.dim, task_name=my_args.task_name, tensorboard_writer=tensorboard_writer)
     transformed_emb = dim_pca.fit_transform(vocab_embeddings)
 
     princ_comp_idx = 0  # principal component: 0 means first
 
     # get eigenvectors from best / highest eigenvalue
     eigen_vec = dim_pca.pca.components_
-    projection = eigen_vec[princ_comp_idx]  # TODO check if this line is really correct, am I selecting and getting the right values?
-    print(projection.shape)
+    projection_highest_var = eigen_vec[0]
+
     # ------------------------------
     #    Analyse the PCA outcome
     # ------------------------------
 
     # --- Get principal component / Eigenvector ---
     # - How much variance (std..) do they cover? -
-    # - how many are there?
+    # - how many are there? -
     var = dim_pca.explained_var
     print(list(var))
     pca_dim = transformed_emb[:, 0]
@@ -648,9 +719,17 @@ def run():
     all_words_rand_labels = np.array([item[1] for item in all_words_n_scores_rand]).reshape(-1, 1)
     # get their sentence embeddings
     # get correlation and plot
+    note = 'all_words_rand'
     all_words_rand_embeddings = sent_model.get_sen_embedding(all_words_rand)
     r_rand, p_rand = dim_pca.correlate_dis_dim_scores(all_words_rand_embeddings, all_words_rand_labels, printing=True)
-    dim_pca.plot_dis_dim_scores(all_words_rand_embeddings, all_words_rand_labels, r_rand, title_add_on='all_words_rand')
+    dim_pca.plot_dis_dim_scores(all_words_rand_embeddings, all_words_rand_labels, r_rand, title_add_on=note)
+    dim_pca.update_log(my_args, 
+                pearson_r=r_rand, 
+                pearson_p=p_rand, 
+                vocab=vocab,
+                center=data_selector.vocab_center,
+                note=note
+                )
 
     # --- correlate for evenly sampled data samples ---
     datapoints_per_bin = 15
@@ -659,22 +738,38 @@ def run():
     sentences_input = [item[0] for item in even_subsamples]
     embedding_input = sent_model.get_sen_embedding(sentences_input)
     print('Dataset size:', len(embedding_input))
+    note = 'all_words_even_15'
     true_labels = [item[1] for item in even_subsamples]
-    r_even_15, p_rand_even15 = dim_pca.correlate_dis_dim_scores(embedding_input, true_labels, printing=True)
-    dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_even_15, title_add_on='all_words_even')
-    
+    r_even_15, p_even_15 = dim_pca.correlate_dis_dim_scores(embedding_input, true_labels, printing=True)
+    dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_even_15, title_add_on=note)
+    dim_pca.update_log(my_args, 
+                pearson_r=r_even_15, 
+                pearson_p=p_even_15, 
+                vocab=vocab,
+                center=data_selector.vocab_center,
+                note=note
+                )
+                
     # --- correlate for evenly sampled data samples ---
-    datapoints_per_bin = 10
+    datapoints_per_bin = 20
     print(f'correlate for even subsamples {datapoints_per_bin}')
     even_subsamples = data_selector.subsample_even_score_distr(all_words_n_scores, datapoints_per_bin=datapoints_per_bin, bin_size=0.1)
     sentences_input = [item[0] for item in even_subsamples]
     embedding_input = sent_model.get_sen_embedding(sentences_input)
     print('Dataset size:', len(embedding_input))
+    note = 'all_words_even_20'
     true_labels = [item[1] for item in even_subsamples]
-    r_even_15, p_rand_even15 = dim_pca.correlate_dis_dim_scores(embedding_input, true_labels, printing=True)
-    dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_even_15, title_add_on='all_words_even')
+    r_even_20, p_even_20 = dim_pca.correlate_dis_dim_scores(embedding_input, true_labels, printing=True)
+    dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_even_15, title_add_on=note)
+    dim_pca.update_log(my_args, 
+                pearson_r=r_even_20, 
+                pearson_p=p_even_20, 
+                vocab=vocab,
+                center=data_selector.vocab_center,
+                note=note
+                )
 
-
+    """
     lim = 100
     print(f'\n Do correlation on the words with {lim} min an max scores (insg. {lim*2} words). Add random words from middle: {lim}')
     # get min 100 and max 100 of the words
@@ -704,9 +799,10 @@ def run():
     true_labels = [item[1] for item in words_min + words_max]
     r_twotailed_100, p_rand_even15 = dim_pca.correlate_dis_dim_scores(embedding_input, true_labels, printing=True)
     dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_twotailed_100, title_add_on='all_words_twotailed_100')
+    """ 
 
-
-    save_run(run_history)
+                    
+    if my_args.store_run: save_run(dim_pca.logging)
     # ------------------------------
     #    Apply PCA to the essays
     # ------------------------------
