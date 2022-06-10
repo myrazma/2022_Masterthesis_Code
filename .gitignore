@@ -131,10 +131,10 @@ dmypy.json
 # ------------------
 # Own stuff added
 # ignore csv in data
-data/**/*.csv
-data/**/*.tsv
-data/**/*.txt
-!submodules/**/data/**/*
+#data/**/*.csv
+#data/**/*.tsv
+#data/**/*.txt
+#!submodules/**/data/**/*
 EmpDim/plots/*
 EmpDim/preserved_plots/*
 
