@@ -134,6 +134,9 @@ dmypy.json
 data/**/*.csv
 data/**/*.tsv
 data/**/*.txt
+EmpDim/plots/*
+EmpDim/preserved_plots/*
+
 
 # ignore others
 **/.DS_Store

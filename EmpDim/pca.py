@@ -2,6 +2,7 @@ from pickle import FALSE
 from pyexpat import model
 from random import random
 from sqlite3 import Timestamp
+from regex import R
 from sklearn import metrics
 from transformers import AutoTokenizer, AutoModel
 from transformers import HfArgumentParser
@@ -14,7 +15,7 @@ import torch
 from sklearn.decomposition import PCA
 from sklearn.metrics import mean_squared_error
 from sklearn.utils import shuffle
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, spearmanr
 from scipy.optimize import minimize
 
 import nltk
@@ -42,7 +43,9 @@ import pandas as pd
 import decimal
 import math
 import random
+from collections import defaultdict
 from datetime import datetime
+from tqdm import tqdm
 
 
 # own modules
@@ -55,9 +58,11 @@ import matplotlib.pyplot as plt
 
 
 ID = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+print(ID)
 
 @dataclass
 class MyArguments:
+    # --- organisationa settings for the run ---
     data_dir: str = field(
         default='../data/', metadata={"help": "A directory containing the data."}
     )
@@ -69,37 +74,9 @@ class MyArguments:
         default='',
         metadata={"help": "The transformer model name for loading the tokenizer and pre-trained model."},
     )
-    seed: Optional[str] = field(
-        default=17,
-        metadata={"help": "The seed."},
-    )
-    vocab_size: Optional[int] = field(
-        default=20,
-        metadata={"help": "The size of the vocabualry for max min scores."},
-    )
-    vocab_type: Optional[str] = field(
-        default='mmn',
-        metadata={"help": "Available types are 'mm' (min max), 'mmn' (min max neutral)."},
-    )
-    vocab_center_strategy: Optional[str] = field(
-        default='soft',
-        metadata={"help": "Available types are 'soft', 'hard'."},
-    )
-    data_lim: Optional[int] = field(
-        default=None,
-        metadata={"help": "The data limit for the lexicon datadim."},
-    )
-    dim: Optional[int] = field(
-        default=1,
-        metadata={"help": "The n_components of the PCA / dimension."},
-    )
     store_run: Optional[bool] = field(
         default=False,
         metadata={"help": "If True, the run will be stored in json."},
-    )
-    random_vocab: Optional[bool] = field(
-        default=False,
-        metadata={"help": "If True, the vocabulary will be chosen random."},
     )
     use_tensorboard: Optional[bool] = field(
         default=True,
@@ -109,6 +86,53 @@ class MyArguments:
         default=None,
         metadata={"help": "If True, tensorboard will be used."},
     )
+    # --- general training setting ---
+    data_lim: Optional[int] = field(
+        default=None,
+        metadata={"help": "The data limit for the lexicon datadim."},
+    )
+    dim: Optional[int] = field(
+        default=1,
+        metadata={"help": "The n_components of the PCA / dimension."},
+    )
+    seed: Optional[str] = field(
+        default=17,
+        metadata={"help": "The seed."},
+    )
+    # --- set the vocabulary ---
+    vocab_size: Optional[int] = field(
+        default=10,
+        metadata={"help": "The size of the vocabualry for max, min or neutral scores. If vocab_type = 'range' this int is the data size to select per bin."},
+    )
+    vocab_type: Optional[str] = field(
+        default='mmn',
+        metadata={"help": "Available types are 'mm' (min max), 'mmn' (min max neutral), 'range' (use verbs from the whole range)."},
+    )
+    vocab_center_strategy: Optional[str] = field(
+        default='soft',
+        metadata={"help": "Available types are 'soft', 'hard'."},
+    )
+    vocab_bin_size: Optional[float] = field(
+        default=0.1,
+        metadata={"help": "Will only be used when vocab_type = 'range'. The bin size for the vocabulary to select from."},
+    )
+    use_freq_dist: Optional[bool] = field(
+        default=False,
+        metadata={"help": "If True, the frequency distriution of words will filter the vocab. Based on threshold set: freq_thresh"},
+    )
+    freq_thresh: Optional[float] = field(
+        default=0.00002,
+        metadata={"help": "If True, the frequency distriution of words will filter the vocab. Based on threshold set: freq_thresh"},
+    )
+    random_vocab: Optional[bool] = field(
+        default=False,
+        metadata={"help": "If True, the vocabulary will be chosen random."},
+    )
+    use_question_template: Optional[bool] = field(
+        default=False,
+        metadata={"help": "If True, the template of a question will be used before creating the sentence embeddings."},
+    )
+    
     
 
 class DisDimPCA:
@@ -156,6 +180,9 @@ class DisDimPCA:
             pca_pearsonp.append(float(p))
             if printing: print(f'\nPC {princ_comp}. r: {r}, p: {p}')
 
+            sr, sp = spearmanr(sent_transformed_i, true_scores)
+            if printing: print(f'\nPC spearmanr {princ_comp}. sr: {sr}, sp: {sp}')
+
         return pca_pearsonr, pca_pearsonp
     
     def plot_dis_dim_scores(self, sent_embeddings, true_scores, pca_pearsonr=None, title_add_on=''):
@@ -174,14 +201,73 @@ class DisDimPCA:
             ax[i].scatter(sent_transformed[:, i], true_scores)
             ax[i].set_box_aspect(1)
             ax[i].set_title(subplot_title)
-            ax[i].set_xlabel('PCA dimension projection score')
-        plt.ylabel(f'{self.task_name} score')
+            ax[i].set_ylabel(f'{self.task_name} score')
+        plt.xlabel('PCA dimension projection score')
 
 
         filename = f'{self.model_name}_{self.task_name}{title_add_on}'
         plt.savefig(f'EmpDim/plots/{filename}.pdf')
         if self.tensorboard_writer is not None:
             self.tensorboard_writer.add_figure(f'Scatter Predictions - {title_add_on}', plt.gcf())
+        plt.close()
+
+    def scatter_vocab_words(self, vocab, x=None, colormap='pink', title_add_on='', ylabel='', xlabel='', set_y_random=True, use_cmap=True):
+        
+        def normalize(vals, scale=None):
+            if scale is None:
+                scale = (min(vals), max(vals))
+            return (vals - (scale[0])) / (scale[1] - (scale[0]))
+
+        calc_dist = lambda a, b: abs(a - b)
+
+        offset = 0.01
+        scores = [item[1] for item in vocab]
+        scores = np.array(scores)
+        words = [item[0] for item in vocab]
+        none_random = True  # variable if x or y are non random. If one of them is random, set to False
+
+
+        y = scores
+        y_rand = np.array([random.uniform(0, 1) for y in range(len(y))])
+        if ylabel == '':
+            ylabel = 'Human Scores'
+        if set_y_random:
+            none_random = False
+            ylabel = ''
+            y = y_rand
+
+        if x is None:
+            if set_y_random:
+                print('MyWarning (scatter_vocab_words): x and y are set to random. One of them should not be random!!')
+            x = np.array([random.uniform(0, 1) for y in range(len(vocab))])
+        else:
+            xlabel = f'{self.task_name} dimension'
+
+        if use_cmap:
+            cm = plt.cm.get_cmap(colormap)
+            y_norm = normalize(scores)
+            x_norm = normalize(x)
+            dist = calc_dist(y_norm, x_norm)
+            sc = plt.scatter(x, y, c=dist, vmin=0, vmax=max(dist), s=35, cmap=cm)
+            # colorbar means übereinstimmung der scores 
+            plt.colorbar(sc)       
+        else:
+            sc = plt.scatter(x, y)
+            
+
+        for i, word in enumerate(words):
+            plt.annotate(word, (x[i]+offset, y[i]+offset))
+
+        #plt.ylim(0-offset,1+offset)
+        #plt.xlim(0-offset,1+offset)
+        plt.ylabel(ylabel)
+        plt.xlabel(xlabel)
+        plt.title(f'{self.task_name} Dimension - Vocabulary for PCA \n the color represents the smilarity to the human scores from the lexicon (0 means simsilar, 1 not similar)')
+        filename = f'PCA_Vocab_{self.model_name}{title_add_on}'
+        plt.savefig(f'EmpDim/plots/{filename}.pdf')
+
+        if self.tensorboard_writer is not None:
+            self.tensorboard_writer.add_figure(f'Scatter Words - {title_add_on}', plt.gcf())
         plt.close()
 
 
@@ -191,7 +277,8 @@ class DisDimPCA:
                     pearson_p=None, 
                     vocab=None,
                     center=None,
-                    note=None
+                    note=None,
+                    data_len=None
                     ):
         if self.explained_var is None:
             print('MyWarning (update_log): PCA is not fittet yet, data will not be logged')
@@ -205,12 +292,15 @@ class DisDimPCA:
         new_row = pd.DataFrame({'id': str(ID),  # can also be trated as the individual id
                 'dim': arguments.dim,
                 'task_name': arguments.task_name,
-                'data_lim': arguments.data_lim,
+                'data_len': data_len,
                 'vocab_size': arguments.vocab_size,
                 'random_vocab': arguments.random_vocab,
                 'vocab_center_strategy': arguments.vocab_center_strategy,
                 'center': center,
+                'vocab_bin_size': arguments.vocab_bin_size,
                 'note':note,
+                'use_freq_dist': arguments.use_freq_dist,
+                'freq_thresh': arguments.freq_thresh,
                 'vocab_type': arguments.vocab_type,
                 'vocab_words': vocab_words,
                 'vocab_scores': vocab_scores,
@@ -221,17 +311,19 @@ class DisDimPCA:
                 })
 
         self.logging = pd.concat([self.logging, new_row])
-
         if self.tensorboard_writer is not None:
             hparam_dict = {'id': ID,  # can also be trated as the individual id
                     'dim': arguments.dim, 
                     'task_name': arguments.task_name, 
-                    'data_lim': arguments.data_lim,
+                    'data_len': data_len,
                     'vocab_size': arguments.vocab_size,
                     'random_vocab': arguments.random_vocab,
                     'vocab_center_strategy': arguments.vocab_center_strategy,
                     'center': center,
+                    'vocab_bin_size': arguments.vocab_bin_size,
                     'note':note,
+                    'use_freq_dist': arguments.use_freq_dist,
+                    'freq_thresh': arguments.freq_thresh,
                     'vocab_type': arguments.vocab_type,
                     'vocab_words': vocab_words,
                     'vocab_scores': vocab_scores}
@@ -253,6 +345,8 @@ class DataSelector:
         self.blacklist = ['blanket', 'home', 'shipwreck', 'cub', 'joke', 'fart', 'gag', 'clown'] # or []
         self.__word_fdist = None
         self.vocab_center = None
+
+        self.question_template = []
 
     def get_fdist(self):
         """Create Frequency dictionary for 
@@ -297,12 +391,14 @@ class DataSelector:
         return word_stems
 
 
-    def remove_dublicates(self, words, sorting='max'):
+    def remove_dublicates(self, words, sorting='max', strategy='sorting'):
         """Remove dublikates from a (sorted) list.
 
         Args:
             words (list((str, float)) or list(str)): The list of words
             sorting (str, optional): The sorting mechanism. Defaults to 'max'.
+            startegy (str, optional): The strategy to remove dublicates. Can be 'mean', or 'sorting'.
+                                    Mean will take the mean of words, sorting will take the max / min score, based on what is sorting. Defaults to 'mean'.
 
         Returns:
             _type_: _description_
@@ -310,24 +406,43 @@ class DataSelector:
         # words -> liste of tuples (list(str, float))
         # the way to sort the scores (item[1])
         distinct_words = []
-        if isinstance(words, list):
-            if isinstance(words[0], tuple):
-                # sort to make sure, we are returning the word with the highest/lowest value
-                reverse = True if sorting=='max' else False
-                sorted_words = [(word, score) for word, score in sorted(words, key=lambda item: item[1], reverse=reverse)]
-                set_words = list(set([word for word, score in sorted_words]))
-                for word, score in sorted_words:
-                    if word in set_words:
-                        set_words.remove(word)
-                        distinct_words.append((word, score))
-            if isinstance(words[0], str):
-                reverse = True if sorting=='max' else False
-                set_words = list(set([word for word in words]))
-                for word in words:
-                    if word in set_words:
-                        set_words.remove(word)
-                        distinct_words.append((word))
+        if strategy == 'sorting':
+            if isinstance(words, list):
+                if isinstance(words[0], tuple):
+                    # sort to make sure, we are returning the word with the highest/lowest value
+                    reverse = True if sorting=='max' else False
+                    sorted_words = [(word, score) for word, score in sorted(words, key=lambda item: item[1], reverse=reverse)]
+                    set_words = list(set([word for word, score in sorted_words]))
+                    for word, score in sorted_words:
+                        if word in set_words:
+                            set_words.remove(word)
+                            distinct_words.append((word, score))
+                if isinstance(words[0], str):
+                    reverse = True if sorting=='max' else False
+                    set_words = list(set([word for word in words]))
+                    for word in words:
+                        if word in set_words:
+                            set_words.remove(word)
+                            distinct_words.append((word))
+        if strategy == 'mean':
 
+            word_d = {}
+            if isinstance(words, list):
+                if isinstance(words[0], tuple):
+                    # sort to make sure, we are returning the word with the highest/lowest value
+                    reverse = True if sorting=='max' else False
+                    sorted_words = [(word, score) for word, score in sorted(words, key=lambda item: item[1], reverse=reverse)]
+                    set_words = list(set([word for word, score in sorted_words]))
+                    for word, score in sorted_words:
+                        if word not in word_d.keys():
+                            word_d[word] = [score]
+                        else:
+                            word_d[word].append(score)
+                    for key, value in word_d.items():
+                        distinct_words.append((key, np.mean(np.array(value))))
+
+                if isinstance(words[0], str):
+                    print('not implemented')
         return distinct_words
 
 
@@ -359,41 +474,56 @@ class DataSelector:
         return verbs
 
 
-    def select_words(self, lexicon, word_count, random_vocab=False, samples=['min', 'max'], center_strategy='soft'):
+    def select_words(self, lexicon, word_count, random_vocab=False, samples=['min', 'max'], center_strategy='soft', use_freq_dist=False, freq_thresh=0.000002):
+        """Selects the vocabulary and returns a list for each selection
+        len(output) == len(samples), so the sorting strategies
+
+        Args:
+            lexicon (_type_): _description_
+            word_count (_type_): _description_
+            random_vocab (bool, optional): _description_. Defaults to False.
+            samples (list, optional): _description_. Defaults to ['min', 'max'].
+            center_strategy (str, optional): _description_. Defaults to 'soft'.
+            use_freq_dist (bool, optional): _description_. Defaults to False.
+            freq_thresh (float, optional): _description_. Defaults to 0.000002.
+
+        Returns:
+            _type_: list with varying size of sub vocabularies, depending on the samples / sorting input len(samples) == len(result)
+        """
         # samples can be ['min', 'max', 'neut']
         # or ['min', 'max']
         # return min and max sorted words with length of word_count
         if samples is None:  # stardard: return min and max score
             samples = ['min', 'max']
-        print(f'Vocabulary info: \n word count: {word_count}')
+        result = []  # the result lists
+
         def __get_words(words, sorting):
             reverse = True if sorting=='max' else False
             words_sorted = [(word, score) for word, score in sorted(words, key=lambda item: item[1], reverse=reverse)]
             word_stems = self.stem_words(words_sorted)
             distinct_word_stems = self.remove_dublicates(word_stems, sorting=sorting)
             distinct_verbs = self.get_verbs(distinct_word_stems)
-
+            distinct_verbs_selected = distinct_verbs
             # shuffle for random
             if random_vocab:
                 distinct_verbs_selected = distinct_verbs.copy()
                 random.shuffle(distinct_verbs_selected)
 
-            if True:
+            if use_freq_dist:
                 # select from word fequency
-                tresh = 0.000002
                 fdist = self.get_fdist()
-                distinct_verbs_selected = [(word, score) for word, score in distinct_verbs if fdist.freq(word.lower()) >= tresh]
+                distinct_verbs_selected = [(word, score) for word, score in distinct_verbs if fdist.freq(word.lower()) >= freq_thresh]
 
-            print(f'Mode: {sorting}')
-            print(f'Range from {min([score for word, score in distinct_verbs_selected])} to {max([score for word, score in distinct_verbs_selected])}')
             return distinct_verbs_selected
-        words = [(key, lexicon[key]) for key in lexicon.keys()]
-        words_min = __get_words(words, sorting='min')[:word_count]
-        words_max = __get_words(words, sorting='max')[:word_count]
 
+        words = [(key, lexicon[key]) for key in lexicon.keys()]
+        for sorting in samples:
+            if sorting == 'min' or sorting == 'max':  # if sorting is neut, than we will handle the case somewhere else
+                words_selected = __get_words(words, sorting=sorting)[:word_count]
+                result.append(words_selected)
+       
         # if neutral word requested, also get the neutral words around the center
         if 'neut' in samples:
-
             # - get the center -
             center = 0
             possible_strategies = ['soft', 'hard']
@@ -403,9 +533,21 @@ class DataSelector:
 
             if center_strategy == 'soft':  
                 # taking the highest score of the min values and the lowest score of the high values to find the middle
-                lower_bound = max([item[1] for item in words_min])
-                upper_bound = min([item[1] for item in words_max])
+                if 'min' in samples:
+                    words_min = result[samples.index('min')]  # get the result array of the list with the minimum verbs
+                    lower_bound = max([item[1] for item in words_min])
+                else:  # if no min used, than use hard boundary
+                    print('MyWarning: No min sorting used. Use hard boundary instead of soft')
+                    lower_bound = min([item[1] for item in words])
+
+                if 'max' in samples:
+                    words_max = result[samples.index('max')]  # get the result array of the list with the minimum verbs
+                    upper_bound = min([item[1] for item in words_max])
+                else:  # if no max used, than use hard boundary
+                    print('MyWarning: No max sorting used. Use hard boundary instead of soft')
+                    upper_bound = max([item[1] for item in words])
                 center = (lower_bound + upper_bound) / 2
+
             elif center_strategy == 'hard':
                 # taking the lowest score of possible values and the highest score of possible values to find the middle
                 lower_bound = min([item[1] for item in words])
@@ -426,19 +568,19 @@ class DataSelector:
 
             # - combine vocabulary to get the neutral vocabulary -
             words_neutr = words_neutr_smaller + words_neutr_bigger
-            
-            return words_min, words_max, words_neutr
-        else:
-            return words_min, words_max
+            result.append(words_neutr)
+
+        # list with varying size of sub vocabularies, depending on the samples / sorting input len(samples) == len(result)
+        return result  
 
 
     def subsample_even_score_distr(self, lexicon_input, datapoints_per_bin, bin_size, return_binned_data=False, return_bins=False):
         """Subsample data from a lexicon
 
         Args:
-            lexicon (_type_): _description_
-            datapoints_per_bin (_type_): _description_
-            bin_size (_type_): _description_
+            lexicon (list((str, float))) or dict(str: float): The lexicon input either as dictionary -> word: score or list -> (word, score)
+            datapoints_per_bin (int): The data points to select per bin. f.e. 10 would return 10 per bins
+            bin_size (float): The bin size, f.e. 0.1 is a good size for this data
             return_binned_data (bool, optional): If set to True, the data will be returned as a 
                                         two dimensional list, stored in ther bins. If false, a 
                                         one dimensional list will be returned. Defaults to False.
@@ -449,6 +591,9 @@ class DataSelector:
         elif isinstance(lexicon_input, list):  # if list of tuples
             if isinstance(lexicon_input[0], tuple):
                 words_sorted = [(word, score) for word, score in sorted(lexicon_input, key=lambda item: item[1])]
+            else:
+                print('MyError: The input is a list, but the items are not tulpes. Should be dict or list of tuples -> list((str, float)). Not implement for other types.')
+                sys.exit(-1)
         else:  # else, wecan't handle that right now
             print('MyError: The input should be a lexicon or list of tuples -> list((str, float)). Not implement for other types.')
             sys.exit(-1)
@@ -487,63 +632,7 @@ class DataSelector:
         unbinned_data = [item for bin in binned_data for item in bin]
         return unbinned_data if not return_bins else (unbinned_data, bins)
 
-
-def save_run_deprecated(my_args, vocab_min, vocab_max, pca_var, pca_pearsonr, pca_pearsonp, filename=None, tensorboard_writer=None):
-    if filename == None:
-        filename = 'empdim_settings.csv'
-
-    df = pd.DataFrame()
-
-    if os.path.exists(filename):
-        df = pd.read_csv(filename, index_col=0)
-
-    pca_var = list([float(val) for val in pca_var.reshape(-1)])
-    pca_pearsonr = list(pca_pearsonr)
-    pca_pearsonp = list(pca_pearsonp)
-    vocab_min_words = ';'.join([item[0] for item in vocab_min])
-    vocab_min_scores = ';'.join([str(item[1]) for item in vocab_min])
-    vocab_max_words = ';'.join([item[0] for item in vocab_max])
-    vocab_max_scores = ';'.join([str(item[1]) for item in vocab_max])
-
-    ts = datetime.timestamp(datetime.now())
-
-    #for dim, (var, r, p) in enumerate(zip(pca_var, pca_pearsonr, pca_pearsonp)):
-    new_row = pd.DataFrame({'id': ID,  # can also be trated as the individual id
-                'dim': my_args.dim, 
-                'task_name': my_args.task_name, 
-                'data_lim': my_args.data_lim,
-                'vocab_size': my_args.vocab_size,
-                'random_vocab': my_args.random_vocab,
-                'vocab_min': vocab_min_words,
-                'vocab_min_scores': vocab_min_scores,
-                'vocab_max': vocab_max_words,
-                'vocab_max_scores': vocab_max_scores,
-                'princip_comp': list(range(len(pca_pearsonr))),  # the number of the principal component
-                'pca_var': pca_var,  # principal components
-                'pca_pearsonr': pca_pearsonr,
-                'pca_pearsonp': pca_pearsonp
-                })
-    df = pd.concat([df, new_row])
-    print('Saved Information:\n', new_row[:5])
     
-    df.to_csv(filename, sep=',')
-
-    if tensorboard_writer is not None:
-        hparam_dict = {'id': ID,  # can also be trated as the individual id
-                'dim': my_args.dim, 
-                'task_name': my_args.task_name, 
-                'data_lim': my_args.data_lim,
-                'vocab_size': my_args.vocab_size,
-                'random_vocab': my_args.random_vocab}
-        with SummaryWriter() as w:
-            for i in range(len(pca_pearsonr)):
-                metrics_dict = {'princip_comp': int(i), 
-                                'pca_var': float(pca_var[i]), 
-                                'pca_pearsonr': float(pca_pearsonr[i]), 
-                                'pca_pearsonp': pca_pearsonp[i]}
-                tensorboard_writer.add_hparams(hparam_dict, metrics_dict)
-
-
 
 
 def save_run(data_dict, filename=None, tensorboard_writer=None):
@@ -584,7 +673,8 @@ def run():
     torch.manual_seed(my_args.seed)
     random.seed(my_args.seed)
 
-    tensorboard_writer = SummaryWriter(f'runs/{my_args.task_name}_{my_args.vocab_type}_{my_args.vocab_center_strategy}_{ID}') if my_args.use_tensorboard else None
+    str_center_strategy = '_' + my_args.vocab_center_strategy if 'mmn' in my_args.vocab_type else ''
+    tensorboard_writer = SummaryWriter(f'runs/{my_args.task_name}_{my_args.vocab_type}{str_center_strategy}{"_fdis" if my_args.use_freq_dist else ""}_{ID}{my_args.model_name}') if my_args.use_tensorboard else None
 
     # ------------------------
     #     Load the lexicon 
@@ -596,8 +686,8 @@ def run():
     else:
         lexicon = empathy_lex
     print(f'Task name: {my_args.task_name}')
-
-    sorted_lexicon = words_sorted = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
+    print(my_args)
+    sorted_lexicon = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
     score_range = (1, 7)
     actual_score_range = (min([item[1] for item in sorted_lexicon]), max([item[1] for item in sorted_lexicon]) )
     
@@ -619,42 +709,43 @@ def run():
         plt.savefig(f'EmpDim/plots/PCA_{title}.pdf')
         plt.close()
 
-    #score_min, score_max = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=['min', 'max'])
-    #print('min | max')
-    #print('score min \n', score_min)
-    #print('score max \n', score_max)
-    #vocab = score_min + score_max
-    #scatter_vocab(vocab, 'min_max')
 
-    # --- min max neutr, soft center ---
-    #score_min, score_max, score_neutr = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=['min', 'max', 'neut'])
-    #print('min | max | neutr - soft')
-    #print('score min \n', score_min)
-    #print('score max \n', score_max)
-    #print('score neutr \n', score_neutr)
-    #vocab = score_min + score_max + score_neutr
-    #scatter_vocab(vocab, 'min_max_neutr_soft')
 
-    # --- min max neutr, hard center ---
-    if my_args.vocab_type == 'mmn':
-        sample_type = ['min', 'max', 'neut']
-        score_min, score_max, score_neutr = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=['min', 'max', 'neut'], center_strategy=my_args.vocab_center_strategy)
-        print('score min \n', score_min)
-        print('score max \n', score_max)
-        print('score neutr \n', score_neutr)
+    # -----------------------------
+    #     Select the vocabulary 
+    # -----------------------------
+    print('\n ------------------ Vocabulary info ------------------')
+    if my_args.vocab_type == 'mmn':  # min, max, neutral
+        sample_type = ['min', 'max', 'neut']  # max, min, neutral (with words from center) -> ! decide for center strategy !
+        score_min, score_max, score_neutr = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=sample_type, center_strategy=my_args.vocab_center_strategy, use_freq_dist=my_args.use_freq_dist, freq_thresh=my_args.freq_thresh)
+        print('Mode: min | max | neut ')
+        print(f'score min count: {len(score_min)}  \n Range from {min([score for word, score in score_min])} to {max([score for word, score in score_min])} \n{score_min}')
+        print(f'score max count: {len(score_max)}  \n Range from {min([score for word, score in score_max])} to {max([score for word, score in score_max])} \n{score_max}')
+        print(f'score neutr count: {len(score_neutr)}  \n Range from {min([score for word, score in score_neutr])} to {max([score for word, score in score_neutr])} \n{score_neutr}')
         vocab = score_min + score_max + score_neutr
-    elif my_args.vocab_type == 'mm':
+    elif my_args.vocab_type == 'mm':  # max, min
         sample_type = ['min', 'max']
-        score_min, score_max = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=['min', 'max'])
-        print('min | max')
-        print('score min \n', score_min)
-        print('score max \n', score_max)
+        score_min, score_max = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=sample_type, use_freq_dist=my_args.use_freq_dist, freq_thresh=my_args.freq_thresh)
+        print('Mode: min | max')
+        print(f'score min count: {len(score_min)}  \n Range from {min([score for word, score in score_min])} to {max([score for word, score in score_min])} \n{score_min}')
+        print(f'score max count: {len(score_max)}  \n Range from {min([score for word, score in score_max])} to {max([score for word, score in score_max])} \n{score_max}')
         vocab = score_min + score_max
+    elif my_args.vocab_type == 'range':  # words from the whole range
+        datapoints_per_bin = my_args.vocab_size  # for type range, the vocabulary size is the amount of data per bin
+        bin_size = my_args.vocab_bin_size
+        sample_type = ['min']
+        print('Mode: range')
+        verbs_sorted = data_selector.select_words(lexicon, None, random_vocab=my_args.random_vocab, samples=sample_type, use_freq_dist=my_args.use_freq_dist, freq_thresh=my_args.freq_thresh)[0]
+        verbs_even = data_selector.subsample_even_score_distr(verbs_sorted, datapoints_per_bin, bin_size)
+        print('range verb selection')
+        print(f'score whole range count: {len(verbs_even)} \n Range from {min([score for word, score in verbs_even])} to {max([score for word, score in verbs_even])} \n{verbs_even}')
+        vocab = verbs_even
     else:
-        print('Vocab type not implemented. Choose between "mmn" (min, max, neutral) or "mm" (min, max).')
+        print('Vocab type not implemented. Choose between "mmn" (min, max, neutral), "mm" (min, max) or range (select even verbs from whole range).')
         sys.exit(-1)
 
     random.shuffle(vocab)
+    print(f'overall vocabulary length: {len(vocab)}')
     scatter_vocab(vocab, f'{my_args.vocab_type}_{my_args.vocab_center_strategy}')
     vocab_sentences = [item[0] for item in vocab] # get sentences
     vocab_labels = np.array([item[1] for item in vocab]).reshape(-1, 1) # get the labels
@@ -663,14 +754,20 @@ def run():
     # Use Sentence embeddings like MoRT (using their code and functions in funcs_mcm.py): https://github.com/ml-research/MoRT_NMI/blob/master/MoRT/mort/funcs_mcm.py
     # Schramowski et al., 2021, Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do
     sent_model = BERTSentence(device=device) #, transormer_model='paraphrase-MiniLM-L6-v2') # TODO use initial model (remove transformer model varibale from head)
+    
     # get the sentence embeddings of the vocabulary
     vocab_embeddings = sent_model.get_sen_embedding(vocab_sentences)
-    
+    if my_args.use_question_template:
+        vocab_embeddings = sent_model.get_question_template_mean_sen_embeddings(vocab_sentences)
+ 
+
     # ------------------------------------
     #   Do PCA with the vocab embeddings
     # ------------------------------------
     print('------------------ Start PCA ------------------')
-    dim_pca = DisDimPCA(n_components=my_args.dim, task_name=my_args.task_name, tensorboard_writer=tensorboard_writer)
+    dim_pca = DisDimPCA(n_components=my_args.dim, task_name=my_args.task_name, tensorboard_writer=tensorboard_writer, model_name=str(ID))
+    
+
     transformed_emb = dim_pca.fit_transform(vocab_embeddings)
 
     princ_comp_idx = 0  # principal component: 0 means first
@@ -678,6 +775,9 @@ def run():
     # get eigenvectors from best / highest eigenvalue
     eigen_vec = dim_pca.pca.components_
     projection_highest_var = eigen_vec[0]
+
+    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_random_y_dimension')
+    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_dimension', set_y_random=False)
 
     # ------------------------------
     #    Analyse the PCA outcome
@@ -728,10 +828,12 @@ def run():
                 pearson_p=p_rand, 
                 vocab=vocab,
                 center=data_selector.vocab_center,
-                note=note
+                note=note,
+                data_len=len(all_words_rand_embeddings),
                 )
 
     # --- correlate for evenly sampled data samples ---
+    
     datapoints_per_bin = 15
     print(f'correlate for even subsamples {datapoints_per_bin}')
     even_subsamples = data_selector.subsample_even_score_distr(all_words_n_scores, datapoints_per_bin=datapoints_per_bin, bin_size=0.1)
@@ -747,10 +849,13 @@ def run():
                 pearson_p=p_even_15, 
                 vocab=vocab,
                 center=data_selector.vocab_center,
-                note=note
+                note=note,
+                data_len=len(sentences_input),
                 )
+
                 
     # --- correlate for evenly sampled data samples ---
+    """
     datapoints_per_bin = 20
     print(f'correlate for even subsamples {datapoints_per_bin}')
     even_subsamples = data_selector.subsample_even_score_distr(all_words_n_scores, datapoints_per_bin=datapoints_per_bin, bin_size=0.1)
@@ -760,15 +865,17 @@ def run():
     note = 'all_words_even_20'
     true_labels = [item[1] for item in even_subsamples]
     r_even_20, p_even_20 = dim_pca.correlate_dis_dim_scores(embedding_input, true_labels, printing=True)
-    dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_even_15, title_add_on=note)
+    dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_even_20, title_add_on=note)
     dim_pca.update_log(my_args, 
                 pearson_r=r_even_20, 
                 pearson_p=p_even_20, 
                 vocab=vocab,
                 center=data_selector.vocab_center,
-                note=note
+                note=note,
+                data_len=len(sentences_input),
                 )
 
+    """
     """
     lim = 100
     print(f'\n Do correlation on the words with {lim} min an max scores (insg. {lim*2} words). Add random words from middle: {lim}')
@@ -801,23 +908,26 @@ def run():
     dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_twotailed_100, title_add_on='all_words_twotailed_100')
     """ 
 
-                    
+    """  
     if my_args.store_run: save_run(dim_pca.logging)
     # ------------------------------
     #    Apply PCA to the essays
     # ------------------------------
-    """
-    # TODO
+
     print('\n Apply PCA to the essays \n')
     # --- preprocess data ---
     # - load data -
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=my_args.data_dir)
     data_train_pd = utils.clean_raw_data(data_train_pd[:200])
-    data_dev_pd = utils.clean_raw_data(data_dev_pd[:200])
+    #data_dev_pd = utils.clean_raw_data(data_dev_pd[:200])
+
+    from sklearn.utils import shuffle
 
     train_sent = sent_model.get_sen_embedding(data_train_pd['essay'])
-    train_sent_transformed = pca.transform(train_sent)  
     train_labels = np.array(data_train_pd[my_args.task_name]).reshape(-1, 1)
+    print(len(train_sent))
+    train_sent, train_labels = shuffle(train_sent, train_labels, random_state=my_args.seed)
+    train_sent_transformed = dim_pca.transform(train_sent)  
 
     for i in range(train_sent_transformed.shape[1]):
         #print(all_word_dataset_transformed.shape[1])
@@ -828,7 +938,9 @@ def run():
         r, p = pearsonr(train_sent_transformed_i, train_labels)
         print('r', r)
         print('p', p)
+
     """
+    
 
                                   
 

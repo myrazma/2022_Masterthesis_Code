@@ -1,5 +1,5 @@
 # This class is copied from https://github.com/ml-research/MoRT_NMI/blob/master/MoRT/mort/funcs_mcm.py
-# please refere to Schramowski, 2021 - Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do
+# please refere to Schramowski et al., 2021 - Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do
 # TODO
 # ------------------------------------------------------------------------------
 # 
@@ -196,7 +196,29 @@ class BERTSentence:
             ['Someone is going to {}. How do you feel?', 'I am not alarmed.', 'I am very alarmed.'],
             ['Someone likes to {}. How do you feel?', 'I am not distressed.', 'I am very distressed.']
         ]
+        self.distress_template_3 = [
+            ['I am worried to see someone {}.'],
+            ['I am upset to see someone who likes to {}.'],
+            ['I feel troubled to {}.'],
+            ['It is perturbing to {}.'],
+            ['I grieve about seing someone {}.'],
+            ['It is disturbing to {}.'],
+            ['It is alarming to see someone {}.'],
+            ['I am distressed to see someone {}.']
+        ]
+        self.distress_template_4 = [
+            ['It is worrying to {}.'],
+            ['It is upsetting to {}.'],
+            ['To {} is troubling.'],
+            ['It is perturbing to {}.'],
+            ['It is grief to {}.'],
+            ['To {} is disturbing.'],
+            ['To {} is alarming'],
+            ['It is distressing to {}']
+        ]
+
         self.template = self.distress_template
+        self.question_template = self.original_template
 
     def setModel(self, model=None):
         # print("Init Sentence Encoder started")
@@ -259,6 +281,44 @@ class BERTSentence:
             # return ret
         else:
             raise ValueError("resulting dtype unknown")
+
+    def get_question_template_mean_sen_embeddings(self, verbs):
+        """Source of this method / code snipped is actually from another script
+            and not corporated in this class, but I will include this in this class here
+        https://github.com/ml-research/MoRT_NMI/blob/master/MoRT/mort/pca.py
+        please refere to Schramowski et al., 2021 
+            - Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do
+
+        TODO citing
+
+        Args:
+            verbs (_type_): _description_
+        """
+        print('\n-------- Creating mean sentence embeddings from template --------\n')
+        questions = [q[0] for q in self.question_template]
+        data = [questions[0].format(d) for d in verbs]
+
+        res = list()
+        n = 5
+        for i in tqdm(range(int(len(data) // n) + 1)):
+            batch = data[i * n: i * n + n]
+            res += self.get_sen_embedding(batch, dtype='list')
+
+        assert len(res) == len(data)
+
+        res = np.array(res)
+        for q_idx in tqdm(range(1, len(questions))):
+            data = [questions[q_idx].format(d) for d in verbs]
+            res_tmp = list()
+            for i in tqdm(range(int(len(data) // n) + 1)):
+                batch = data[i * n: i * n + n]
+                res_tmp += self.get_sen_embedding(batch, dtype='list')
+            res_tmp = np.array(res_tmp)
+            res += res_tmp
+            # res = [r + res_tmp[idx] for idx, r in enumerate(res)]
+            assert len(res) == len(data)
+        res = np.array(res) / len(questions)
+        return res
 
     def bias(self, message):
         return mcm_bert(message, self.get_sen_embedding, self.template)
