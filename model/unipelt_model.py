@@ -101,7 +101,7 @@ def run():
     
     # create lexical features
     fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder)
-    lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'])
+    lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=task_name)
     print(lexicon_rating)
     print('PEARSON R: ', pearsonr(labels, lexicon_rating))
 
