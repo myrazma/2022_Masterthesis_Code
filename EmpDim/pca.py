@@ -1,3 +1,16 @@
+"""Script for creating and evaluating pca
+Running this script (run()) will create a pca with the vocabulary based on the input parameters
+
+This script can also be used from outside by using the classes
+DisDimPCA:
+    The pca class
+create_pca():
+    Load pca model, if available.
+    Otherwise: Creates and fits a pca model based on the input.
+evaluate_pca():
+    Evaluating pca with lexical data.
+"""
+
 from pickle import FALSE
 from pyexpat import model
 from random import random
@@ -49,8 +62,8 @@ from tqdm import tqdm
 
 
 # own modules
-from funcs_mcm import BERTSentence
 sys.path.append(os.path.join(os.path.dirname(__file__),'../'))
+from EmpDim.funcs_mcm import BERTSentence
 from torch.utils.data import DataLoader
 import utils
 import preprocessing
@@ -64,7 +77,7 @@ print(ID)
 class MyArguments:
     # --- organisationa settings for the run ---
     data_dir: str = field(
-        default='../data/', metadata={"help": "A directory containing the data."}
+        default='data/', metadata={"help": "A directory containing the data."}
     )
     task_name: Optional[str] = field(
         default='distress',
@@ -79,7 +92,7 @@ class MyArguments:
         metadata={"help": "If True, the run will be stored in json."},
     )
     use_tensorboard: Optional[bool] = field(
-        default=True,
+        default=False,
         metadata={"help": "If True, tensorboard will be used."},
     )
     run_id: str = field(
@@ -105,7 +118,7 @@ class MyArguments:
         metadata={"help": "The size of the vocabualry for max, min or neutral scores. If vocab_type = 'range' this int is the data size to select per bin."},
     )
     vocab_type: Optional[str] = field(
-        default='mmn',
+        default='mm',
         metadata={"help": "Available types are 'mm' (min max), 'mmn' (min max neutral), 'range' (use verbs from the whole range)."},
     )
     vocab_center_strategy: Optional[str] = field(
@@ -136,8 +149,11 @@ class MyArguments:
     
 
 class DisDimPCA:
+    """Class for the distress / empathy dimension pca
+    Has all attributes needed to create the pca including the sentence bert model (Need to use the same model, otherwise the transformation isnt working anyways)
+    """
 
-    def __init__(self, n_components, task_name, pca=None, tensorboard_writer=None, model_name='PCA'):
+    def __init__(self, n_components, task_name, pca=None, tensorboard_writer=None, model_name='PCA', device='cpu'):
         self.pca = pca  # is None until it is fitted
         self.n_components = n_components
         self.explained_var = None
@@ -146,6 +162,11 @@ class DisDimPCA:
         self.model_name = model_name
         self.vocab_size = None
         self.logging = pd.DataFrame()
+
+        # --- init BERTSentence for sentence embeddings ---
+        # Use Sentence embeddings like MoRT (using their code and functions in funcs_mcm.py): https://github.com/ml-research/MoRT_NMI/blob/master/MoRT/mort/funcs_mcm.py
+        # Schramowski et al., 2021, Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do
+        self.sent_model = BERTSentence(device=device) #, transormer_model='paraphrase-MiniLM-L6-v2') # TODO use initial model (remove transformer model varibale from head)
 
     def fit(self, sent_embeddings, transform_embeddings=False):
         self.pca = PCA(n_components=self.n_components)
@@ -632,8 +653,6 @@ class DataSelector:
         unbinned_data = [item for bin in binned_data for item in bin]
         return unbinned_data if not return_bins else (unbinned_data, bins)
 
-    
-
 
 def save_run(data_dict, filename=None, tensorboard_writer=None):
     if filename == None:
@@ -651,8 +670,19 @@ def save_run(data_dict, filename=None, tensorboard_writer=None):
     df.to_csv(filename, sep=',')
 
 
+def scatter_vocab(vocab, title):
+        scores = [item[1] for item in vocab]
+        random_y = [random.uniform(0, 1) for i in range(len(scores))]
+        plt.scatter(scores, random_y, label=title)
+        plt.ylabel('random values')
+        plt.xlabel('empathy / distress score')
+        plt.legend(loc=3)
+        plt.savefig(f'EmpDim/plots/PCA_{title}.pdf')
+        plt.close()
 
 def run():
+    """Running and evaluating pca
+    """
     
     # --- run on GPU if available ---
     if torch.cuda.is_available():       
@@ -661,6 +691,7 @@ def run():
     else:
         print("\n---------- No GPU available, using the CPU instead. ----------\n")
         device = torch.device("cpu")
+
 
     # get arguments
     parser = HfArgumentParser(MyArguments)
@@ -672,9 +703,28 @@ def run():
 
     torch.manual_seed(my_args.seed)
     random.seed(my_args.seed)
-
+    
     str_center_strategy = '_' + my_args.vocab_center_strategy if 'mmn' in my_args.vocab_type else ''
     tensorboard_writer = SummaryWriter(f'runs/{my_args.task_name}_{my_args.vocab_type}{str_center_strategy}{"_fdis" if my_args.use_freq_dist else ""}_{ID}{my_args.model_name}') if my_args.use_tensorboard else None
+
+    data_selector = DataSelector()
+
+    dim_pca, vocab = create_pca(my_args, tensorboard_writer=tensorboard_writer, return_vocab=True, data_selector=data_selector)
+    evaluate_pca(my_args, dim_pca, vocab)
+
+def create_pca(my_args, tensorboard_writer=None, return_vocab=False, data_selector=None):
+    # ------------------------------------
+    # ------------------------------------
+    #        Load pca if available 
+    # ------------------------------------
+    # ------------------------------------
+    # TODO
+
+    # ------------------------------------
+    # ------------------------------------
+    #           Else create pca
+    # ------------------------------------
+    # ------------------------------------
 
     # ------------------------
     #     Load the lexicon 
@@ -685,32 +735,22 @@ def run():
         lexicon = distress_lex
     else:
         lexicon = empathy_lex
+
     print(f'Task name: {my_args.task_name}')
-    print(my_args)
     sorted_lexicon = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
     score_range = (1, 7)
     actual_score_range = (min([item[1] for item in sorted_lexicon]), max([item[1] for item in sorted_lexicon]) )
     
     # setup data selector class
-    data_selector = DataSelector()
+    if data_selector is None:
+        data_selector = DataSelector()
     
     # --- normalize the scores in the lexicon ---
     # lexicon = dict([(key, lexicon[key] / score_range[1]) for key in lexicon])
 
     # --- select the most representative words for low and high distress and empathy ---
     # n words with highest and words with lowest ranking values
-    def scatter_vocab(vocab, title):
-        scores = [item[1] for item in vocab]
-        random_y = [random.uniform(0, 1) for i in range(len(scores))]
-        plt.scatter(scores, random_y, label=title)
-        plt.ylabel('random values')
-        plt.xlabel('empathy / distress score')
-        plt.legend(loc=3)
-        plt.savefig(f'EmpDim/plots/PCA_{title}.pdf')
-        plt.close()
-
-
-
+    
     # -----------------------------
     #     Select the vocabulary 
     # -----------------------------
@@ -750,29 +790,43 @@ def run():
     vocab_sentences = [item[0] for item in vocab] # get sentences
     vocab_labels = np.array([item[1] for item in vocab]).reshape(-1, 1) # get the labels
 
-    # --- init BERTSentence for sentence embeddings ---
-    # Use Sentence embeddings like MoRT (using their code and functions in funcs_mcm.py): https://github.com/ml-research/MoRT_NMI/blob/master/MoRT/mort/funcs_mcm.py
-    # Schramowski et al., 2021, Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do
-    sent_model = BERTSentence(device=device) #, transormer_model='paraphrase-MiniLM-L6-v2') # TODO use initial model (remove transformer model varibale from head)
-    
-    # get the sentence embeddings of the vocabulary
-    vocab_embeddings = sent_model.get_sen_embedding(vocab_sentences)
-    if my_args.use_question_template:
-        vocab_embeddings = sent_model.get_question_template_mean_sen_embeddings(vocab_sentences)
- 
 
     # ------------------------------------
     #   Do PCA with the vocab embeddings
     # ------------------------------------
     print('------------------ Start PCA ------------------')
     dim_pca = DisDimPCA(n_components=my_args.dim, task_name=my_args.task_name, tensorboard_writer=tensorboard_writer, model_name=str(ID))
+
+    # get the sentence embeddings of the vocabulary
+    vocab_embeddings = dim_pca.sent_model.get_sen_embedding(vocab_sentences)
+    if my_args.use_question_template:
+        vocab_embeddings = dim_pca.sent_model.get_question_template_mean_sen_embeddings(vocab_sentences)
+
+    dim_pca.fit(vocab_embeddings)
+    if return_vocab:
+        return dim_pca, vocab
+    return dim_pca
+
+def evaluate_pca(my_args, dim_pca, vocab, data_selector=None):
+
+    if data_selector is None:
+        data_selector = DataSelector()
+
     
+    empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=my_args.data_dir)
 
-    transformed_emb = dim_pca.fit_transform(vocab_embeddings)
+    if my_args.task_name == 'distress':
+        lexicon = distress_lex
+    else:
+        lexicon = empathy_lex
 
-    princ_comp_idx = 0  # principal component: 0 means first
+    scatter_vocab(vocab, f'{my_args.vocab_type}_{my_args.vocab_center_strategy}')
+    vocab_sentences = [item[0] for item in vocab] # get sentences
+    vocab_labels = np.array([item[1] for item in vocab]).reshape(-1, 1) # get the labels
+    vocab_embeddings = dim_pca.sent_model.get_sen_embedding(vocab_sentences)
 
     # get eigenvectors from best / highest eigenvalue
+    transformed_emb = dim_pca.transform(vocab_embeddings)
     eigen_vec = dim_pca.pca.components_
     projection_highest_var = eigen_vec[0]
 
@@ -793,7 +847,7 @@ def run():
     plt.scatter(pca_dim, vocab_labels)
     plt.ylabel(f'{my_args.task_name} score')
     plt.xlabel('PCA dim')
-    plt.title(f'PC1 covering {var[princ_comp_idx]}')
+    plt.title(f'PC1 covering {var[0]}')
     plt.savefig('EmpDim/plots/PCA_dim.pdf')
     plt.close()
     
@@ -820,7 +874,7 @@ def run():
     # get their sentence embeddings
     # get correlation and plot
     note = 'all_words_rand'
-    all_words_rand_embeddings = sent_model.get_sen_embedding(all_words_rand)
+    all_words_rand_embeddings = dim_pca.sent_model.get_sen_embedding(all_words_rand)
     r_rand, p_rand = dim_pca.correlate_dis_dim_scores(all_words_rand_embeddings, all_words_rand_labels, printing=True)
     dim_pca.plot_dis_dim_scores(all_words_rand_embeddings, all_words_rand_labels, r_rand, title_add_on=note)
     dim_pca.update_log(my_args, 
@@ -838,7 +892,7 @@ def run():
     print(f'correlate for even subsamples {datapoints_per_bin}')
     even_subsamples = data_selector.subsample_even_score_distr(all_words_n_scores, datapoints_per_bin=datapoints_per_bin, bin_size=0.1)
     sentences_input = [item[0] for item in even_subsamples]
-    embedding_input = sent_model.get_sen_embedding(sentences_input)
+    embedding_input = dim_pca.sent_model.get_sen_embedding(sentences_input)
     print('Dataset size:', len(embedding_input))
     note = 'all_words_even_15'
     true_labels = [item[1] for item in even_subsamples]

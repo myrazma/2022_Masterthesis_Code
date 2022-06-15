@@ -1,0 +1,88 @@
+""" Script for running Unipelt Model with possible feature input
+Should capture:
+1. Different Input:
+    a. Lexicon - word average
+    b. Lexicon - PCA
+2. Changeable parameters for UniPELT settings (Learning rate, methods, etc.)
+
+In here: use trainer (best from submodule/..UnifiedPELT/transformers), same like in run_emp.py
+
+
+Can we maybe build a framework for this trainer to use it for other models too? So for the model of / in adapter_BERT
+"""
+
+
+# my modules and scripts
+from pathlib import Path
+import sys
+
+from torch import t
+path_root = Path(__file__).parents[1]
+sys.path.append(str(path_root))
+import utils
+import preprocessing
+
+class UniPELTMultiinput():
+
+    def __init__(self, feature_dim) -> None:
+        
+        # This should be UniPELT bert (but without classification head)
+        self.bert = None  # TODO
+
+        # Should be the same as the classification head in the transformers library
+        self.regressor_head = None  # TODO
+
+        # TODO: Where do I have to add the feature dim?
+        pass
+
+    def forward(self, input_ids, attention_masks, features):
+        # TODO:
+        # Lexical features should be of arbitrary length, can also be None
+        # Should I set features to None in head: forward(.., features=None)
+
+
+        #outputs = self.bert(input_ids, attention_masks)
+        #bert_output = outputs[1]
+
+        # concat bert output with multi iput - lexical data
+        #after_bert_outputs = self.after_bert(bert_output)
+
+        # combine bert output (after short ffn) with lexical features
+        #concat = torch.cat((after_bert_outputs, lexical_features), 1)
+        #outputs = self.regressor(concat)
+        #return outputs
+        pass
+
+
+def run():
+
+    #parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, MultiLingAdapterArguments))
+    #parser = HfArgumentParser((MyArguments, ... what else we need))
+
+    #if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
+    #    # If we pass only one argument to the script and it's the path to a json file,
+    #    # let's parse it to get our arguments.
+    #    model_args, data_args, training_args, adapter_args = parser.parse_json_file(
+    #        json_file=os.path.abspath(sys.argv[1])
+    #    )
+    #else:
+    #    model_args, data_args, training_args, adapter_args = parser.parse_args_into_dataclasses()
+
+
+    data_train_pd, data_dev_pd = utils.load_data(data_root_folder='data/')
+    data_train_pd = utils.clean_raw_data(data_train_pd)
+    data_dev_pd = utils.clean_raw_data(data_dev_pd)
+
+    fc = preprocessing.FeatureCreator(data_root_folder='data')
+    
+    result = fc.create_pca_feature(data_train_pd['essay'], task_name='distress')
+    print('\n result: ', result[:10])
+    try:
+        print('\n Distress label: ', data_train_pd['essay'].to_numpy()['distress'])
+    except:
+        print()
+
+
+
+if __name__ == '__main__':
+    run()
