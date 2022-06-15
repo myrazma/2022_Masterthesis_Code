@@ -712,7 +712,7 @@ def run():
     dim_pca, vocab = create_pca(my_args, tensorboard_writer=tensorboard_writer, return_vocab=True, data_selector=data_selector)
     evaluate_pca(my_args, dim_pca, vocab)
 
-def create_pca(my_args, tensorboard_writer=None, return_vocab=False, data_selector=None):
+def create_pca(my_args, tensorboard_writer=None, return_vocab=False, data_selector=None, device='cpu'):
     # ------------------------------------
     # ------------------------------------
     #        Load pca if available 
@@ -794,7 +794,7 @@ def create_pca(my_args, tensorboard_writer=None, return_vocab=False, data_select
     #   Do PCA with the vocab embeddings
     # ------------------------------------
     print('------------------ Start PCA ------------------')
-    dim_pca = DisDimPCA(n_components=my_args.dim, task_name=my_args.task_name, tensorboard_writer=tensorboard_writer, model_name=str(ID))
+    dim_pca = DisDimPCA(n_components=my_args.dim, task_name=my_args.task_name, tensorboard_writer=tensorboard_writer, model_name=str(ID), device=device)
 
     # get the sentence embeddings of the vocabulary
     vocab_embeddings = dim_pca.sent_model.get_sen_embedding(vocab_sentences)

@@ -11,6 +11,7 @@ In here: use trainer (best from submodule/..UnifiedPELT/transformers), same like
 Can we maybe build a framework for this trainer to use it for other models too? So for the model of / in adapter_BERT
 """
 
+import torch
 
 # my modules and scripts
 from pathlib import Path
@@ -67,13 +68,19 @@ def run():
     #    )
     #else:
     #    model_args, data_args, training_args, adapter_args = parser.parse_args_into_dataclasses()
-
+    # --- run on GPU if available ---
+    if torch.cuda.is_available():       
+        device = torch.device("cuda")
+        print("\n------------------ Using GPU. ------------------\n")
+    else:
+        print("\n---------- No GPU available, using the CPU instead. ----------\n")
+        device = torch.device("cpu")
 
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder='data/')
     data_train_pd = utils.clean_raw_data(data_train_pd)
     data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
-    fc = preprocessing.FeatureCreator(data_root_folder='data/')
+    fc = preprocessing.FeatureCreator(data_root_folder='data/', device=device)
 
     result = fc.create_pca_feature(data_train_pd['essay'], task_name='distress')
     print('\n result: ', result[:10])

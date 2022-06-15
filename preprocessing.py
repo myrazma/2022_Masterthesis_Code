@@ -24,7 +24,8 @@ STOPWORDS_EN = set(stopwords.words('english'))
 
 
 class FeatureCreator():
-    def __init__(self, data_root_folder='data/', pca_args=None):
+    def __init__(self, data_root_folder='data/', pca_args=None, device='cpu'):
+        self.device = device
         self.empathy_lex, self.distress_lex = utils.load_empathy_distress_lexicon(data_root_folder)
         self.lexicon_dict = {'empathy': self.empathy_lex, 'distress': self.distress_lex}  # lexicon where we can get the features by key / task_name
 
@@ -100,7 +101,7 @@ class FeatureCreator():
         if task not in self.__pca_dict.keys():
             task_lexicon = self.lexicon_dict[task]  # TODO: I am not using the lexicon here, to we have to?
             # TODO get all of this information:
-            dim_pca = create_pca(my_args=self.pca_args, tensorboard_writer=None)
+            dim_pca = create_pca(my_args=self.pca_args, tensorboard_writer=None, device=self.device)
             self.__pca_dict[task] = dim_pca
 
         return self.__pca_dict[task]
