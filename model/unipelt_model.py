@@ -73,8 +73,8 @@ def run():
     data_train_pd = utils.clean_raw_data(data_train_pd)
     data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
-    fc = preprocessing.FeatureCreator(data_root_folder='data')
-    
+    fc = preprocessing.FeatureCreator(data_root_folder='data/')
+
     result = fc.create_pca_feature(data_train_pd['essay'], task_name='distress')
     print('\n result: ', result[:10])
     try:
