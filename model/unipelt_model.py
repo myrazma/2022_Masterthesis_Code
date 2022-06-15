@@ -80,33 +80,52 @@ def run():
     data_root_folder = 'data/'
     task_name = 'distress'
 
+    # ---------------------------
+    #   get the argument input
+    # ---------------------------
+
+
+    # ---------------------------
+    #   Load and prepocess data
+    # ---------------------------
+
     data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
     data_train_pd = utils.clean_raw_data(data_train_pd)
     data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
+    labels = data_train_pd[task_name].to_numpy().reshape(-1)
+
+    # ---------------------------
+    #       get the features
+    # ---------------------------
+
     fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder, device=device)
 
-    result = fc.create_pca_feature(data_train_pd['essay'], task_name=task_name)
-    print('\n\nPCA features')
-    print('\n result: ', result[:10])
-    print('\n Distress label: ', data_train_pd[task_name].to_numpy())
-    labels = data_train_pd[task_name].to_numpy().reshape(-1)
-    emp_dim = result.reshape(-1)
-    print('PEARSON R: ', pearsonr(labels, emp_dim))
+    # --- create pca - empathy / distress dimension features ---
+    emp_dim = fc.create_pca_feature(data_train_pd['essay'], task_name=task_name)
+    print('emp_dim.shape', emp_dim.shape)
+    #print('\n\nPCA features')
+    #print('\n result: ', result[:10])
+    #print('\n Distress label: ', data_train_pd[task_name].to_numpy())
+    emp_dim = emp_dim.reshape(-1)
+    #print('PEARSON R: ', pearsonr(labels, emp_dim))
 
 
-    print('\n\nLexicon features')
+    # --- create lexical features ---
+    #print('\n\nLexicon features')
     data_train_pd = preprocessing.tokenize_data(data_train_pd, 'essay')
     data_dev_pd = preprocessing.tokenize_data(data_dev_pd, 'essay')
     
-    # create lexical features
     fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder)
     lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=task_name)
-    print(lexicon_rating)
-    print('PEARSON R: ', pearsonr(labels, lexicon_rating))
+
+    print('lexicon_rating.shape', lexicon_rating.shape)
+    print('lexicon_rating.shape', lexicon_rating.reshape((-1, 1)).shape)
+    #print(lexicon_rating)
+    #print('PEARSON R: ', pearsonr(labels, lexicon_rating))
 
 
-    print('\n\nPEARSON R lexicon rating and empdim: ', pearsonr(emp_dim, lexicon_rating))
+    #print('\n\nPEARSON R lexicon rating and empdim: ', pearsonr(emp_dim, lexicon_rating))
         
 
 
