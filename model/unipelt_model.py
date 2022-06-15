@@ -12,6 +12,7 @@ Can we maybe build a framework for this trainer to use it for other models too? 
 """
 
 import torch
+from scipy.stats import pearsonr, spearmanr
 
 # my modules and scripts
 from pathlib import Path
@@ -85,7 +86,11 @@ def run():
     result = fc.create_pca_feature(data_train_pd['essay'], task_name='distress')
     print('\n result: ', result[:10])
     try:
-        print('\n Distress label: ', data_train_pd['essay'].to_numpy()['distress'])
+        print('\n Distress label: ', data_train_pd['distress'].to_numpy())
+        labels = data_train_pd['distress'].to_numpy().reshape(-1)
+        emp_dim = result.reshape(-1)
+        print(pearsonr(labels, emp_dim))
+        
     except:
         print()
 
