@@ -77,22 +77,37 @@ def run():
         print("\n---------- No GPU available, using the CPU instead. ----------\n")
         device = torch.device("cpu")
 
-    data_train_pd, data_dev_pd = utils.load_data(data_root_folder='data/')
+    data_root_folder = 'data/'
+    task_name = 'distress'
+
+    data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_root_folder)
     data_train_pd = utils.clean_raw_data(data_train_pd)
     data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
-    fc = preprocessing.FeatureCreator(data_root_folder='data/', device=device)
+    fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder, device=device)
 
-    result = fc.create_pca_feature(data_train_pd['essay'], task_name='distress')
+    result = fc.create_pca_feature(data_train_pd['essay'], task_name=task_name)
+    print('\n\nPCA features')
     print('\n result: ', result[:10])
-    try:
-        print('\n Distress label: ', data_train_pd['distress'].to_numpy())
-        labels = data_train_pd['distress'].to_numpy().reshape(-1)
-        emp_dim = result.reshape(-1)
-        print(pearsonr(labels, emp_dim))
+    print('\n Distress label: ', data_train_pd[task_name].to_numpy())
+    labels = data_train_pd[task_name].to_numpy().reshape(-1)
+    emp_dim = result.reshape(-1)
+    print('PEARSON R: ', pearsonr(labels, emp_dim))
+
+
+    print('\n\nLexicon features')
+    data_train_pd = preprocessing.tokenize_data(data_train_pd, 'essay_raw')
+    data_dev_pd = preprocessing.tokenize_data(data_dev_pd, 'essay_raw')
+    
+    # create lexical features
+    fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder)
+    lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_raw_tok'])
+    print(lexicon_rating)
+    print('PEARSON R: ', pearsonr(labels, lexicon_rating))
+
+
+    print('\n\nPEARSON R lexicon rating and empdim: ', pearsonr(emp_dim, lexicon_rating))
         
-    except:
-        print()
 
 
 
