@@ -97,13 +97,13 @@ class FeatureCreator():
 
         task can either be distress or empathy
         """
-        if task not in self.pca_dict.keys():
+        if task not in self.__pca_dict.keys():
             task_lexicon = self.lexicon_dict[task]  # TODO: I am not using the lexicon here, to we have to?
             # TODO get all of this information:
             dim_pca = create_pca(my_args=self.pca_args, tensorboard_writer=None)
-            self.pca_dict[task] = dim_pca
+            self.__pca_dict[task] = dim_pca
 
-        return self.pca_dict[task]
+        return self.__pca_dict[task]
 
     def create_pca_feature(self, essays, task_name):
         results = []  # len(results) == len(task_name) if all items in task_name are valid tasks
@@ -116,9 +116,9 @@ class FeatureCreator():
                 continue
 
             # --- do pca ---
-            if task not in self.pca_dict.keys():  # if the PCA for this specific task is not in dict, get it!
+            if task not in self.__pca_dict.keys():  # if the PCA for this specific task is not in dict, get it!
                 self.get_pca(task)
-            task_pca = self.pca_dict[task]  # get the pca object
+            task_pca = self.__pca_dict[task]  # get the pca object
 
             # Transform essays into sentence model embeddings
             essay_embeddings = task_pca.sent_model.get_sen_embedding(essays)
