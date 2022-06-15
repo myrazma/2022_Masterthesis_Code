@@ -96,12 +96,12 @@ def run():
 
 
     print('\n\nLexicon features')
-    data_train_pd = preprocessing.tokenize_data(data_train_pd, 'essay_raw')
-    data_dev_pd = preprocessing.tokenize_data(data_dev_pd, 'essay_raw')
+    data_train_pd = preprocessing.tokenize_data(data_train_pd, 'essay')
+    data_dev_pd = preprocessing.tokenize_data(data_dev_pd, 'essay')
     
     # create lexical features
     fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder)
-    lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_raw_tok'])
+    lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'])
     print(lexicon_rating)
     print('PEARSON R: ', pearsonr(labels, lexicon_rating))
 
