@@ -786,7 +786,6 @@ def create_pca(my_args, tensorboard_writer=None, return_vocab=False, data_select
 
     random.shuffle(vocab)
     print(f'overall vocabulary length: {len(vocab)}')
-    scatter_vocab(vocab, f'{my_args.vocab_type}_{my_args.vocab_center_strategy}')
     vocab_sentences = [item[0] for item in vocab] # get sentences
     vocab_labels = np.array([item[1] for item in vocab]).reshape(-1, 1) # get the labels
 
@@ -812,6 +811,8 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None):
     if data_selector is None:
         data_selector = DataSelector()
 
+    print(f'overall vocabulary length: {len(vocab)}')
+    scatter_vocab(vocab, f'{my_args.vocab_type}_{my_args.vocab_center_strategy}')
     
     empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=my_args.data_dir)
 
