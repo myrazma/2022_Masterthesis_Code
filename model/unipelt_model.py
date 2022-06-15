@@ -12,7 +12,9 @@ Can we maybe build a framework for this trainer to use it for other models too? 
 """
 
 import torch
+import torch.nn as nn
 from scipy.stats import pearsonr, spearmanr
+import numpy as np
 
 # my modules and scripts
 from pathlib import Path
@@ -24,18 +26,34 @@ sys.path.append(str(path_root))
 import utils
 import preprocessing
 
-class UniPELTMultiinput():
+import importlib
+unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
 
-    def __init__(self, feature_dim) -> None:
+
+
+
+class MultiinputBertForSequenceClassification(ModelWithHeadsAdaptersMixin, BertPreTrainedModel):
+    """Using the unipelt Bert implementation"""
+    
+    def __init__(self, config, feature_dim) -> None:
+        super().__init__(config)
         
         # This should be UniPELT bert (but without classification head)
-        self.bert = None  # TODO
+        self.bert = unipelt_transformers.BertModel(config)  # TODO
+        # !! TODO: The input we are giving the Auto model should be in here as well!
+        # TODO should be the same as BertForSequenceClassification in modeling_bert.py from the unipelt submodule
+        # ecxept the added features
+
+
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
 
         # Should be the same as the classification head in the transformers library
-        self.regressor_head = None  # TODO
+        hidden_size = config.hidden_size + feature_dim
+        self.regressor_head = nn.Linear(hidden_size, self.config.num_labels)  # TODO input dim is bert output dim + feature dim
 
-        # TODO: Where do I have to add the feature dim?
-        pass
+        self.init_weights()
+        
 
     def forward(self, input_ids, attention_masks, features):
         # TODO:
@@ -43,11 +61,16 @@ class UniPELTMultiinput():
         # Should I set features to None in head: forward(.., features=None)
 
 
-        #outputs = self.bert(input_ids, attention_masks)
-        #bert_output = outputs[1]
+        bert_outputs = self.bert(input_ids, attention_masks)
+        hidden = bert_outputs[1]
 
         # concat bert output with multi iput - lexical data
         #after_bert_outputs = self.after_bert(bert_output)
+
+        if features is not None:  # if we have additiona features, concat them with our hidden features
+            hidden = torch.cat((hidden, features), 1)
+
+        outputs = self.regressor_head(hidden)
 
         # combine bert output (after short ffn) with lexical features
         #concat = torch.cat((after_bert_outputs, lexical_features), 1)
@@ -55,6 +78,46 @@ class UniPELTMultiinput():
         #return outputs
         pass
 
+############ from transformers start ############
+    def __init__(self, config):
+        super(BertForSequenceClassification, self).__init__(config)
+        self.num_labels = config.num_labels
+
+        self.bert = BertModel(config)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
+
+        self.init_weights()
+
+    def forward(self, input_ids, attention_mask=None, token_type_ids=None,
+                position_ids=None, head_mask=None, labels=None):
+
+        outputs = self.bert(input_ids,
+                            attention_mask=attention_mask,
+                            token_type_ids=token_type_ids,
+                            position_ids=position_ids, 
+                            head_mask=head_mask)
+
+        pooled_output = outputs[1]
+
+        pooled_output = self.dropout(pooled_output)
+        logits = self.classifier(pooled_output)
+
+        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
+
+        if labels is not None:
+            if self.num_labels == 1:
+                #  We are doing regression
+                loss_fct = MSELoss()
+                loss = loss_fct(logits.view(-1), labels.view(-1))
+            else:
+                loss_fct = CrossEntropyLoss()
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            outputs = (loss,) + outputs
+
+        return outputs  # (loss), logits, (hidden_states), (attentions)
+
+############ from transformers end ############
 
 def run():
 
@@ -77,13 +140,16 @@ def run():
         print("\n---------- No GPU available, using the CPU instead. ----------\n")
         device = torch.device("cpu")
 
-    data_root_folder = 'data/'
-    task_name = 'distress'
+
 
     # ---------------------------
     #   get the argument input
     # ---------------------------
 
+    data_root_folder = 'data/'
+    task_name = 'distress'
+    use_pca_features = True
+    use_lexical_features = True
 
     # ---------------------------
     #   Load and prepocess data
@@ -99,33 +165,41 @@ def run():
     #       get the features
     # ---------------------------
 
+    # The feature array will have additional features, if wanted, else it will stay None
+    features = None
+
     fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder, device=device)
 
     # --- create pca - empathy / distress dimension features ---
-    emp_dim = fc.create_pca_feature(data_train_pd['essay'], task_name=task_name)
-    print('emp_dim.shape', emp_dim.shape)
-    #print('\n\nPCA features')
-    #print('\n result: ', result[:10])
-    #print('\n Distress label: ', data_train_pd[task_name].to_numpy())
-    emp_dim = emp_dim.reshape(-1)
-    #print('PEARSON R: ', pearsonr(labels, emp_dim))
+    if use_pca_features:
+        emp_dim = fc.create_pca_feature(data_train_pd['essay'], task_name=task_name)
+        print('emp_dim.shape', emp_dim.shape)
+        emp_dim = emp_dim.reshape((-1, 1))
+        #print('PEARSON R: ', pearsonr(labels, emp_dim.reshape(-1)))
+        features = emp_dim if features is None else np.hstack((features, emp_dim))
 
 
     # --- create lexical features ---
-    #print('\n\nLexicon features')
-    data_train_pd = preprocessing.tokenize_data(data_train_pd, 'essay')
-    data_dev_pd = preprocessing.tokenize_data(data_dev_pd, 'essay')
-    
-    fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder)
-    lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=task_name)
+    if use_lexical_features:
+        data_train_pd = preprocessing.tokenize_data(data_train_pd, 'essay')
+        data_dev_pd = preprocessing.tokenize_data(data_dev_pd, 'essay')
+        
+        fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder)
+        lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=task_name)
+        lexicon_rating = lexicon_rating.reshape((-1, 1))
 
-    print('lexicon_rating.shape', lexicon_rating.shape)
-    print('lexicon_rating.shape', lexicon_rating.reshape((-1, 1)).shape)
-    #print(lexicon_rating)
-    #print('PEARSON R: ', pearsonr(labels, lexicon_rating))
+        features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
+        #print('PEARSON R: ', pearsonr(labels, lexicon_rating.reshape(-1)))
+
+    feature_dim = features.shape[1] if features is not None else 0
+
+    # ---------------------------
+    #       create model
+    # ---------------------------
+
+    model = UniPELTMultiinput(feature_dim=feature_dim)
 
 
-    #print('\n\nPEARSON R lexicon rating and empdim: ', pearsonr(emp_dim, lexicon_rating))
         
 
 

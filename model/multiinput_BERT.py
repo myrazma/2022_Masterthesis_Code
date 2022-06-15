@@ -387,8 +387,8 @@ def run(settings, root_folder=""):
     
     # create lexical features
     fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder)
-    data_train_pd = fc.create_lexical_feature(data_train_pd, 'essay_raw_tok')
-    data_dev_pd = fc.create_lexical_feature(data_dev_pd, 'essay_raw_tok')
+    data_train_pd = fc.create_lexical_feature_dataframe(data_train_pd, 'essay_raw_tok')
+    data_dev_pd = fc.create_lexical_feature_dataframe(data_dev_pd, 'essay_raw_tok')
 
     # --- Create hugginface datasets ---
     # TODO: Use all data later on
