@@ -734,10 +734,10 @@ def create_pca(my_args, tensorboard_writer=None, return_vocab=False, data_select
         return dim_pca, vocab
     return dim_pca
 
-def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir = 'plots/'):
+def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir='plots/'):
 
     # add '/' to plot dir if not already in 
-    if not plot_dir[-1:].contains('/'): 
+    if '/' not in plot_dir[-1:]: 
         plot_dir = plot_dir + '/'
     # check if plot dir exists, if not create dir
     if not os.path.exists(plot_dir):
