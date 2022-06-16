@@ -19,8 +19,8 @@ import sys
 from funcs_mcm import BERTSentence
 sys.path.append(os.path.join(os.path.dirname(__file__),'../'))
 from torch.utils.data import DataLoader
-import utils
-import preprocessing
+import utils.utils as utils
+import utils.preprocessing as preprocessing
 import matplotlib.pyplot as plt
 
 @dataclass

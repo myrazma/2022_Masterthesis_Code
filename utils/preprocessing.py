@@ -15,7 +15,7 @@ from datasets import Dataset, DatasetDict
 nltk.download('punkt')
 nltk.download('stopwords')
 
-import utils
+import utils as utils
 from EmpDim.pca import create_pca, MyArguments
 
 

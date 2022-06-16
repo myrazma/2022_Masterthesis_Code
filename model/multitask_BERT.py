@@ -40,8 +40,8 @@ from transformers.trainer_utils import get_last_checkpoint
 # import own module
 path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
-import utils
-import preprocessing
+import utils.utils as utils
+import utils.preprocessing as preprocessing
 
 logger = logging.getLogger(__name__)
 
