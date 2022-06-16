@@ -134,7 +134,7 @@ class DisDimPCA:
 
         return pca_pearsonr, pca_pearsonp
     
-    def plot_dis_dim_scores(self, sent_embeddings, true_scores, pca_pearsonr=None, title_add_on=''):
+    def plot_dis_dim_scores(self, sent_embeddings, true_scores, pca_pearsonr=None, title_add_on='', plot_dir='plots/'):
         sent_transformed = self.pca.transform(sent_embeddings)
         if isinstance(true_scores, list): true_scores = np.array(true_scores)
 
@@ -155,12 +155,12 @@ class DisDimPCA:
 
 
         filename = f'{self.model_name}_{self.task_name}{title_add_on}'
-        plt.savefig(f'EmpDim/plots/{filename}.pdf')
+        plt.savefig(f'EmpDim/{plot_dir}{filename}.pdf')
         if self.tensorboard_writer is not None:
             self.tensorboard_writer.add_figure(f'Scatter Predictions - {title_add_on}', plt.gcf())
         plt.close()
 
-    def scatter_vocab_words(self, vocab, x=None, colormap='pink', title_add_on='', ylabel='', xlabel='', set_y_random=True, use_cmap=True):
+    def scatter_vocab_words(self, vocab, x=None, colormap='pink', title_add_on='', ylabel='', xlabel='', set_y_random=True, use_cmap=True, plot_dir='plots/'):
         
         def normalize(vals, scale=None):
             if scale is None:
@@ -213,7 +213,7 @@ class DisDimPCA:
         plt.xlabel(xlabel)
         plt.title(f'{self.task_name} Dimension - Vocabulary for PCA \n the color represents the smilarity to the human scores from the lexicon (0 means simsilar, 1 not similar)')
         filename = f'PCA_Vocab_{self.model_name}{title_add_on}'
-        plt.savefig(f'EmpDim/plots/{filename}.pdf')
+        plt.savefig(f'EmpDim/{plot_dir}{filename}.pdf')
 
         if self.tensorboard_writer is not None:
             self.tensorboard_writer.add_figure(f'Scatter Words - {title_add_on}', plt.gcf())
@@ -598,14 +598,14 @@ def save_run(data_dict, filename=None, tensorboard_writer=None):
     df.to_csv(filename, sep=',')
 
 
-def scatter_vocab(vocab, title):
+def scatter_vocab(vocab, title, plot_dir):
         scores = [item[1] for item in vocab]
         random_y = [random.uniform(0, 1) for i in range(len(scores))]
         plt.scatter(scores, random_y, label=title)
         plt.ylabel('random values')
         plt.xlabel('empathy / distress score')
         plt.legend(loc=3)
-        plt.savefig(f'EmpDim/plots/PCA_{title}.pdf')
+        plt.savefig(f'EmpDim/{plot_dir}PCA_{title}.pdf')
         plt.close()
 
 def run():
@@ -734,13 +734,20 @@ def create_pca(my_args, tensorboard_writer=None, return_vocab=False, data_select
         return dim_pca, vocab
     return dim_pca
 
-def evaluate_pca(my_args, dim_pca, vocab, data_selector=None):
+def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir = 'plots/'):
+
+    # add '/' to plot dir if not already in 
+    if not plot_dir[-1:].contains('/'): 
+        plot_dir = plot_dir + '/'
+    # check if plot dir exists, if not create dir
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
 
     if data_selector is None:
         data_selector = DataSelector()
 
     print(f'overall vocabulary length: {len(vocab)}')
-    scatter_vocab(vocab, f'{my_args.vocab_type}_{my_args.vocab_center_strategy}')
+    scatter_vocab(vocab, f'{my_args.vocab_type}_{my_args.vocab_center_strategy}', plot_dir=plot_dir)
     
     empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=my_args.data_dir)
 
@@ -759,8 +766,8 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None):
     eigen_vec = dim_pca.pca.components_
     projection_highest_var = eigen_vec[0]
 
-    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_random_y_dimension')
-    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_dimension', set_y_random=False)
+    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_random_y_dimension', plot_dir=plt.plot_dir)
+    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_dimension', set_y_random=False, plot_dir=plt.plot_dir)
 
     # ------------------------------
     #    Analyse the PCA outcome
@@ -777,13 +784,13 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None):
     plt.ylabel(f'{my_args.task_name} score')
     plt.xlabel('PCA dim')
     plt.title(f'PC1 covering {var[0]}')
-    plt.savefig('EmpDim/plots/PCA_dim.pdf')
+    plt.savefig(f'EmpDim/{plot_dir}PCA_dim.pdf')
     plt.close()
     
     # plot cumsum
     plt.plot(var.cumsum())
     plt.xticks(list(range(len(var))))
-    plt.savefig('EmpDim/plots/PCA_var_cumsum.pdf')    
+    plt.savefig(f'EmpDim/{plot_dir}PCA_var_cumsum.pdf')    
     plt.close()
 
 
@@ -805,7 +812,7 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None):
     note = 'all_words_rand'
     all_words_rand_embeddings = dim_pca.sent_model.get_sen_embedding(all_words_rand)
     r_rand, p_rand = dim_pca.correlate_dis_dim_scores(all_words_rand_embeddings, all_words_rand_labels, printing=True)
-    dim_pca.plot_dis_dim_scores(all_words_rand_embeddings, all_words_rand_labels, r_rand, title_add_on=note)
+    dim_pca.plot_dis_dim_scores(all_words_rand_embeddings, all_words_rand_labels, r_rand, title_add_on=note, plot_dir=plot_dir)
     dim_pca.update_log(my_args, 
                 pearson_r=r_rand, 
                 pearson_p=p_rand, 
