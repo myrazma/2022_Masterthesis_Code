@@ -39,6 +39,7 @@ path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
 import utils.utils as utils
 import utils.preprocessing as preprocessing
+import utils.feature_creator as feature_creator
 
 
 class BertMultiInput(nn.Module):
@@ -386,7 +387,7 @@ def run(settings, root_folder=""):
     data_dev_pd = preprocessing.tokenize_data(data_dev_pd, 'essay_raw')
     
     # create lexical features
-    fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder)
+    fc = feature_creator.FeatureCreator(data_root_folder=data_root_folder)
     data_train_pd = fc.create_lexical_feature_dataframe(data_train_pd, 'essay_raw_tok')
     data_dev_pd = fc.create_lexical_feature_dataframe(data_dev_pd, 'essay_raw_tok')
 

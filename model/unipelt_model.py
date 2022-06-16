@@ -26,8 +26,9 @@ import sys
 from torch import t
 path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
-import utils as utils
-import preprocessing as preprocessing
+import utils.utils as utils
+import utils.preprocessing as preprocessing
+import utils.feature_creator as feature_creator
 
 import importlib
 unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
@@ -254,7 +255,7 @@ def run():
     # The feature array will have additional features, if wanted, else it will stay None
     features = None
 
-    fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder, device=device)
+    fc = feature_creator.FeatureCreator(data_root_folder=data_root_folder, device=device)
 
     # --- create pca - empathy / distress dimension features ---
     if use_pca_features:
@@ -270,7 +271,6 @@ def run():
         data_train_pd = preprocessing.tokenize_data(data_train_pd, 'essay')
         data_dev_pd = preprocessing.tokenize_data(data_dev_pd, 'essay')
         
-        fc = preprocessing.FeatureCreator(data_root_folder=data_root_folder)
         lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=task_name)
         lexicon_rating = lexicon_rating.reshape((-1, 1))
 
