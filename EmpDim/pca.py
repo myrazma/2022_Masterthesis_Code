@@ -598,7 +598,7 @@ def save_run(data_dict, filename=None, tensorboard_writer=None):
     df.to_csv(filename, sep=',')
 
 
-def scatter_vocab(vocab, title, plot_dir):
+def scatter_vocab(vocab, title, plot_dir='plots/'):
         scores = [item[1] for item in vocab]
         random_y = [random.uniform(0, 1) for i in range(len(scores))]
         plt.scatter(scores, random_y, label=title)
@@ -756,7 +756,7 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir='plots/')
     else:
         lexicon = empathy_lex
 
-    scatter_vocab(vocab, f'{my_args.vocab_type}_{my_args.vocab_center_strategy}')
+    scatter_vocab(vocab, f'{my_args.vocab_type}_{my_args.vocab_center_strategy}', plot_dir=plot_dir)
     vocab_sentences = [item[0] for item in vocab] # get sentences
     vocab_labels = np.array([item[1] for item in vocab]).reshape(-1, 1) # get the labels
     vocab_embeddings = dim_pca.sent_model.get_sen_embedding(vocab_sentences)
@@ -766,8 +766,8 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir='plots/')
     eigen_vec = dim_pca.pca.components_
     projection_highest_var = eigen_vec[0]
 
-    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_random_y_dimension', plot_dir=plt.plot_dir)
-    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_dimension', set_y_random=False, plot_dir=plt.plot_dir)
+    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_random_y_dimension', plot_dir=plot_dir)
+    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_dimension', set_y_random=False, plot_dir=plot_dir)
 
     # ------------------------------
     #    Analyse the PCA outcome
