@@ -1,3 +1,4 @@
+wandb_entity="masterthesis-zmarsly"
 pelt_method="unipelt_apl"
 # UniPELT APL
 if [ $pelt_method == "unipelt_apl" ]; then
