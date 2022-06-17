@@ -21,8 +21,11 @@ python model/unipelt_model.py \
     --do_eval True \
     --do_train True \
     --num_train_epochs 15 \
+    --num_train_epochs 2 \
     --per_device_eval_batch_size 16 \
     --per_device_train_batch_size 16 \
+    --max_train_samples 100 \
+    --max_val_samples 100 \
     --early_stopping_patience 5 \
     --logging_strategy epoch \
     --evaluation_strategy epoch \
