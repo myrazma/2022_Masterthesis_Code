@@ -28,22 +28,17 @@ from torch import t
 path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
 import utils.utils as utils
-#import utils.preprocessing as preprocessing
-import utils.feature_creator as feature_creator # TODO UNBEGINGT EINKOMMENTIEREN
+import utils.feature_creator as feature_creator
+from utils.arguments import PCAArguments
 
 
+
+
+
+# get imports from the submodule
 sys.path.append(str(path_root))
-
-print(sys.path)
-
 sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules/2022_Masterthesis_UnifiedPELT'))
-import transformers
-
-sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules/2022_Masterthesis_UnifiedPELT/transformers'))  # TODO: Is this leading to some mixup?
-
-print(sys.path)
-
-#sys.exit(-1)
+sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules/2022_Masterthesis_UnifiedPELT/transformers')) 
 
 import importlib
 #import transformers
@@ -271,40 +266,6 @@ def run():
 
     labels = data_train_pd[task_name].to_numpy().reshape(-1)
 
-    # ---------------------------
-    #       get the features
-    # ---------------------------
-
-    # The feature array will have additional features, if wanted, else it will stay None
-    features = None
-
-    fc = feature_creator.FeatureCreator(data_root_folder=data_root_folder, device=device)
-
-    # --- create pca - empathy / distress dimension features ---
-    if use_pca_features:
-        emp_dim = fc.create_pca_feature(data_train_pd['essay'], task_name=task_name)
-        print('emp_dim.shape', emp_dim.shape)
-        emp_dim = emp_dim.reshape((-1, 1))
-        #print('PEARSON R: ', pearsonr(labels, emp_dim.reshape(-1)))
-        features = emp_dim if features is None else np.hstack((features, emp_dim))
-
-
-    # --- create lexical features ---
-    if use_lexical_features:
-        data_train_pd = unipelt_preprocessing.tokenize_data(data_train_pd, 'essay')
-        data_dev_pd = unipelt_preprocessing.tokenize_data(data_dev_pd, 'essay')
-        
-        lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=task_name)
-        lexicon_rating = lexicon_rating.reshape((-1, 1))
-
-        features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
-        #print('PEARSON R: ', pearsonr(labels, lexicon_rating.reshape(-1)))
-
-    feature_dim = features.shape[1] if features is not None else 0
-
-    # ---------------------------
-    #       create model
-    # ---------------------------
 
 
 
@@ -327,7 +288,7 @@ def main():
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
-    parser = HfArgumentParser((unipelt_arguments.ModelArguments, unipelt_arguments.DataTrainingArguments, TrainingArguments, MultiLingAdapterArguments))
+    parser = HfArgumentParser((unipelt_arguments.ModelArguments, unipelt_arguments.DataTrainingArguments, TrainingArguments, MultiLingAdapterArguments, PCAArguments))
 
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
@@ -336,8 +297,11 @@ def main():
             json_file=os.path.abspath(sys.argv[1])
         )
     else:
-        model_args, data_args, training_args, adapter_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, training_args, adapter_args, pca_args = parser.parse_args_into_dataclasses()
 
+    print('\n\n')
+    print('data_args.task_name', data_args.task_name)
+    print('pca_args.task_name', pca_args.task_name)
     # Detecting last checkpoint.
     last_checkpoint = None
     if os.path.isdir(training_args.output_dir) and training_args.do_train and not training_args.overwrite_output_dir:
@@ -411,6 +375,44 @@ def main():
     data_train_pd = utils.clean_raw_data(data_train_pd)
     data_dev_pd = utils.clean_raw_data(data_dev_pd)
     data_test_pd = utils.clean_raw_data(data_test_pd)
+    # ---------------------------
+    #       get the features
+    # ---------------------------
+
+    # The feature array will have additional features, if wanted, else it will stay None
+    features = None
+
+    fc = feature_creator.FeatureCreator(data_root_folder=data_args.data_dir, device=training_args.device, pca_args=pca_args)
+
+    # --- create pca - empathy / distress dimension features ---
+    if model_args.use_pca_features:
+        emp_dim = fc.create_pca_feature(data_train_pd['essay'], task_name=task_name)
+        print('emp_dim.shape', emp_dim.shape)
+        emp_dim = emp_dim.reshape((-1, 1))
+        #print('PEARSON R: ', pearsonr(labels, emp_dim.reshape(-1)))
+        features = emp_dim if features is None else np.hstack((features, emp_dim))
+
+
+    # --- create lexical features ---
+    if model_args.use_lexical_features:
+        data_train_pd = unipelt_preprocessing.tokenize_data(data_train_pd, 'essay')
+        data_dev_pd = unipelt_preprocessing.tokenize_data(data_dev_pd, 'essay')
+        
+        lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=task_name)
+        lexicon_rating = lexicon_rating.reshape((-1, 1))
+
+        features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
+        #print('PEARSON R: ', pearsonr(labels, lexicon_rating.reshape(-1)))
+
+    feature_dim = features.shape[1] if features is not None else 0
+
+    if features is not None: print('Adding features of size:', features.shape[1])
+
+    #TODO: Add the features to the model data!!
+    # Add to pandas or later to dataset?
+
+
+
 
     # Padding strategy
     if data_args.pad_to_max_length:
@@ -430,7 +432,7 @@ def main():
     dataset_emp_train, dataset_dis_train = unipelt_preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
     dataset_emp_dev, dataset_dis_dev = unipelt_preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
     dataset_emp_test, dataset_dis_test = unipelt_preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
-    
+    print(dataset_emp_train)
 
     # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
@@ -495,6 +497,7 @@ def main():
         config.drop_first_prefix_layers_dec = list(range(model_args.drop_first_layers - num_layers))
         config.drop_first_prefix_layers_cross = list(range(model_args.drop_first_layers - num_layers))
 
+
     #model = AutoModelForSequenceClassification.from_pretrained(
     #    model_args.model_name_or_path,
     #    from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -504,6 +507,9 @@ def main():
     #    use_auth_token=True if model_args.use_auth_token else None,
     #)
 
+    # ---------------------------
+    #       create model
+    # ---------------------------
     model = MultiinputBertForSequenceClassification(
         #model_args.model_name_or_path,
         #from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -511,7 +517,7 @@ def main():
         #cache_dir=model_args.cache_dir,
         #revision=model_args.model_revision,
         #use_auth_token=True if model_args.use_auth_token else None,
-        feature_dim=0
+        feature_dim=feature_dim
     )
 
     # Setup adapters
