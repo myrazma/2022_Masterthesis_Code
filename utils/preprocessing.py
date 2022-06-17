@@ -149,72 +149,79 @@ def create_dataloaders_multi_in(inputs, masks, labels, lexical_features, batch_s
 #         Complete Preprocessing of the data
 # ---------------------------------------------------
 
-def get_preprocessed_dataset(data_train_pd, data_dev_pd, tokenizer, data_root_folder, seed=17, max_length=256):
+
+def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=False, padding='max_length'):
     """Preprocess the data from input as pandas pd and return a TensorDataset
     
     Do the following steps:
     1. Tokenize data using the tokeniezr
     2. Shuffle the data
     3. Normalize the empathy and distress scores from [1,7] to [0,1]
-    4. Create Tensor Dataset
+    4. Create Tensor Dataset (or huggingface dataset)
 
     Returns the datasets separated by empatyh and distress and dev and train.
 
     Args:
-        settings (dict): _description_
-        data_train_pd (pd.DataFrame): _description_
-        data_dev_pd (pd.DataFrame): _description_
+        data_pd (pd.DataFrame): _description_
         tokenizer (_type_): _description_
-        data_root_folder (str): _description_
+        seed (int): The seed
+        return_huggingface_ds (bool): Return data as huggingface dataset from datasets library. Default: False.
 
     Returns:
         TensorDataset, TensorDataset, TensorDataset, TensorDataset: dataset_emp_train, dataset_emp_dev, dataset_dis_train, dataset_dis_dev
     """
-    
+
+    # check if the dataset has labels (not True for test set)
+    if 'empathy' in data_pd.columns or 'distress' in data_pd.columns:
+        has_label = True
+    else:
+        has_label = False
+
     # --- Create hugginface datasets ---
-    data_train = pd_to_dataset(data_train_pd)
-    data_dev = pd_to_dataset(data_dev_pd)
+    data = pd_to_dataset(data_pd)
 
     # -------------------
     #   preprocess data
     # -------------------
+    data_encoded = data.map(lambda x: tokenize(x, tokenizer, 'essay', padding), batched=True, batch_size=None)
 
-    data_train_encoded = data_train.map(lambda x: tokenize(x, tokenizer, 'essay', max_length=max_length), batched=True, batch_size=None)
-    data_dev_encoded = data_dev.map(lambda x: tokenize(x, tokenizer, 'essay', max_length=max_length), batched=True, batch_size=None)
 
     # --- shuffle data ---
-    data_train_encoded_shuff = data_train_encoded.shuffle(seed=seed)
-    data_dev_encoded_shuff = data_dev_encoded.shuffle(seed=seed)
-
+    data_encoded_shuff = data_encoded.shuffle(seed=seed)
     # get input_ids, attention_mask and labels as numpy arrays and cast types
-    # train
-    input_ids_train = np.array(data_train_encoded_shuff["input_ids"]).astype(int)
-    attention_mask_train = np.array(data_train_encoded_shuff["attention_mask"]).astype(int)
-    label_empathy_train = np.array(data_train_encoded_shuff["empathy"]).astype(np.float32).reshape(-1, 1)
-    label_distress_train = np.array(data_train_encoded_shuff["distress"]).astype(np.float32).reshape(-1, 1)
-    
-    # dev
-    input_ids_dev = np.array(data_dev_encoded_shuff["input_ids"]).astype(int)
-    attention_mask_dev = np.array(data_dev_encoded_shuff["attention_mask"]).astype(int)
-    label_empathy_dev = np.array(data_dev_encoded_shuff["empathy"]).astype(np.float32).reshape(-1, 1)
-    label_distress_dev = np.array(data_dev_encoded_shuff["distress"]).astype(np.float32).reshape(-1, 1)
-    
-    # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
-    label_scaled_empathy_train = normalize_scores(label_empathy_train, (1,7))
-    label_scaled_empathy_dev = normalize_scores(label_empathy_dev, (1,7))
-    label_scaled_distress_train = normalize_scores(label_distress_train, (1,7))
-    label_scaled_distress_dev = normalize_scores(label_distress_dev, (1,7))
+    input_ids_train = np.array(data_encoded_shuff["input_ids"]).astype(int)
+    attention_mask_train = np.array(data_encoded_shuff["attention_mask"]).astype(int)
+    if has_label:
+        label_empathy_train = np.array(data_encoded_shuff["empathy"]).astype(np.float32).reshape(-1, 1)
+        label_distress_train = np.array(data_encoded_shuff["distress"]).astype(np.float32).reshape(-1, 1)
 
-        
-    # --- create datasets ---
-    # for empathy
-    dataset_emp_train = create_tensor_data(input_ids_train, attention_mask_train, label_scaled_empathy_train)
-    dataset_emp_dev = create_tensor_data(input_ids_dev, attention_mask_dev, label_scaled_empathy_dev)
-    # for distress
-    dataset_dis_train = create_tensor_data(input_ids_train, attention_mask_train, label_scaled_distress_train)
-    dataset_dis_dev = create_tensor_data(input_ids_dev, attention_mask_dev, label_scaled_distress_dev)
+        # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
+        label_scaled_empathy_train = normalize_scores(label_empathy_train, (1,7))
+        label_scaled_distress_train = normalize_scores(label_distress_train, (1,7))
 
-    return dataset_emp_train, dataset_emp_dev, dataset_dis_train, dataset_dis_dev
+        # --- create datasets ---
+        # for empathy
+        dataset_emp_train = create_tensor_data(input_ids_train, attention_mask_train, label_scaled_empathy_train)
+        # for distress
+        dataset_dis_train = create_tensor_data(input_ids_train, attention_mask_train, label_scaled_distress_train)
+
+        if return_huggingface_ds:
+            # --- create panda DataFrame datasets ---
+            # for empathy
+            dataset_emp_train = Dataset.from_dict({'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_empathy_train})
+            # for distress
+            dataset_dis_train = Dataset.from_dict({'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_distress_train})
+    else:  # for test set
+        # --- create datasets ---
+        dataset_emp_train = create_tensor_data(input_ids_train, attention_mask_train)
+        dataset_dis_train = create_tensor_data(input_ids_train, attention_mask_train)
+
+        if return_huggingface_ds:
+            # --- create panda DataFrame datasets ---
+            dataset_emp_train = Dataset.from_dict({'input_ids': input_ids_train, 'attention_mask':attention_mask_train})
+            dataset_dis_train = Dataset.from_dict({'input_ids': input_ids_train, 'attention_mask':attention_mask_train})
+
+    return dataset_emp_train, dataset_dis_train
 
 
 

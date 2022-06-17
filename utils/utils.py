@@ -27,6 +27,21 @@ def load_data(data_root_folder="../data/"):
     data_dev = features_dev.join(labels_dev)
     return data_train, data_dev
 
+def load_data_complete(train_file='', dev_file='', dev_label_file='', test_file=''):
+    # dev and train data
+    # TODO check if files are available / downloaded
+    data_train = pd.read_csv(train_file, sep='\t') if train_file != '' else None
+    features_dev = pd.read_csv(dev_file, sep='\t') if dev_file != '' else None
+    labels_dev = pd.read_csv(dev_label_file, sep='\t', header=None) if dev_label_file != '' else None
+    data_test = pd.read_csv(test_file, sep='\t') if test_file != '' else None
+    
+    if features_dev is not None:
+        # specify label columns
+        label_columns = ['empathy', 'distress', 'emotion', 'personality_conscientiousness', 'personality_openess', 'personality_extraversion', 'personality_agreeableness', 'personality_stability', 'iri_perspective_taking',  'iri_personal_distress', 'iri_fantasy','iri_empathatic_concern']
+        # since dev labels initially have no column names, add them manually
+        labels_dev.columns = label_columns
+        data_dev = features_dev.join(labels_dev)
+    return data_train, data_dev, data_test
 
 def clean_raw_data(data_df):
     """Preprocess raw data and dev data including the following steps:

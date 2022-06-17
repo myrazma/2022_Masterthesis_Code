@@ -464,7 +464,8 @@ def run_model(model, settings, device, model_type, root_folder=""):
         tokenizer = BertTokenizer.from_pretrained(bert_type)
 
     # --- get fully preprocessed data ---
-    dataset_emp_train, dataset_emp_dev, dataset_dis_train, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_train_pd, data_dev_pd, tokenizer, data_root_folder, settings['seed'])
+    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, seed=settings['seed'])
+    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, seed=settings['seed'])
     # --- create dataloader ---
     # for empathy
     dataloader_emp_train = DataLoader(dataset_emp_train, batch_size=batch_size, shuffle=True)

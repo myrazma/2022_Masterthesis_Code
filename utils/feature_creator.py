@@ -9,7 +9,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'../'))
 
 
 import utils.utils as utils
-from EmpDim.pca import create_pca, MyArguments
+from EmpDim.pca import create_pca
+from utils.arguments import PCAArguments
 
 
 class FeatureCreator():
@@ -19,7 +20,7 @@ class FeatureCreator():
         self.lexicon_dict = {'empathy': self.empathy_lex, 'distress': self.distress_lex}  # lexicon where we can get the features by key / task_name
 
         self.__pca_dict = {}
-        self.pca_args = MyArguments if pca_args is None else pca_args
+        self.pca_args = PCAArguments if pca_args is None else pca_args
     
     def create_lexical_feature_dataframe(self, data_pd, column_name='essay_tok', task_name=['empathy', 'distress']):
         # create lexical feature for a pandas dataframe
