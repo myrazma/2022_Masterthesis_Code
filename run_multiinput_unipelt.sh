@@ -29,9 +29,16 @@ vocab_size=10
 use_pca_features=False
 use_lexical_features=False
 
+
+# for testing. if not delete:
+# max_train_samples
+# max_val_samples
+# set num_train_epochs to 15 again
+
+
 # call the python file with stated parameters
 python model/unipelt_model.py \
-    --task_name ${task_name}
+    --task_name ${task_name} \
     --data_dir data/ \
     --output_dir output/unipelt_output  \
     --overwrite_output_dir \
