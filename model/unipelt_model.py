@@ -127,12 +127,6 @@ AdapterLayerBaseMixin = getattr(importlib.import_module('submodules.2022_Mastert
 import pandas as pd
 import importlib.util
 
-print('sucess')
-
-config = AutoConfig.from_pretrained('bert-base-uncased')
-test_model = unipelt_transformers.BertModel(config)
-print(test_model)
-sys.exit(-1)
 
 # Setup wandb
 package_name = 'wandb'
@@ -141,6 +135,8 @@ if WANDB_AVAILABLE:
     import wandb
 else:
     print(package_name +" is not installed. Not used here.")
+
+print('Sucessfullly loaded all packages')
 
 check_min_version("4.5.0")
 
@@ -304,7 +300,6 @@ def run():
     #       create model
     # ---------------------------
 
-    model = MultiinputBertForSequenceClassification(feature_dim=feature_dim)
 
 
 
@@ -502,6 +497,21 @@ def main():
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
+
+    print('\n AutoModelForSequenceClassification')
+    print(model)
+    model = MultiinputBertForSequenceClassification(
+        model_args.model_name_or_path,
+        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        config=config,
+        cache_dir=model_args.cache_dir,
+        revision=model_args.model_revision,
+        use_auth_token=True if model_args.use_auth_token else None,
+        feature_dim=0
+    )
+    print('\n MultiinputBertForSequenceClassification')
+    print(model)
+    sys.exit(-1)
 
     # Setup adapters
     if adapter_args.train_adapter:
@@ -1066,5 +1076,5 @@ if __name__ == "__main__":
 
 
 
-if __name__ == '__main__':
-    run()
+#if __name__ == '__main__':
+#    run()
