@@ -11,7 +11,7 @@ if [ $pelt_method == "unipelt_apl" ]; then
 fi
 
 # call the python file with stated parameters
-python run_emp.py \
+python model/unipelt_model.py \
     --data_dir data/ \
     --output_dir output/unipelt_output  \
     --overwrite_output_dir \
