@@ -28,7 +28,7 @@ from torch import t
 path_root = Path(__file__).parents[1]
 sys.path.append(str(path_root))
 import utils.utils as utils
-import utils.preprocessing as preprocessing
+#import utils.preprocessing as preprocessing
 import utils.feature_creator as feature_creator # TODO UNBEGINGT EINKOMMENTIEREN
 
 
@@ -49,6 +49,7 @@ import importlib
 import transformers
 unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
 unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
+unipelt_preprocessing = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing')
 unipelt_arguments = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.arguments')
 
 # from unipelt transformers
@@ -285,8 +286,8 @@ def run():
 
     # --- create lexical features ---
     if use_lexical_features:
-        data_train_pd = preprocessing.tokenize_data(data_train_pd, 'essay')
-        data_dev_pd = preprocessing.tokenize_data(data_dev_pd, 'essay')
+        data_train_pd = unipelt_preprocessing.tokenize_data(data_train_pd, 'essay')
+        data_dev_pd = unipelt_preprocessing.tokenize_data(data_dev_pd, 'essay')
         
         lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=task_name)
         lexicon_rating = lexicon_rating.reshape((-1, 1))
@@ -421,9 +422,9 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
-    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
-    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
+    dataset_emp_train, dataset_dis_train = unipelt_preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
+    dataset_emp_dev, dataset_dis_dev = unipelt_preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
+    dataset_emp_test, dataset_dis_test = unipelt_preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
     
 
     # --- choose dataset and data loader based on empathy ---
