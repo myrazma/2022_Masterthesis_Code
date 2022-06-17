@@ -46,11 +46,15 @@ print(sys.path)
 #sys.exit(-1)
 
 import importlib
-import transformers
-unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
-unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
-unipelt_preprocessing = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing')
-unipelt_arguments = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.arguments')
+#import transformers
+try:
+    unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
+    unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
+    unipelt_preprocessing = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing')
+    unipelt_arguments = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.arguments')
+except:
+    print('The UniPelt Input is not available. \n Please import the submodule in "submodules.2022_Masterthesis_UnifiedPELT". Exiting.')
+    sys.exit(-1)
 
 # from unipelt transformers
 
