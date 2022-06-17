@@ -155,6 +155,7 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
     def __init__(self, config, feature_dim):
         super().__init__(config)
         self.num_labels = config.num_labels
+        print(config)
 
         self.bert = unipelt_transformers.BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -506,12 +507,12 @@ def main():
     print('\n AutoModelForSequenceClassification')
     print(model)
     model = MultiinputBertForSequenceClassification(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        #model_args.model_name_or_path,
+        #from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        use_auth_token=True if model_args.use_auth_token else None,
+        #cache_dir=model_args.cache_dir,
+        #revision=model_args.model_revision,
+        #use_auth_token=True if model_args.use_auth_token else None,
         feature_dim=0
     )
     print('\n MultiinputBertForSequenceClassification')
