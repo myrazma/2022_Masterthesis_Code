@@ -9,7 +9,7 @@ datasets==2.0.0
 pytorch==1.10.0
 torchvision==0.11.0
 torchaudio==0.10.0
-cudatoolkit=11.3
+cudatoolkit==11.3
 adapter-transformers==3.0.0
 tensorboard==2.7.0
 sentence-transformers
