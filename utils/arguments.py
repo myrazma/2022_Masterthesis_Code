@@ -21,7 +21,7 @@ class DataTrainingArguments:
     # edited by Myra Z.
     task_name: Optional[str] = field(
         default='distress',
-        metadata={"help": "The name of the task to train on: " + ", ".join(task_to_keys.keys())},
+        metadata={"help": "The name of the task to train on"},
     )
     # edited by Myra Z.
     max_seq_length: int = field(
