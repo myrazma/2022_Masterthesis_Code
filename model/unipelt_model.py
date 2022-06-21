@@ -39,6 +39,7 @@ import time
 
 # get imports from the submodule
 sys.path.append(str(path_root))
+sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules'))
 sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules/2022_Masterthesis_UnifiedPELT'))
 sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules/2022_Masterthesis_UnifiedPELT/transformers')) 
 print(sys.path)
