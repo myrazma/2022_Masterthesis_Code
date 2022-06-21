@@ -279,8 +279,6 @@ def run():
 
     data_root_folder = 'data/'
     task_name = 'distress'
-    use_pca_features = True
-    use_lexical_features = True
 
     # ---------------------------
     #   Load and prepocess data
@@ -401,7 +399,9 @@ def main():
     # Create RTPT object
     if RTPT_AVAILABLE:
         exp_name = 'DistressedBERT' if data_args.task_name == 'distress' else 'EmpathicBERT'
-        rtpt = RTPT(name_initials='MZ', experiment_name=exp_name, max_iterations=10)  
+        rtpt = RTPT(name_initials='MZ', experiment_name=exp_name, max_iterations=model_args.num_train_epochs)
+        # Start the RTPT tracking
+        rtpt.start()  
     else:
         rtpt = None
 
@@ -424,7 +424,7 @@ def main():
 
     # --- create pca - empathy / distress dimension features ---
     if model_args.use_pca_features:
-        emp_dim = fc.create_pca_feature(data_train_pd['essay'], task_name=task_name)
+        emp_dim = fc.create_pca_feature(data_train_pd['essay'], task_name=data_args.task_name)
         print('emp_dim.shape', emp_dim.shape)
         emp_dim = emp_dim.reshape((-1, 1))
         #print('PEARSON R: ', pearsonr(labels, emp_dim.reshape(-1)))
@@ -436,7 +436,7 @@ def main():
         data_train_pd = unipelt_preprocessing.tokenize_data(data_train_pd, 'essay')
         data_dev_pd = unipelt_preprocessing.tokenize_data(data_dev_pd, 'essay')
         
-        lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=task_name)
+        lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=data_args.task_name)
         lexicon_rating = lexicon_rating.reshape((-1, 1))
 
         features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
