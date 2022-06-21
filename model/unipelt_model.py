@@ -314,7 +314,7 @@ def main():
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
-    parser = HfArgumentParser((unipelt_arguments.ModelArguments, unipelt_arguments.DataTrainingArguments, TrainingArguments, MultiLingAdapterArguments, PCAArguments))
+    parser = HfArgumentParser((ModelArguments, unipelt_arguments.DataTrainingArguments, TrainingArguments, MultiLingAdapterArguments, PCAArguments))
 
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
