@@ -41,31 +41,31 @@ import time
 sys.path.append(str(path_root))
 sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules/2022_Masterthesis_UnifiedPELT'))
 sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules/2022_Masterthesis_UnifiedPELT/transformers')) 
-
+print(sys.path)
 import importlib
 #import transformers
 try:
     unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
 except:
-    print('The UniPelt Input is not available. \n Please import the submodule in "submodules.2022_Masterthesis_UnifiedPELT.transformers". Not exiting.')
+    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.transformers". Not exiting.')
     sys.exit(-1)
 
 try:
     unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
 except:
-    print('The UniPelt Input is not available. \n Please import the submodule in "submodules.2022_Masterthesis_UnifiedPELT.utils". Not exiting.')
-    sys.exit(-1)
+    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.utils". Not exiting.')
+ 
 
 try:
     unipelt_preprocessing = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing')
 except:
-    print('The UniPelt Input is not available. \n Please import the submodule in "submodules.2022_Masterthesis_UnifiedPELT.preprocessing". Not exiting.')
-    sys.exit(-1)
+    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.preprocessing". Not exiting.')
+
     
 try:
     unipelt_arguments = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.arguments')
 except:
-    print('The UniPelt Input is not available. \n Please import the submodule in "submodules.2022_Masterthesis_UnifiedPELT.arguments". Not exiting.')
+    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.arguments". Not exiting.')
     sys.exit(-1)
 # from unipelt transformers
 
