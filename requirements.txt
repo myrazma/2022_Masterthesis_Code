@@ -14,4 +14,3 @@ tensorboard==2.7.0
 sentence-transformers
 wandb
 rtpt
-cudatoolkit>=11.0
