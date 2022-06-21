@@ -50,10 +50,12 @@ except:
     print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.transformers". Not exiting.')
     sys.exit(-1)
 
-unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing.utils')
+unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
+
+print(unipelt_utils)
 
 try:
-    unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing.utils')
+    unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
 except:
     print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.utils". Not exiting.')
  
