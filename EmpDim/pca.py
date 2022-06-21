@@ -68,7 +68,7 @@ from EmpDim.funcs_mcm import BERTSentence
 from torch.utils.data import DataLoader
 import utils.utils as utils
 import utils.preprocessing as preprocessing
-from utils.arguments import PCAArguments
+from utils.arguments import PCAArguments, DataTrainingArguments
 
 
 ID = datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -221,7 +221,8 @@ class DisDimPCA:
 
 
     def update_log(self,
-                    arguments, 
+                    arguments,
+                    task_name, 
                     pearson_r=None, 
                     pearson_p=None, 
                     vocab=None,
@@ -240,7 +241,7 @@ class DisDimPCA:
                 
         new_row = pd.DataFrame({'id': str(ID),  # can also be trated as the individual id
                 'dim': arguments.dim,
-                'task_name': arguments.task_name,
+                'task_name': task_name,
                 'data_len': data_len,
                 'vocab_size': arguments.vocab_size,
                 'random_vocab': arguments.random_vocab,
@@ -263,7 +264,7 @@ class DisDimPCA:
         if self.tensorboard_writer is not None:
             hparam_dict = {'id': ID,  # can also be trated as the individual id
                     'dim': arguments.dim, 
-                    'task_name': arguments.task_name, 
+                    'task_name': task_name, 
                     'data_len': data_len,
                     'vocab_size': arguments.vocab_size,
                     'random_vocab': arguments.random_vocab,
@@ -622,25 +623,25 @@ def run():
 
 
     # get arguments
-    parser = HfArgumentParser(PCAArguments)
-    my_args = parser.parse_args_into_dataclasses()[0]
+    parser = HfArgumentParser(PCAArguments, DataTrainingArguments)
+    my_args, data_args = parser.parse_args_into_dataclasses()[0]
 
-    if my_args.task_name not in ['empathy', 'distress']:
+    if data_args.task_name not in ['empathy', 'distress']:
         print("task name not available, choose 'empathy' or 'distress' next time. Usign empathy now")
-        my_args.task_name = 'empathy'
+        data_args.task_name = 'empathy'
 
-    torch.manual_seed(my_args.seed)
-    random.seed(my_args.seed)
+    torch.manual_seed(data_args.data_seed)
+    random.seed(data_args.data_seed)
     
     str_center_strategy = '_' + my_args.vocab_center_strategy if 'mmn' in my_args.vocab_type else ''
-    tensorboard_writer = SummaryWriter(f'runs/{my_args.task_name}_{my_args.vocab_type}{str_center_strategy}{"_fdis" if my_args.use_freq_dist else ""}_{ID}{my_args.model_name}') if my_args.use_tensorboard else None
+    tensorboard_writer = SummaryWriter(f'runs/{data_args.task_name}_{my_args.vocab_type}{str_center_strategy}{"_fdis" if my_args.use_freq_dist else ""}_{ID}{my_args.model_name}') if data_args.use_tensorboard else None
 
     data_selector = DataSelector()
 
-    dim_pca, vocab = create_pca(my_args, tensorboard_writer=tensorboard_writer, return_vocab=True, data_selector=data_selector)
-    evaluate_pca(my_args, dim_pca, vocab)
+    dim_pca, vocab = create_pca(my_args, data_args, tensorboard_writer=tensorboard_writer, return_vocab=True, data_selector=data_selector)
+    evaluate_pca(my_args, data_args, dim_pca, vocab)
 
-def create_pca(my_args, tensorboard_writer=None, return_vocab=False, data_selector=None, device='cpu'):
+def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, data_selector=None, device='cpu'):
     # ------------------------------------
     # ------------------------------------
     #        Load pca if available 
@@ -657,14 +658,14 @@ def create_pca(my_args, tensorboard_writer=None, return_vocab=False, data_select
     # ------------------------
     #     Load the lexicon 
     # ------------------------
-    empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=my_args.data_dir)
+    empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=data_args.data_dir)
 
-    if my_args.task_name == 'distress':
+    if data_args.task_name == 'distress':
         lexicon = distress_lex
     else:
         lexicon = empathy_lex
 
-    print(f'Task name: {my_args.task_name}')
+    print(f'Task name: {data_args.task_name}')
     sorted_lexicon = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
     score_range = (1, 7)
     actual_score_range = (min([item[1] for item in sorted_lexicon]), max([item[1] for item in sorted_lexicon]) )
@@ -722,7 +723,7 @@ def create_pca(my_args, tensorboard_writer=None, return_vocab=False, data_select
     #   Do PCA with the vocab embeddings
     # ------------------------------------
     print('------------------ Start PCA ------------------')
-    dim_pca = DisDimPCA(n_components=my_args.dim, task_name=my_args.task_name, tensorboard_writer=tensorboard_writer, model_name=str(ID), device=device)
+    dim_pca = DisDimPCA(n_components=my_args.dim, task_name=data_args.task_name, tensorboard_writer=tensorboard_writer, model_name=str(ID), device=device)
 
     # get the sentence embeddings of the vocabulary
     vocab_embeddings = dim_pca.sent_model.get_sen_embedding(vocab_sentences)
@@ -734,7 +735,7 @@ def create_pca(my_args, tensorboard_writer=None, return_vocab=False, data_select
         return dim_pca, vocab
     return dim_pca
 
-def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir='plots/'):
+def evaluate_pca(my_args, data_args, dim_pca, vocab, data_selector=None, plot_dir='plots/'):
 
     # add '/' to plot dir if not already in 
     if '/' not in plot_dir[-1:]: 
@@ -749,9 +750,9 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir='plots/')
     print(f'overall vocabulary length: {len(vocab)}')
     scatter_vocab(vocab, f'{my_args.vocab_type}_{my_args.vocab_center_strategy}', plot_dir=plot_dir)
     
-    empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=my_args.data_dir)
+    empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=data_args.data_dir)
 
-    if my_args.task_name == 'distress':
+    if data_args.task_name == 'distress':
         lexicon = distress_lex
     else:
         lexicon = empathy_lex
@@ -766,8 +767,8 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir='plots/')
     eigen_vec = dim_pca.pca.components_
     projection_highest_var = eigen_vec[0]
 
-    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_random_y_dimension', plot_dir=plot_dir)
-    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{my_args.task_name}_dimension', set_y_random=False, plot_dir=plot_dir)
+    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{data_args.task_name}_random_y_dimension', plot_dir=plot_dir)
+    dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{data_args.task_name}_dimension', set_y_random=False, plot_dir=plot_dir)
 
     # ------------------------------
     #    Analyse the PCA outcome
@@ -781,7 +782,7 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir='plots/')
     pca_dim = transformed_emb[:, 0]
 
     plt.scatter(pca_dim, vocab_labels)
-    plt.ylabel(f'{my_args.task_name} score')
+    plt.ylabel(f'{data_args.task_name} score')
     plt.xlabel('PCA dim')
     plt.title(f'PC1 covering {var[0]}')
     plt.savefig(f'EmpDim/{plot_dir}PCA_dim.pdf')
@@ -813,7 +814,8 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir='plots/')
     all_words_rand_embeddings = dim_pca.sent_model.get_sen_embedding(all_words_rand)
     r_rand, p_rand = dim_pca.correlate_dis_dim_scores(all_words_rand_embeddings, all_words_rand_labels, printing=True)
     dim_pca.plot_dis_dim_scores(all_words_rand_embeddings, all_words_rand_labels, r_rand, title_add_on=note, plot_dir=plot_dir)
-    dim_pca.update_log(my_args, 
+    dim_pca.update_log(my_args,
+                data_args.task_name,
                 pearson_r=r_rand, 
                 pearson_p=p_rand, 
                 vocab=vocab,
@@ -835,6 +837,7 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir='plots/')
     r_even_15, p_even_15 = dim_pca.correlate_dis_dim_scores(embedding_input, true_labels, printing=True)
     dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_even_15, title_add_on=note)
     dim_pca.update_log(my_args, 
+                data_args.task_name,
                 pearson_r=r_even_15, 
                 pearson_p=p_even_15, 
                 vocab=vocab,
@@ -857,6 +860,7 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir='plots/')
     r_even_20, p_even_20 = dim_pca.correlate_dis_dim_scores(embedding_input, true_labels, printing=True)
     dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_even_20, title_add_on=note)
     dim_pca.update_log(my_args, 
+                data_args.task_name,
                 pearson_r=r_even_20, 
                 pearson_p=p_even_20, 
                 vocab=vocab,
@@ -907,16 +911,16 @@ def evaluate_pca(my_args, dim_pca, vocab, data_selector=None, plot_dir='plots/')
     print('\n Apply PCA to the essays \n')
     # --- preprocess data ---
     # - load data -
-    data_train_pd, data_dev_pd = utils.load_data(data_root_folder=my_args.data_dir)
+    data_train_pd, data_dev_pd = utils.load_data(data_root_folder=data_args.data_dir)
     data_train_pd = utils.clean_raw_data(data_train_pd[:200])
     #data_dev_pd = utils.clean_raw_data(data_dev_pd[:200])
 
     from sklearn.utils import shuffle
 
     train_sent = sent_model.get_sen_embedding(data_train_pd['essay'])
-    train_labels = np.array(data_train_pd[my_args.task_name]).reshape(-1, 1)
+    train_labels = np.array(data_train_pd[data_args.task_name]).reshape(-1, 1)
     print(len(train_sent))
-    train_sent, train_labels = shuffle(train_sent, train_labels, random_state=my_args.seed)
+    train_sent, train_labels = shuffle(train_sent, train_labels, random_state=data_args.data_seed)
     train_sent_transformed = dim_pca.transform(train_sent)  
 
     for i in range(train_sent_transformed.shape[1]):

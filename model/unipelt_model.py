@@ -31,6 +31,9 @@ import utils.utils as utils
 import utils.feature_creator as feature_creator
 from utils.arguments import PCAArguments
 
+import random
+import time
+
 
 
 
@@ -133,6 +136,15 @@ package_name = 'wandb'
 WANDB_AVAILABLE = importlib.util.find_spec("wandb") is not None
 if WANDB_AVAILABLE:
     import wandb
+else:
+    print(package_name +" is not installed. Not used here.")
+
+
+
+RTPT_AVAILABLE = importlib.util.find_spec("wandb") is not None
+
+if RTPT_AVAILABLE:
+    from rtpt import RTPT
 else:
     print(package_name +" is not installed. Not used here.")
 
@@ -301,7 +313,7 @@ def main():
 
     print('\n\n')
     print('data_args.task_name', data_args.task_name)
-    print('pca_args.task_name', pca_args.task_name)
+
     # Detecting last checkpoint.
     last_checkpoint = None
     if os.path.isdir(training_args.output_dir) and training_args.do_train and not training_args.overwrite_output_dir:
@@ -318,7 +330,7 @@ def main():
             )
 
     # set run dir for Model
-    training_args.logging_dir = model_args.tensorboard_output_dir  # write into the same directory
+    training_args.logging_dir = data_args.tensorboard_output_dir  # write into the same directory
 
     # Setup logging
     logging.basicConfig(
@@ -345,16 +357,16 @@ def main():
 
     # Setup writer for tensorboard if --use_tensorboard is True
     # per default stores in runs/ + output_dir, where the output dir is set to '' per default
-    tensorboard_writer = SummaryWriter(model_args.tensorboard_output_dir) if model_args.use_tensorboard else None
+    tensorboard_writer = SummaryWriter(data_args.tensorboard_output_dir) if data_args.use_tensorboard else None
 
     # Added by Myra Z.
     # setup wandb, use wandb if available
     # if entity is empty or None, don't use wandb no matter if the package is available or not
-    use_wandb = WANDB_AVAILABLE and (model_args.wandb_entity is not None or model_args.wandb_entity != '' or model_args.wandb_entity != 'None')
+    use_wandb = WANDB_AVAILABLE and (data_args.wandb_entity is not None or data_args.wandb_entity != '' or data_args.wandb_entity != 'None')
     print('Use wandb:', use_wandb)
     if use_wandb:  # should already be imported
         os.system('cmd /k "wandb login"')  # login
-        wandb.init(project="UniPELT", entity=model_args.wandb_entity, name=model_args.tensorboard_output_dir[5:])
+        wandb.init(project="UniPELT", entity=data_args.wandb_entity, name=data_args.tensorboard_output_dir[5:])
 
     # store model config
     if use_wandb:
@@ -364,9 +376,17 @@ def main():
             "add_lora": model_args.add_lora,
             "tune_bias": model_args.tune_bias,
             "learning_rate":training_args.learning_rate,
-            "tensorboard_output_dir":model_args.tensorboard_output_dir,
+            "tensorboard_output_dir":data_args.tensorboard_output_dir,
             "max_epochs":training_args.num_train_epochs
             })
+
+    # Create RTPT object
+    if RTPT_AVAILABLE:
+        exp_name = 'DistressedBERT' if data_args.task_name == 'distress' else 'EmpathicBERT'
+        rtpt = RTPT(name_initials='MZ', experiment_name=exp_name, max_iterations=10)  
+    else:
+        rtpt = None
+
 
     # ------------------------------
     # Data Loading
@@ -410,6 +430,7 @@ def main():
 
     #TODO: Add the features to the model data!!
     # Add to pandas or later to dataset?
+
 
 
 
