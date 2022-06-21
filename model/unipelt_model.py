@@ -420,7 +420,7 @@ def main():
     # The feature array will have additional features, if wanted, else it will stay None
     features = None
 
-    fc = feature_creator.FeatureCreator(data_root_folder=data_args.data_dir, device=training_args.device, pca_args=pca_args)
+    fc = feature_creator.FeatureCreator(pca_args=pca_args, data_args=data_args, device=training_args.device)
 
     # --- create pca - empathy / distress dimension features ---
     if model_args.use_pca_features:

@@ -10,17 +10,19 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'../'))
 
 import utils.utils as utils
 from EmpDim.pca import create_pca
-from utils.arguments import PCAArguments
+from utils.arguments import PCAArguments, DataTrainingArguments
 
 
 class FeatureCreator():
-    def __init__(self, data_root_folder='data/', pca_args=None, device='cpu'):
+    def __init__(self, pca_args=None, data_args=None, device='cpu'):
         self.device = device
-        self.empathy_lex, self.distress_lex = utils.load_empathy_distress_lexicon(data_root_folder)
+        self.data_root_folder = data_args.data_dir
+        self.empathy_lex, self.distress_lex = utils.load_empathy_distress_lexicon(self.data_root_folder)
         self.lexicon_dict = {'empathy': self.empathy_lex, 'distress': self.distress_lex}  # lexicon where we can get the features by key / task_name
 
         self.__pca_dict = {}
         self.pca_args = PCAArguments if pca_args is None else pca_args
+        self.data_args = DataTrainingArguments if data_args is None else data_args
     
     def create_lexical_feature_dataframe(self, data_pd, column_name='essay_tok', task_name=['empathy', 'distress']):
         # create lexical feature for a pandas dataframe
@@ -91,7 +93,7 @@ class FeatureCreator():
         if task not in self.__pca_dict.keys():
             task_lexicon = self.lexicon_dict[task]  # TODO: I am not using the lexicon here, to we have to?
             # TODO get all of this information:
-            dim_pca = create_pca(my_args=self.pca_args, tensorboard_writer=None, device=self.device)
+            dim_pca = create_pca(my_args=self.pca_args, data_args=self.data_args, tensorboard_writer=None, device=self.device)
             self.__pca_dict[task] = dim_pca
 
         return self.__pca_dict[task]
