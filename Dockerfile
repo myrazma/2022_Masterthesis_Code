@@ -5,7 +5,8 @@ WORKDIR /mzmarsly
 COPY requirements.txt .
 
 RUN pip install -r requirements.txt
-CMD ["pip3","install", "torch", "torchvision", "torchaudio", "--extra-index-url", "https://download.pytorch.org/whl/cu113"]
+  
+CMD ["pip3","install", "torch==1.10.1+cu111", "torchvision==0.11.2+cu111", "torchaudio==0.10.1", "--extra-index-url", "https://download.pytorch.org/whl/cu113"]
 
 # follwing is only needed for deployment
 # copy python files 
