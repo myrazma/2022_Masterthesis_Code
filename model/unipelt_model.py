@@ -399,7 +399,7 @@ def main():
     # Create RTPT object
     if RTPT_AVAILABLE:
         exp_name = 'DistressedBERT' if data_args.task_name == 'distress' else 'EmpathicBERT'
-        rtpt = RTPT(name_initials='MZ', experiment_name=exp_name, max_iterations=model_args.num_train_epochs)
+        rtpt = RTPT(name_initials='MZ', experiment_name=exp_name, max_iterations=training_args.num_train_epochs)
         # Start the RTPT tracking
         rtpt.start()  
     else:
