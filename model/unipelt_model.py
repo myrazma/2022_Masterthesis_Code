@@ -47,31 +47,13 @@ import importlib
 #import transformers
 try:
     unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
-except:
-    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.transformers". Not exiting.')
-    sys.exit(-1)
-
-unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
-
-print(unipelt_utils)
-
-try:
     unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
-except:
-    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.utils". Not exiting.')
- 
-
-try:
     unipelt_preprocessing = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing')
-except:
-    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.preprocessing". Not exiting.')
-
-    
-try:
     unipelt_arguments = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.arguments')
 except:
-    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.arguments". Not exiting.')
+    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT". Not exiting.')
     sys.exit(-1)
+
 # from unipelt transformers
 
 import logging
@@ -175,6 +157,20 @@ logger = logging.getLogger(__name__)
 COLORS = ['#029e72', '#e69f00', '#f0e441', '#57b4e8']
 
 
+@dataclass
+# Update model arguments data class from unipelt implementation with multiinput arguments
+class ModelArguments(unipelt_arguments.ModelArguments):
+
+    use_lexical_features: Optional[str] = field(
+        default='',
+        metadata={"help": "Wether or not to use lexical features."},
+    )
+    use_pca_features: Optional[str] = field(
+        default='',
+        metadata={"help": "Wether or not to use the pca features (Empathy / distress dimension)."},
+    )
+    
+    
 class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.model_mixin.ModelWithHeadsAdaptersMixin, unipelt_transformers.BertPreTrainedModel):
     # Re-implement BertForSequnceClassification of UniPELT implementation but with additional feature input
     def __init__(self, config, feature_dim):
@@ -330,7 +326,11 @@ def main():
         model_args, data_args, training_args, adapter_args, pca_args = parser.parse_args_into_dataclasses()
 
     print('\n\n')
-    print('data_args.task_name', data_args.task_name)
+    print('model_args.add_enc_prefix', data_args.add_enc_prefix)
+    print('model_args.lora_alpha', data_args.lora_alpha)
+    print('model_args.use_lexical_features', data_args.use_lexical_features)
+    print('model_args.use_pca_features', data_args.use_pca_features)
+    print('\n\n')
 
     # Detecting last checkpoint.
     last_checkpoint = None
