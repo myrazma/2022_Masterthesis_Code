@@ -326,10 +326,10 @@ def main():
         model_args, data_args, training_args, adapter_args, pca_args = parser.parse_args_into_dataclasses()
 
     print('\n\n')
-    print('model_args.add_enc_prefix', data_args.add_enc_prefix)
-    print('model_args.lora_alpha', data_args.lora_alpha)
-    print('model_args.use_lexical_features', data_args.use_lexical_features)
-    print('model_args.use_pca_features', data_args.use_pca_features)
+    print('model_args.add_enc_prefix', model_args.add_enc_prefix)
+    print('model_args.lora_alpha', model_args.lora_alpha)
+    print('model_args.use_lexical_features', model_args.use_lexical_features)
+    print('model_args.use_pca_features', model_args.use_pca_features)
     print('\n\n')
 
     # Detecting last checkpoint.
