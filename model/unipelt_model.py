@@ -484,7 +484,7 @@ def main():
         emp_dim_test = fc.create_pca_feature(emp_dim_test['essay'], task_name=data_args.task_name).reshape((-1, 1))
         
         # add features to dataset
-        train_dataset['features'] = emp_dim_train
+        train_dataset.features['lexicon'] = emp_dim_train
 
         #print('PEARSON R: ', pearsonr(labels, emp_dim.reshape(-1)))
         features = emp_dim_train if features is None else np.hstack((features, emp_dim_train))
