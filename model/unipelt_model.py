@@ -431,15 +431,21 @@ def main():
 
     fc = feature_creator.FeatureCreator(pca_args=pca_args, data_args=data_args, device=training_args.device)
 
+    print()
+    print()
+    print('features', features)
     # --- create pca - empathy / distress dimension features ---
+    print('model_args.use_pca_features', model_args.use_pca_features)
     if model_args.use_pca_features:
         emp_dim = fc.create_pca_feature(data_train_pd['essay'], task_name=data_args.task_name)
         print('emp_dim.shape', emp_dim.shape)
         emp_dim = emp_dim.reshape((-1, 1))
         #print('PEARSON R: ', pearsonr(labels, emp_dim.reshape(-1)))
         features = emp_dim if features is None else np.hstack((features, emp_dim))
+    print('features', features)
 
 
+    print('model_args.use_lexical_features', model_args.use_lexical_features)
     # --- create lexical features ---
     if model_args.use_lexical_features:
         data_train_pd = unipelt_preprocessing.tokenize_data(data_train_pd, 'essay')
@@ -450,8 +456,15 @@ def main():
 
         features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
         #print('PEARSON R: ', pearsonr(labels, lexicon_rating.reshape(-1)))
+    print('features', features)
 
     feature_dim = features.shape[1] if features is not None else 0
+    print('feature_dim', feature_dim)
+    print('features.shape', features.shape)
+    print('features', features)
+    print()
+    print()
+   
 
     if features is not None: print('Adding features of size:', features.shape[1])
 
