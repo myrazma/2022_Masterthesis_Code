@@ -494,14 +494,6 @@ def main():
     #TODO: Add the features to the model data!!
     # Add to pandas or later to dataset?
 
-    print(data_train_pd)
-    try:
-        print(data_train_pd[:20])
-    except:
-        pass
-
-
-
     # Padding strategy
     if data_args.pad_to_max_length:
         padding = "max_length"
@@ -520,15 +512,7 @@ def main():
     dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=feature_cols)
     dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=feature_cols)
     dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=feature_cols)
-    print('dataset_emp_train', dataset_emp_train)
-    try:
-        print('dataset_dis_train[:20]', dataset_dis_train[:2])
-    except:
-        pass
-
-    print('dataset_emp_test', dataset_emp_test)
-
-
+ 
     # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
     train_dataset = dataset_emp_train
@@ -542,19 +526,6 @@ def main():
         display_text = "Using distress data"
     print('\n------------ ' + display_text + ' ------------\n')
 
-
-    print(train_dataset)
-    try:
-        print(train_dataset.features)
-    except:
-        pass
-    try:
-        print(train_dataset.features['essay'])
-    except:
-        pass
-
-
-    sys.exit(-1)
     # Task selection was here before, but since we are only using one task (regression),
     # these settings can stay the same for us
     is_regression = True  
