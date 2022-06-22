@@ -105,12 +105,14 @@ def tokenize(batch, tokenizer, column, padding='max_length', max_length=256):
 #               Data set methods
 # ---------------------------------------------------
 
-def create_tensor_data(inputs, masks, labels):
+def create_tensor_data(*args):
     # Source: [2]
-    input_tensor = torch.tensor(inputs)
-    mask_tensor = torch.tensor(masks)
-    labels_tensor = torch.tensor(labels)
-    dataset = TensorDataset(input_tensor, mask_tensor, labels_tensor)
+    tensors = []
+    for arg in args:
+        tensors.append(torch.tensor(arg))
+    #mask_tensor = torch.tensor(masks)
+    #labels_tensor = torch.tensor(labels)
+    dataset = TensorDataset(*tensors)
     return dataset
 
 
