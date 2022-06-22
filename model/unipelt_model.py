@@ -161,11 +161,11 @@ COLORS = ['#029e72', '#e69f00', '#f0e441', '#57b4e8']
 # Update model arguments data class from unipelt implementation with multiinput arguments
 class ModelArguments(unipelt_arguments.ModelArguments):
 
-    use_lexical_features: Optional[str] = field(
+    use_lexical_features: Optional[bool] = field(
         default='',
         metadata={"help": "Wether or not to use lexical features."},
     )
-    use_pca_features: Optional[str] = field(
+    use_pca_features: Optional[bool] = field(
         default='',
         metadata={"help": "Wether or not to use the pca features (Empathy / distress dimension)."},
     )
@@ -460,8 +460,6 @@ def main():
 
     feature_dim = features.shape[1] if features is not None else 0
     print('feature_dim', feature_dim)
-    print('features.shape', features.shape)
-    print('features', features)
     print()
     print()
    
