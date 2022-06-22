@@ -40,7 +40,7 @@ def tokenize_data(data, column):
     if isinstance(data, pd.DataFrame):
         data[column + '_tok'] = data[column].apply(lambda x: nltk.word_tokenize(x))
     elif isinstance(data, Dataset):
-        tokenized = [nltk.word_tokenize(x) for x in list(data[col])]
+        tokenized = [nltk.word_tokenize(x) for x in list(data[column])]
         data = data.add_column(column + '_tok', tokenized)
         #data[column + '_tok'] = data[column].apply(lambda x: nltk.word_tokenize(x))
     else:
