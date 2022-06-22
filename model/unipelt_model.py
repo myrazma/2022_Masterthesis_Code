@@ -504,7 +504,7 @@ def main():
     dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, multiinput_cols=['lexical'])
     print('dataset_emp_train', dataset_emp_train)
     try:
-        print('dataset_dis_train[:20]', dataset_dis_train[:20]['label'])
+        print('dataset_dis_train[:20]', dataset_dis_train[:20]['lexical'])
     except:
         pass
 
