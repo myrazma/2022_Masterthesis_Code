@@ -499,14 +499,16 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
-    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
-    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)
-    print(dataset_emp_train)
+    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, multiinput_cols=['lexical'])
+    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, multiinput_cols=['lexical'])
+    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, multiinput_cols=['lexical'])
+    print('dataset_emp_train', dataset_emp_train)
     try:
         print('dataset_dis_train[:20]', dataset_dis_train[:20]['label'])
     except:
         pass
+
+    print('dataset_emp_test', dataset_emp_test)
 
 
     # --- choose dataset and data loader based on empathy ---
