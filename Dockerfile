@@ -1,12 +1,12 @@
 FROM python:3.8-slim-buster
+# FROM nvidia/cuda:11.4.2-base-ubuntu20.04
 
 WORKDIR /mzmarsly
 
 COPY requirements.txt .
 
+RUN pip install torch==1.11.0+cu115 --find-links https://download.pytorch.org/whl/torch_stable.html
 RUN pip install -r requirements.txt
-  
-CMD ["pip3","install", "torch==1.10.1+cu111", "torchvision==0.11.2+cu111", "torchaudio==0.10.1", "--extra-index-url", "https://download.pytorch.org/whl/cu113"]
 
 # follwing is only needed for deployment
 # copy python files 
