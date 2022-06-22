@@ -95,10 +95,10 @@ def normalize_scores(data, input_interval):
     return normalized
 
 
-def tokenize(batch, tokenizer, column, max_length=256):
+def tokenize(batch, tokenizer, column, padding='max_length', max_length=256):
     # Source: [1] - https://huggingface.co/docs/transformers/training
     # longest is around 200
-    return tokenizer(batch[column], padding='max_length', truncation=True, max_length=max_length)
+    return tokenizer(batch[column], padding=padding, truncation=True, max_length=max_length)
 
 
 # ---------------------------------------------------
@@ -150,7 +150,7 @@ def create_dataloaders_multi_in(inputs, masks, labels, lexical_features, batch_s
 # ---------------------------------------------------
 
 
-def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=False, padding='max_length'):
+def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=False, padding='max_length', shuffle=True, multiinput_cols=[]):
     """Preprocess the data from input as pandas pd and return a TensorDataset
     
     Do the following steps:
@@ -177,6 +177,7 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
     else:
         has_label = False
 
+    multiinput_cols = [col for col in multiinput_cols if col in data_pd.columns]  # check that these columns are actually in the data
     # --- Create hugginface datasets ---
     data = pd_to_dataset(data_pd)
 
@@ -187,13 +188,13 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
 
 
     # --- shuffle data ---
-    data_encoded_shuff = data_encoded.shuffle(seed=seed)
+    if shuffle: data_encoded = data_encoded.shuffle(seed=seed)
     # get input_ids, attention_mask and labels as numpy arrays and cast types
-    input_ids_train = np.array(data_encoded_shuff["input_ids"]).astype(int)
-    attention_mask_train = np.array(data_encoded_shuff["attention_mask"]).astype(int)
+    input_ids_train = np.array(data_encoded["input_ids"]).astype(int)
+    attention_mask_train = np.array(data_encoded["attention_mask"]).astype(int)
     if has_label:
-        label_empathy_train = np.array(data_encoded_shuff["empathy"]).astype(np.float32).reshape(-1, 1)
-        label_distress_train = np.array(data_encoded_shuff["distress"]).astype(np.float32).reshape(-1, 1)
+        label_empathy_train = np.array(data_encoded["empathy"]).astype(np.float32).reshape(-1, 1)
+        label_distress_train = np.array(data_encoded["distress"]).astype(np.float32).reshape(-1, 1)
 
         # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
         label_scaled_empathy_train = normalize_scores(label_empathy_train, (1,7))
@@ -208,9 +209,13 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
         if return_huggingface_ds:
             # --- create panda DataFrame datasets ---
             # for empathy
-            dataset_emp_train = Dataset.from_dict({'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_empathy_train})
+            data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_empathy_train}
+            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in multiinput_cols})
+            dataset_emp_train = Dataset.from_dict(data_tmp)
             # for distress
-            dataset_dis_train = Dataset.from_dict({'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_distress_train})
+            data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_distress_train}
+            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in multiinput_cols})
+            dataset_dis_train = Dataset.from_dict(data_tmp)
     else:  # for test set
         # --- create datasets ---
         dataset_emp_train = create_tensor_data(input_ids_train, attention_mask_train)
@@ -218,8 +223,10 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
 
         if return_huggingface_ds:
             # --- create panda DataFrame datasets ---
-            dataset_emp_train = Dataset.from_dict({'input_ids': input_ids_train, 'attention_mask':attention_mask_train})
-            dataset_dis_train = Dataset.from_dict({'input_ids': input_ids_train, 'attention_mask':attention_mask_train})
+            data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train}
+            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in multiinput_cols})
+            dataset_emp_train = Dataset.from_dict(data_tmp)
+            dataset_dis_train = Dataset.from_dict(data_tmp)
 
     return dataset_emp_train, dataset_dis_train
 
