@@ -441,10 +441,10 @@ def main():
         print('model_args.use_pca_features', model_args.use_pca_features)
         if model_args.use_pca_features:
             # create pca features
-            emp_dim = fc.create_pca_feature(data_pd['essay'], task_name=data_args.task_name).reshape((-1, 1))
+            emp_dim = fc.create_pca_feature(data_pd['essay'], task_name=data_args.task_name)
             if emp_dim.shape[1] == 1:
                 col_name = 'pca'
-                data_pd[col_name] = emp_dim
+                data_pd[col_name] = emp_dim.reshape((-1, 1))
                 feature_cols.append(col_name)
             else:
                 for i in range(emp_dim.shape[1]):
