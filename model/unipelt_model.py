@@ -422,56 +422,6 @@ def main():
     data_train_pd = utils.clean_raw_data(data_train_pd)
     data_dev_pd = utils.clean_raw_data(data_dev_pd)
     data_test_pd = utils.clean_raw_data(data_test_pd)
-    # ---------------------------
-    #       get the features
-    # ---------------------------
-
-    # The feature array will have additional features, if wanted, else it will stay None
-    features = None
-
-    fc = feature_creator.FeatureCreator(pca_args=pca_args, data_args=data_args, device=training_args.device)
-
-    print()
-    print()
-    print('features', features)
-    # --- create pca - empathy / distress dimension features ---
-    print('model_args.use_pca_features', model_args.use_pca_features)
-    if model_args.use_pca_features:
-        emp_dim = fc.create_pca_feature(data_train_pd['essay'], task_name=data_args.task_name)
-        print('emp_dim.shape', emp_dim.shape)
-        emp_dim = emp_dim.reshape((-1, 1))
-        #print('PEARSON R: ', pearsonr(labels, emp_dim.reshape(-1)))
-        features = emp_dim if features is None else np.hstack((features, emp_dim))
-    print('features', features)
-
-
-    print('model_args.use_lexical_features', model_args.use_lexical_features)
-    # --- create lexical features ---
-    if model_args.use_lexical_features:
-        data_train_pd = unipelt_preprocessing.tokenize_data(data_train_pd, 'essay')
-        data_dev_pd = unipelt_preprocessing.tokenize_data(data_dev_pd, 'essay')
-        
-        lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=data_args.task_name)
-        lexicon_rating = lexicon_rating.reshape((-1, 1))
-
-        features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
-        #print('PEARSON R: ', pearsonr(labels, lexicon_rating.reshape(-1)))
-    print('features', features)
-
-    feature_dim = features.shape[1] if features is not None else 0
-    print('feature_dim', feature_dim)
-    print()
-    print()
-   
-
-    if features is not None: print('Adding features of size:', features.shape[1])
-
-    #TODO: Add the features to the model data!!
-    # Add to pandas or later to dataset?
-
-
-
-
 
     # Padding strategy
     if data_args.pad_to_max_length:
@@ -507,6 +457,72 @@ def main():
     print('\n------------ ' + display_text + ' ------------\n')
 
 
+    print(train_dataset)
+    try:
+        print(train_dataset['essay'])
+    except:
+        pass
+
+    # ---------------------------
+    #       get the features
+    # ---------------------------
+
+    # The feature array will have additional features, if wanted, else it will stay None
+    features = None
+
+    fc = feature_creator.FeatureCreator(pca_args=pca_args, data_args=data_args, device=training_args.device)
+
+    print()
+    print()
+    print('features', features)
+    # --- create pca - empathy / distress dimension features ---
+    print('model_args.use_pca_features', model_args.use_pca_features)
+    if model_args.use_pca_features:
+        # create pca features
+        emp_dim_train = fc.create_pca_feature(train_dataset['essay'], task_name=data_args.task_name).reshape((-1, 1))
+        emp_dim_eval = fc.create_pca_feature(eval_dataset['essay'], task_name=data_args.task_name).reshape((-1, 1))
+        emp_dim_test = fc.create_pca_feature(emp_dim_test['essay'], task_name=data_args.task_name).reshape((-1, 1))
+        
+        # add features to dataset
+        train_dataset['features'] = emp_dim_train
+
+        #print('PEARSON R: ', pearsonr(labels, emp_dim.reshape(-1)))
+        features = emp_dim_train if features is None else np.hstack((features, emp_dim_train))
+    print('features', features)
+
+    print(train_dataset)
+    try:
+        print(train_dataset['essay'])
+    except:
+        pass
+
+    print('model_args.use_lexical_features', model_args.use_lexical_features)
+    # --- create lexical features ---
+    if model_args.use_lexical_features:
+        data_train_pd = unipelt_preprocessing.tokenize_data(data_train_pd, 'essay')
+        data_dev_pd = unipelt_preprocessing.tokenize_data(data_dev_pd, 'essay')
+        
+        lexicon_rating = fc.create_lexical_feature(data_train_pd['essay_tok'], task_name=data_args.task_name)
+        lexicon_rating = lexicon_rating.reshape((-1, 1))
+
+        features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
+        #print('PEARSON R: ', pearsonr(labels, lexicon_rating.reshape(-1)))
+    print('features', features)
+
+    feature_dim = features.shape[1] if features is not None else 0
+    print('feature_dim', feature_dim)
+    print()
+    print()
+   
+
+    if features is not None: print('Adding features of size:', features.shape[1])
+
+    #TODO: Add the features to the model data!!
+    # Add to pandas or later to dataset?
+
+
+
+    sys.exit(-1)
     # Task selection was here before, but since we are only using one task (regression),
     # these settings can stay the same for us
     is_regression = True  
@@ -656,7 +672,7 @@ def main():
             print(model)
 
 
-    # TODO: I dont think we need this here
+    # I dont think we need this here
     #if data_args.task_name is not None:
     #    sentence1_key, sentence2_key = unipelt_arguments.task_to_keys[data_args.task_name]
     #else:
