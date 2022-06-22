@@ -182,7 +182,14 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
         hidden_feat_size = config.hidden_size + feature_dim
+        print()
+        print()
+        print('Hidden feature size:', hidden_feat_size)
+        print('feature size:', feature_dim)
+        print('num label:', feature_dim)
         self.classifier = nn.Linear(hidden_feat_size, config.num_labels)
+        print()
+        print()
 
         self.init_weights()
 
@@ -227,8 +234,8 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
         pooled_output = self.dropout(pooled_output)
         # if features are not None, concat to pooled bert output
         concat_output = torch.cat((pooled_output, features), 1) if features is not None else pooled_output  # added by Myra Z.
-        print('concat_output.size', concat_output.size)
-        print('pooled_output.size', pooled_output.size)
+        print('concat_output.size', concat_output.size())
+        print('pooled_output.size', pooled_output.size())
         logits = self.classifier(concat_output)
 
         loss = None
