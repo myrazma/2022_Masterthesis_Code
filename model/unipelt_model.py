@@ -447,13 +447,14 @@ def main():
     except:
         pass
     try:
-        print('dataset_dis_train.features["label"][:20]', list(dataset_dis_train.features['label'])[:20])
+        print('dataset_dis_train[0]', dataset_dis_train[0])
     except:
         pass
     try:
-        print('dataset_dis_train.features["label"][:20]', dataset_dis_train.features['label'])
+        print('dataset_dis_train[:20]', dataset_dis_train[:20])
     except:
         pass
+
 
     # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
@@ -534,7 +535,7 @@ def main():
     except:
         pass
     try:
-        print(train_dataset.features['lexical'].size())
+        print(train_dataset[0])
     except:
         pass
 
