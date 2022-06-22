@@ -227,6 +227,8 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
         pooled_output = self.dropout(pooled_output)
         # if features are not None, concat to pooled bert output
         concat_output = torch.cat((pooled_output, features), 1) if features is not None else pooled_output  # added by Myra Z.
+        print('concat_output.size', concat_output.size)
+        print('pooled_output.size', pooled_output.size)
         logits = self.classifier(concat_output)
 
         loss = None
