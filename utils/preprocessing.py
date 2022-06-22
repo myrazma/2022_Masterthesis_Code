@@ -186,9 +186,14 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
     else:
         has_label = False
 
-    additional_cols = [col for col in additional_cols if col in data_pd.columns]  # check that these columns are actually in the data
+
+    data_types = data_pd.dtypes
+    additional_cols_types = [(col, str) if data_types[col] is object else (col, data_types[col]) for col in additional_cols if col in data_pd.columns]  # check that these columns are actually in the data
+    
     # --- Create hugginface datasets ---
     data = pd_to_dataset(data_pd)
+
+
 
     # -------------------
     #   preprocess data
@@ -219,11 +224,11 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
             # --- create panda DataFrame datasets ---
             # for empathy
             data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_empathy_train}
-            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in additional_cols})
+            data_tmp.update({col: np.array(data_encoded[col]).astype(data_type) for col, data_type in additional_cols_types})
             dataset_emp_train = Dataset.from_dict(data_tmp)
             # for distress
             data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_distress_train}
-            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in additional_cols})
+            data_tmp.update({col: np.array(data_encoded[col]).astype(data_type) for col, data_type in additional_cols_types})
             dataset_dis_train = Dataset.from_dict(data_tmp)
     else:  # for test set
         # --- create datasets ---
@@ -233,7 +238,7 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
         if return_huggingface_ds:
             # --- create panda DataFrame datasets ---
             data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train}
-            data_tmp.update({col: np.array(data_encoded[col]).astype(str) for col in additional_cols})
+            data_tmp.update({col: np.array(data_encoded[col]).astype(data_type) for col, data_type in additional_cols_types})
             dataset_emp_train = Dataset.from_dict(data_tmp)
             dataset_dis_train = Dataset.from_dict(data_tmp)
 

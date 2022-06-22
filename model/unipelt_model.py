@@ -501,12 +501,6 @@ def main():
         pass
 
 
-    print(data_train_pd.dtypes)
-    try:
-        print(data_train_pd.dtypes['essay'])
-    except:
-        pass
-
 
     # Padding strategy
     if data_args.pad_to_max_length:
