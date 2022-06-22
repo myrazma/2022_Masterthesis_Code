@@ -26,7 +26,7 @@ vocab_type=mm
 vocab_size=10
 
 # Multiinput model setup
-use_pca_features=False
+use_pca_features=True
 use_lexical_features=False
 
 
