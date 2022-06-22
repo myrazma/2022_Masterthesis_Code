@@ -459,7 +459,11 @@ def main():
 
     print(train_dataset)
     try:
-        print(train_dataset['essay'])
+        print(train_dataset.features)
+    except:
+        pass
+    try:
+        print(train_dataset.features['essay'])
     except:
         pass
 
