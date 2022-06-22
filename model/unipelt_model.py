@@ -442,7 +442,18 @@ def main():
     dataset_emp_dev, dataset_dis_dev = unipelt_preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, shuffle=False)
     dataset_emp_test, dataset_dis_test = unipelt_preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, shuffle=False)
     print('data_train_pd["distress"][:20]', data_train_pd['distress'][:20])
-    print('dataset_dis_train.features["label"][:20]', dataset_dis_train.features['label'][:20])
+    try:
+        print('dataset_dis_train.features["label"][:20]', dataset_dis_train.features['label'][:20])
+    except:
+        pass
+    try:
+        print('dataset_dis_train.features["label"][:20]', list(dataset_dis_train.features['label'])[:20])
+    except:
+        pass
+    try:
+        print('dataset_dis_train.features["label"][:20]', dataset_dis_train.features['label'])
+    except:
+        pass
 
     # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
