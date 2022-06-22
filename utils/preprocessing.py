@@ -219,11 +219,11 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
             # --- create panda DataFrame datasets ---
             # for empathy
             data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_empathy_train}
-            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in additional_cols})
+            data_tmp.update({col: np.array(data_encoded[col]).astype(str) for col in additional_cols})
             dataset_emp_train = Dataset.from_dict(data_tmp)
             # for distress
             data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_distress_train}
-            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in additional_cols})
+            data_tmp.update({col: np.array(data_encoded[col]).astype(str) for col in additional_cols})
             dataset_dis_train = Dataset.from_dict(data_tmp)
     else:  # for test set
         # --- create datasets ---
@@ -233,7 +233,7 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
         if return_huggingface_ds:
             # --- create panda DataFrame datasets ---
             data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train}
-            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in additional_cols})
+            data_tmp.update({col: np.array(data_encoded[col]).astype(str) for col in additional_cols})
             dataset_emp_train = Dataset.from_dict(data_tmp)
             dataset_dis_train = Dataset.from_dict(data_tmp)
 
