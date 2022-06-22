@@ -37,7 +37,14 @@ def tokenize_data(data, column):
     Returns:
         pd.DataFrame: The dataframe with the tokenized texts (suffix: '_tok')
     """
-    data[column + '_tok'] = data[column].apply(lambda x: nltk.word_tokenize(x))
+    if isinstance(data, pd.DataFrame):
+        data[column + '_tok'] = data[column].apply(lambda x: nltk.word_tokenize(x))
+    elif isinstance(data, Dataset):
+        tokenized = [nltk.word_tokenize(x) for x in list(data[col])]
+        data = data.add_column(column + '_tok', tokenized)
+        #data[column + '_tok'] = data[column].apply(lambda x: nltk.word_tokenize(x))
+    else:
+        print(f'not implemented for this dataset type: {type(data)}')
     return data
 
 def tokenize_single_text(text):
@@ -152,7 +159,7 @@ def create_dataloaders_multi_in(inputs, masks, labels, lexical_features, batch_s
 # ---------------------------------------------------
 
 
-def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=False, padding='max_length', shuffle=True, multiinput_cols=[]):
+def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=False, padding='max_length', shuffle=True, additional_cols=[]):
     """Preprocess the data from input as pandas pd and return a TensorDataset
     
     Do the following steps:
@@ -179,7 +186,7 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
     else:
         has_label = False
 
-    multiinput_cols = [col for col in multiinput_cols if col in data_pd.columns]  # check that these columns are actually in the data
+    additional_cols = [col for col in additional_cols if col in data_pd.columns]  # check that these columns are actually in the data
     # --- Create hugginface datasets ---
     data = pd_to_dataset(data_pd)
 
@@ -212,11 +219,11 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
             # --- create panda DataFrame datasets ---
             # for empathy
             data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_empathy_train}
-            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in multiinput_cols})
+            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in additional_cols})
             dataset_emp_train = Dataset.from_dict(data_tmp)
             # for distress
             data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train, 'label': label_scaled_distress_train}
-            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in multiinput_cols})
+            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in additional_cols})
             dataset_dis_train = Dataset.from_dict(data_tmp)
     else:  # for test set
         # --- create datasets ---
@@ -226,7 +233,7 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
         if return_huggingface_ds:
             # --- create panda DataFrame datasets ---
             data_tmp = {'input_ids': input_ids_train, 'attention_mask':attention_mask_train}
-            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in multiinput_cols})
+            data_tmp.update({col: np.array(data_encoded[col]).astype(float) for col in additional_cols})
             dataset_emp_train = Dataset.from_dict(data_tmp)
             dataset_dis_train = Dataset.from_dict(data_tmp)
 
