@@ -441,17 +441,10 @@ def main():
     dataset_emp_train, dataset_dis_train = unipelt_preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, shuffle=False)
     dataset_emp_dev, dataset_dis_dev = unipelt_preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, shuffle=False)
     dataset_emp_test, dataset_dis_test = unipelt_preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, shuffle=False)
+    print('data_train_pd["distress"][:20]', data_train_pd['empathy'][:20])
     print('data_train_pd["distress"][:20]', data_train_pd['distress'][:20])
     try:
-        print('dataset_dis_train.features["label"][:20]', dataset_dis_train.features['label'][:20])
-    except:
-        pass
-    try:
-        print('dataset_dis_train[0]', dataset_dis_train[0])
-    except:
-        pass
-    try:
-        print('dataset_dis_train[:20]', dataset_dis_train[:20])
+        print('dataset_dis_train[:20]', dataset_dis_train[:20]['label'])
     except:
         pass
 
