@@ -18,6 +18,8 @@ from torch.nn import CrossEntropyLoss, MSELoss
 
 from scipy.stats import pearsonr, spearmanr
 import numpy as np
+import datasets
+from datasets import Dataset, DatasetDict
 
 # my modules and scripts
 from pathlib import Path
@@ -569,7 +571,10 @@ def main():
         #if features is not None:
         #    dataset.add_column('lexical', features)
             #dataset['lexical'] = features
-        dataset = dataset.add_column("lexical", features) if features is not None else dataset
+
+        dset_features = Dataset.from_dict({"lexical": features})
+        dataset = datasets.concatenate_datasets([dataset, dset_features], axis=1)
+        #dataset = dataset.add_column("lexical", features) if features is not None else dataset
         return dataset if not return_dim else (dataset, feature_dim)
 
     train_dataset, feature_dim = add_features_dataset(train_dataset, fc, model_args, return_dim=True)
