@@ -210,6 +210,7 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
             return_dict=None,
             adapter_names=None,
             lexical=None,  # added by Myra Z.
+            pca=None,  # added by Myra Z.
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size,)`, `optional`):
@@ -236,8 +237,10 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
 
         pooled_output = self.dropout(pooled_output)
         # if features are not None, concat to pooled bert output
-        print('pooled_output.size()', pooled_output.size())
+        print()
+        print('pca.size()', pca.size())
         print('lexical.size()', lexical.size())
+        # TODO concat both features (pca can be n dimensional)
         concat_output = torch.cat((pooled_output, lexical), 1) if lexical is not None else pooled_output  # added by Myra Z.
         print('concat_output.size', concat_output.size())
         print('pooled_output.size', pooled_output.size())
@@ -524,8 +527,8 @@ def main():
     test_dataset = dataset_emp_test
     display_text = 'Using empathy data'
     if data_args.task_name == 'distress':
-        train_dataset = dataset_dis_train  # needed for k fold
-        eval_dataset = dataset_dis_dev  # needed for k fold
+        train_dataset = dataset_dis_train
+        eval_dataset = dataset_dis_dev
         test_dataset = dataset_dis_test
         display_text = "Using distress data"
     print('\n------------ ' + display_text + ' ------------\n')
@@ -589,27 +592,24 @@ def main():
         return dataset if not return_dim else (dataset, feature_dim)
 
     train_dataset, feature_dim = add_features_dataset(train_dataset, fc, model_args, return_dim=True)
+    eval_dataset = add_features_dataset(eval_dataset, fc, model_args, return_dim=False)
+    test_dataset = add_features_dataset(test_dataset, fc, model_args, return_dim=False)
 
     try:
         print('Adding features of size:', feature_dim)
-        print('Adding features of shape:', train_dataset['lexical'].size())
+        if model_args.use_lexical_features: print('Adding lexical features of shape:', train_dataset['lexical'].size())
+        if model_args.use_pca_features: print('Adding pca features of shape:', train_dataset['pca'].size())
     except:
         pass
-    print(train_dataset)
-
 
     try:
-        print('Test 1')
-        print(train_dataset['lexical'])
+        print('Adding features of size:', feature_dim)
+        if model_args.use_lexical_features: print(train_dataset[:2]['lexical'])
+        if model_args.use_pca_features: print(train_dataset[:2]['pca'])
     except:
         pass
-    
-    sys.exit(-1)
 
-
-
-
-
+    print(train_dataset)
 
     # Task selection was here before, but since we are only using one task (regression),
     # these settings can stay the same for us
