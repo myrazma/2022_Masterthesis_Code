@@ -1,5 +1,3 @@
-
-
 use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
 
@@ -28,8 +26,13 @@ vocab_size=10
 
 # Multiinput model setup
 use_pca_features=True
+if [ $use_pca_features == True ]; then
+    tensorboard_output_dir=tensorboard_output_dir="${tensorboard_output_dir}_pca"
+fi
 use_lexical_features=True
-
+if [ $use_lexical_features == True ]; then
+    tensorboard_output_dir=tensorboard_output_dir="${tensorboard_output_dir}_lexical"
+fi
 
 
 # for testing. if not delete:
@@ -48,7 +51,7 @@ python model/unipelt_model.py \
     --do_predict False \
     --do_eval True \
     --do_train True \
-    --num_train_epochs 15 \
+    --num_train_epochs 15 
     --per_device_eval_batch_size 16 \
     --per_device_train_batch_size 16 \
     --early_stopping_patience 5 \
