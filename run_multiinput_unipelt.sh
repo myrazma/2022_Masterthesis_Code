@@ -25,13 +25,14 @@ vocab_type=mm
 vocab_size=10
 
 # Multiinput model setup
-use_pca_features=True
+use_pca_features=False
+use_lexical_features=False
+
 if [ $use_pca_features == True ]; then
-    tensorboard_output_dir=tensorboard_output_dir="${tensorboard_output_dir}_pca"
+    tensorboard_output_dir="${tensorboard_output_dir}_pca"
 fi
-use_lexical_features=True
 if [ $use_lexical_features == True ]; then
-    tensorboard_output_dir=tensorboard_output_dir="${tensorboard_output_dir}_lexical"
+    tensorboard_output_dir="${tensorboard_output_dir}_lexical"
 fi
 
 
