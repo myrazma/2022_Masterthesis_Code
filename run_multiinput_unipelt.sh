@@ -2,7 +2,8 @@ use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
 
 # UniPELT Setup: APL
-pelt_method="unipelt_apl"
+pelt_method="lora"
+
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
     learning_rate=5e-4
@@ -13,6 +14,16 @@ if [ $pelt_method == "unipelt_apl" ]; then
     tune_bias=False
 fi
 
+# LoRA
+if [ $pelt_method == "lora" ]; then
+    echo "Using LoRA"
+    learning_rate=5e-4
+    tensorboard_output_dir=runs/multiinput_pelt_lora
+    add_enc_prefix=False
+    train_adapter=False
+    add_lora=True
+    tune_bias=False
+fi
 
 # PCA setup
 task_name=distress
@@ -40,7 +51,6 @@ fi
 # max_train_samples
 # max_val_samples
 # set num_train_epochs to 15 again
-
 
 # call the python file with stated parameters
 python model/unipelt_model.py \
