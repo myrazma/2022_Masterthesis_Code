@@ -185,14 +185,7 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
         hidden_feat_size = config.hidden_size + feature_dim
-        print()
-        print()
-        print('Hidden feature size:', hidden_feat_size)
-        print('feature size:', feature_dim)
-        print('num label:', feature_dim)
         self.classifier = nn.Linear(hidden_feat_size, config.num_labels)
-        print()
-        print()
 
         self.init_weights()
 
@@ -237,16 +230,11 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
 
         pooled_output = self.dropout(pooled_output)
         # if features are not None, concat to pooled bert output
-        print()
-        print('pca.size()', pca.size())
-        print('lexical.size()', lexical.size())
 
         # concat both features (pca can be n dimensional)
         concat_output = pooled_output
         concat_output = torch.cat((concat_output, lexical), 1) if lexical is not None else concat_output  # add lexical features
         concat_output = torch.cat((concat_output, pca), 1) if pca is not None else concat_output  # add pca features
-        print('concat_output.size', concat_output.size())
-        print('pooled_output.size', pooled_output.size())
         logits = self.classifier(concat_output)
 
         loss = None
@@ -343,13 +331,6 @@ def main():
     else:
         model_args, data_args, training_args, adapter_args, pca_args = parser.parse_args_into_dataclasses()
 
-    print('\n\n')
-    print('model_args.add_enc_prefix', model_args.add_enc_prefix)
-    print('model_args.lora_alpha', model_args.lora_alpha)
-    print('model_args.use_lexical_features', model_args.use_lexical_features)
-    print('model_args.use_pca_features', model_args.use_pca_features)
-    print('\n\n')
-
     # Detecting last checkpoint.
     last_checkpoint = None
     if os.path.isdir(training_args.output_dir) and training_args.do_train and not training_args.overwrite_output_dir:
@@ -443,67 +424,6 @@ def main():
     features_train = None
     fc = feature_creator.FeatureCreator(pca_args=pca_args, data_args=data_args, device=training_args.device)
 
-    def add_features(data_pd, fc, model_args, return_dim=True, return_feature_col=True):
-        features = None
-        feature_cols = []
-        print('features', features)
-        # --- create pca - empathy / distress dimension features ---
-        print('model_args.use_pca_features', model_args.use_pca_features)
-        if model_args.use_pca_features:
-            # create pca features
-            emp_dim = fc.create_pca_feature(data_pd['essay'], task_name=data_args.task_name)
-            if emp_dim.shape[1] == 1:
-                col_name = 'pca'
-                data_pd[col_name] = emp_dim.reshape((-1, 1))
-                feature_cols.append(col_name)
-            else:
-                for i in range(emp_dim.shape[1]):
-                    col_name = 'pca_' + str(i)
-                    data_pd[col_name] = emp_dim[:, i]
-                    feature_cols.append(col_name)
-
-            #features = emp_dim if features is None else np.hstack((features, emp_dim))
-        #print('features', features)
-        #print(train_dataset)
-        #try:
-        #    print(train_dataset['essay'])
-        #except:
-        #    pass
-
-        print('model_args.use_lexical_features', model_args.use_lexical_features)
-        # --- create lexical features ---
-        if model_args.use_lexical_features:
-            data_pd = preprocessing.tokenize_data(data_pd, 'essay')
-            
-            lexicon_rating = fc.create_lexical_feature(data_pd['essay_tok'], task_name=data_args.task_name)
-            lexicon_rating = lexicon_rating.reshape((-1, 1))
-            #features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
-            col_name = 'lexical'
-            data_pd[col_name] = lexicon_rating
-            feature_cols.append(col_name)
-            #print('PEARSON R: ', pearsonr(labels, lexicon_rating.reshape(-1)))
-
-        feature_dim = len(feature_cols)  #features.shape[1] if features is not None else 0
-        
-        # add features to dataset if they are not None
-        if features is not None:
-            data_pd['lexical'] = features
-        #dataset = dataset.add_column("lexical", features) if features is not None else dataset
-        result = [data_pd]
-        if return_dim: result.append(feature_dim)
-        if return_feature_col: result.append(feature_cols)
-        if len(result) == 1:  # only pd
-            return result[0]
-        return result
-
-    #data_train_pd, feature_dim, feature_cols = add_features(data_train_pd, fc, model_args, return_dim=True, return_feature_col=True)
-
-    #print('Adding features of size:', feature_dim)
-    #print('Adding features:', feature_cols)
-
-    #TODO: Add the features to the model data!!
-    # Add to pandas or later to dataset?
-
     # Padding strategy
     if data_args.pad_to_max_length:
         padding = "max_length"
@@ -550,15 +470,6 @@ def main():
                 pca_features = pca_features.reshape((-1, 1))
             feature_dim += pca_features.shape[1]
 
-
-            #pca_features = emp_dim if features is None else np.hstack((features, emp_dim))
-        #print('features', features)
-        #print(train_dataset)
-        #try:
-        #    print(train_dataset['essay'])
-        #except:
-        #    pass
-
         print('model_args.use_lexical_features', model_args.use_lexical_features)
         lexical_features = None
         # --- create lexical features ---
@@ -587,7 +498,6 @@ def main():
         if pca_features is not None: feature_dict.update({"pca": pca_features})
         if lexical_features is not None: feature_dict.update({"lexical": lexical_features})
 
-        print(feature_dict.keys())
         if len(feature_dict) != 0:
             dataset_features = Dataset.from_dict(feature_dict)
             dataset = datasets.concatenate_datasets([dataset, dataset_features], axis=1)
@@ -597,22 +507,6 @@ def main():
     train_dataset, feature_dim = add_features_dataset(train_dataset, fc, model_args, return_dim=True)
     eval_dataset = add_features_dataset(eval_dataset, fc, model_args, return_dim=False)
     test_dataset = add_features_dataset(test_dataset, fc, model_args, return_dim=False)
-
-    try:
-        print('Adding features of size:', feature_dim)
-        if model_args.use_lexical_features: print('Adding lexical features of shape:', train_dataset['lexical'].size())
-        if model_args.use_pca_features: print('Adding pca features of shape:', train_dataset['pca'].size())
-    except:
-        pass
-
-    try:
-        print('Adding features of size:', feature_dim)
-        if model_args.use_lexical_features: print(train_dataset[:2]['lexical'])
-        if model_args.use_pca_features: print(train_dataset[:2]['pca'])
-    except:
-        pass
-
-    print(train_dataset)
 
     # Task selection was here before, but since we are only using one task (regression),
     # these settings can stay the same for us
@@ -905,7 +799,6 @@ def main():
         trainer.save_model()  # Saves the tokenizer too for easy upload
         #print('\n -------------------------- trainer state', trainer.state.log_history)
         print(metrics)
-        # print(model)
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
         trainer.save_state()
