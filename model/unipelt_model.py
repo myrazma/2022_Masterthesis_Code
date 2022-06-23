@@ -234,6 +234,8 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
 
         pooled_output = self.dropout(pooled_output)
         # if features are not None, concat to pooled bert output
+        print('pooled_output.size()', pooled_output.size())
+        print('lexical.size()', lexical.size())
         concat_output = torch.cat((pooled_output, lexical), 1) if lexical is not None else pooled_output  # added by Myra Z.
         print('concat_output.size', concat_output.size())
         print('pooled_output.size', pooled_output.size())
@@ -486,10 +488,10 @@ def main():
             return result[0]
         return result
 
-    data_train_pd, feature_dim, feature_cols = add_features(data_train_pd, fc, model_args, return_dim=True, return_feature_col=True)
+    #data_train_pd, feature_dim, feature_cols = add_features(data_train_pd, fc, model_args, return_dim=True, return_feature_col=True)
 
-    print('Adding features of size:', feature_dim)
-    print('Adding features:', feature_cols)
+    #print('Adding features of size:', feature_dim)
+    #print('Adding features:', feature_cols)
 
     #TODO: Add the features to the model data!!
     # Add to pandas or later to dataset?
@@ -509,9 +511,9 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=feature_cols)
-    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=feature_cols)
-    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=feature_cols)
+    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)  #, additional_cols=feature_cols)
+    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)  #, additional_cols=feature_cols)
+    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)  #, additional_cols=feature_cols)
  
     # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
@@ -525,6 +527,72 @@ def main():
         test_dataset = dataset_dis_test
         display_text = "Using distress data"
     print('\n------------ ' + display_text + ' ------------\n')
+
+    try:
+        print('Test 1')
+        train_dataset['lexical']
+    except:
+        pass
+
+
+    def add_features_dataset(dataset, fc, model_args, return_dim=True, return_feature_col=True):
+        features = None
+        print('features', features)
+        # --- create pca - empathy / distress dimension features ---
+        print('model_args.use_pca_features', model_args.use_pca_features)
+        if model_args.use_pca_features:
+            # create pca features
+            emp_dim = fc.create_pca_feature(dataset['essay'], task_name=data_args.task_name)
+            if emp_dim.shape[1] == 1:
+                emp_dim = emp_dim.reshape((-1, 1))
+
+            features = emp_dim if features is None else np.hstack((features, emp_dim))
+        #print('features', features)
+        #print(train_dataset)
+        #try:
+        #    print(train_dataset['essay'])
+        #except:
+        #    pass
+
+        print('model_args.use_lexical_features', model_args.use_lexical_features)
+        # --- create lexical features ---
+        if model_args.use_lexical_features:
+            dataset_tmp = preprocessing.tokenize_data(dataset, 'essay')
+            
+            lexicon_rating = fc.create_lexical_feature(dataset_tmp['essay_tok'], task_name=data_args.task_name)
+            lexicon_rating = lexicon_rating.reshape((-1, 1))
+
+            features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
+            #col_name = 'lexical'
+            #dataset[col_name] = lexicon_rating
+            #feature_cols.append(col_name)
+            #print('PEARSON R: ', pearsonr(labels, lexicon_rating.reshape(-1)))
+
+        feature_dim = features.shape[1] if features is not None else 0
+        
+        # add features to dataset if they are not None
+        #if features is not None:
+        #    dataset.add_column('lexical', features)
+            #dataset['lexical'] = features
+        dataset = dataset.add_column("lexical", features) if features is not None else dataset
+        return dataset if not return_dim else (dataset, feature_dim)
+
+    train_dataset, feature_dim = add_features_dataset(train_dataset, fc, model_args, return_dim=True)
+
+    try:
+        print('Adding features of size:', feature_dim)
+        print('Adding features of shape:', train_dataset['lexical'].size())
+    except:
+        pass
+    print(train_dataset)
+
+
+    sys.exit(-1)
+
+
+
+
+
 
     # Task selection was here before, but since we are only using one task (regression),
     # these settings can stay the same for us
