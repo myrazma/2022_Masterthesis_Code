@@ -533,17 +533,20 @@ def main():
 
 
     def add_features_dataset(dataset, fc, model_args, return_dim=True, return_feature_col=True):
-        features = None
+        pca_features = None
+        feature_dim = 0
         print('features', features)
         # --- create pca - empathy / distress dimension features ---
         print('model_args.use_pca_features', model_args.use_pca_features)
         if model_args.use_pca_features:
             # create pca features
-            emp_dim = fc.create_pca_feature(dataset['essay'], task_name=data_args.task_name)
-            if emp_dim.shape[1] == 1:
-                emp_dim = emp_dim.reshape((-1, 1))
+            pca_features = fc.create_pca_feature(dataset['essay'], task_name=data_args.task_name)
+            if pca_features.shape[1] == 1:
+                pca_features = pca_features.reshape((-1, 1))
+            feature_dim += pca_features.shape[1]
 
-            features = emp_dim if features is None else np.hstack((features, emp_dim))
+
+            #pca_features = emp_dim if features is None else np.hstack((features, emp_dim))
         #print('features', features)
         #print(train_dataset)
         #try:
@@ -552,29 +555,38 @@ def main():
         #    pass
 
         print('model_args.use_lexical_features', model_args.use_lexical_features)
+        lexical_features = None
         # --- create lexical features ---
         if model_args.use_lexical_features:
             dataset_tmp = preprocessing.tokenize_data(dataset, 'essay')
             
-            lexicon_rating = fc.create_lexical_feature(dataset_tmp['essay_tok'], task_name=data_args.task_name)
-            lexicon_rating = lexicon_rating.reshape((-1, 1))
+            lexical_features = fc.create_lexical_feature(dataset_tmp['essay_tok'], task_name=data_args.task_name)
+            lexical_features = lexical_features.reshape((-1, 1))
+            feature_dim += lexical_features.shape[1]
+            
 
-            features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
+            #features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
             #col_name = 'lexical'
             #dataset[col_name] = lexicon_rating
             #feature_cols.append(col_name)
             #print('PEARSON R: ', pearsonr(labels, lexicon_rating.reshape(-1)))
 
-        feature_dim = features.shape[1] if features is not None else 0
+
+        #feature_dim = features.shape[1] if features is not None else 0
         
         # add features to dataset if they are not None
         #if features is not None:
         #    dataset.add_column('lexical', features)
             #dataset['lexical'] = features
+        feature_dict = {}
+        if pca_features is not None: feature_dict.update({"pca": pca_features})
+        if lexical_features is not None: feature_dict.update({"lexical": lexical_features})
 
-        dset_features = Dataset.from_dict({"lexical": features})
-        dataset = datasets.concatenate_datasets([dataset, dset_features], axis=1)
-        #dataset = dataset.add_column("lexical", features) if features is not None else dataset
+        print(feature_dict.keys)
+        if len(feature_dict) != 0:
+            dataset_features = Dataset.from_dict(feature_dict)
+            dataset = datasets.concatenate_datasets([dataset, dataset_features], axis=1)
+            #dataset = dataset.add_column("lexical", features) if features is not None else dataset
         return dataset if not return_dim else (dataset, feature_dim)
 
     train_dataset, feature_dim = add_features_dataset(train_dataset, fc, model_args, return_dim=True)
