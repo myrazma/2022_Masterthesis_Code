@@ -243,8 +243,8 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
 
         # concat both features (pca can be n dimensional)
         concat_output = pooled_output
-        concat_output = torch.cat((concat_output, lexical), 1) if lexical is not None else concat_output  # added by Myra Z.
-        concat_output = torch.cat((concat_output, lexical), 1) if lexical is not None else concat_output  # added by Myra Z.
+        concat_output = torch.cat((concat_output, lexical), 1) if lexical is not None else concat_output  # add lexical features
+        concat_output = torch.cat((concat_output, pca), 1) if pca is not None else concat_output  # add pca features
         print('concat_output.size', concat_output.size())
         print('pooled_output.size', pooled_output.size())
         logits = self.classifier(concat_output)

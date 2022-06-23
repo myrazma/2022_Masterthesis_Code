@@ -66,3 +66,9 @@ python model/unipelt_model.py \
     --learning_rate ${learning_rate} \
     --use_pca_features ${use_pca_features} \
     --use_lexical_features ${use_lexical_features} \
+    --dim ${dim} \
+    --data_lim ${data_lim} \
+    --use_fdist ${use_fdist} \
+    --freq_thresh ${freq_thresh} \
+    --vocab_type ${vocab_type} \
+    --vocab_size ${vocab_size} \
