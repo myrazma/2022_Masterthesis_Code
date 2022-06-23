@@ -27,7 +27,7 @@ vocab_size=10
 
 # Multiinput model setup
 use_pca_features=True
-use_lexical_features=False
+use_lexical_features=True
 
 
 # for testing. if not delete:

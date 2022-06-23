@@ -511,9 +511,9 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)  #, additional_cols=feature_cols)
-    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)  #, additional_cols=feature_cols)
-    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding)  #, additional_cols=feature_cols)
+    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay'])
+    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay'])
+    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay'])
  
     # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
@@ -528,11 +528,6 @@ def main():
         display_text = "Using distress data"
     print('\n------------ ' + display_text + ' ------------\n')
 
-    try:
-        print('Test 1')
-        train_dataset['lexical']
-    except:
-        pass
 
 
     def add_features_dataset(dataset, fc, model_args, return_dim=True, return_feature_col=True):
@@ -587,6 +582,12 @@ def main():
     print(train_dataset)
 
 
+    try:
+        print('Test 1')
+        print(train_dataset['lexical'])
+    except:
+        pass
+    
     sys.exit(-1)
 
 
