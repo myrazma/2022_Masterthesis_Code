@@ -535,7 +535,6 @@ def main():
     def add_features_dataset(dataset, fc, model_args, return_dim=True, return_feature_col=True):
         pca_features = None
         feature_dim = 0
-        print('features', features)
         # --- create pca - empathy / distress dimension features ---
         print('model_args.use_pca_features', model_args.use_pca_features)
         if model_args.use_pca_features:
