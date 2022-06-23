@@ -17,7 +17,7 @@ fi
 # PCA setup
 task_name=distress
 store_run=False
-dim=3
+dim=1
 data_lim=1000
 use_freq_dist=True
 freq_thresh=0.000005
