@@ -15,19 +15,26 @@ if [ $pelt_method == "unipelt_apl" ]; then
     tune_bias=False
 fi
 
+tensorboard_output_dir = ${tensorboard_output_dir} + "_"
 # PCA setup
 task_name=distress
 store_run=False
 dim=3
 data_lim=1000
-use_fdist=True
+use_freq_dist=True
 freq_thresh=0.000005
 vocab_type=mm
 vocab_size=10
 
 # Multiinput model setup
 use_pca_features=True
+if [ $use_pca_features == True ]; then
+    tensorboard_output_dir = ${tensorboard_output_dir} + _pca
+fi
 use_lexical_features=True
+if [ $use_lexical_features == True ]; then
+    tensorboard_output_dir = ${tensorboard_output_dir} + _lexical
+fi
 
 
 # for testing. if not delete:
@@ -46,12 +53,9 @@ python model/unipelt_model.py \
     --do_predict False \
     --do_eval True \
     --do_train True \
-    --num_train_epochs 15 \
-    --num_train_epochs 2 \
+    --num_train_epochs 15 
     --per_device_eval_batch_size 16 \
     --per_device_train_batch_size 16 \
-    --max_train_samples 100 \
-    --max_val_samples 100 \
     --early_stopping_patience 5 \
     --logging_strategy epoch \
     --evaluation_strategy epoch \
@@ -68,7 +72,7 @@ python model/unipelt_model.py \
     --use_lexical_features ${use_lexical_features} \
     --dim ${dim} \
     --data_lim ${data_lim} \
-    --use_fdist ${use_fdist} \
+    --use_freq_dist ${use_freq_dist} \
     --freq_thresh ${freq_thresh} \
     --vocab_type ${vocab_type} \
     --vocab_size ${vocab_size} \
