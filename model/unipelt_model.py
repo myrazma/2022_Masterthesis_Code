@@ -207,7 +207,7 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
             output_hidden_states=None,
             return_dict=None,
             adapter_names=None,
-            features=None,  # added by Myra Z.
+            lexical=None,  # added by Myra Z.
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size,)`, `optional`):
@@ -234,7 +234,7 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
 
         pooled_output = self.dropout(pooled_output)
         # if features are not None, concat to pooled bert output
-        concat_output = torch.cat((pooled_output, features), 1) if features is not None else pooled_output  # added by Myra Z.
+        concat_output = torch.cat((pooled_output, lexical), 1) if lexical is not None else pooled_output  # added by Myra Z.
         print('concat_output.size', concat_output.size())
         print('pooled_output.size', pooled_output.size())
         logits = self.classifier(concat_output)
