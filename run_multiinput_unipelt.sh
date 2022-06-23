@@ -15,7 +15,7 @@ if [ $pelt_method == "unipelt_apl" ]; then
     tune_bias=False
 fi
 
-tensorboard_output_dir = ${tensorboard_output_dir} + "_"
+
 # PCA setup
 task_name=distress
 store_run=False
@@ -28,13 +28,8 @@ vocab_size=10
 
 # Multiinput model setup
 use_pca_features=True
-if [ $use_pca_features == True ]; then
-    tensorboard_output_dir = ${tensorboard_output_dir} + _pca
-fi
 use_lexical_features=True
-if [ $use_lexical_features == True ]; then
-    tensorboard_output_dir = ${tensorboard_output_dir} + _lexical
-fi
+
 
 
 # for testing. if not delete:
