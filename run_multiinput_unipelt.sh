@@ -51,7 +51,7 @@ python model/unipelt_model.py \
     --do_predict False \
     --do_eval True \
     --do_train True \
-    --num_train_epochs 15 
+    --num_train_epochs 15 \
     --per_device_eval_batch_size 16 \
     --per_device_train_batch_size 16 \
     --early_stopping_patience 5 \
