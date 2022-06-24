@@ -181,7 +181,7 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
         self.num_labels = config.num_labels
         print(config)
 
-        self.bert = unipelt_transformers.BertModel.from_pretrained(config)
+        self.bert = unipelt_transformers.BertModel.from_pretrained("bert-base-uncased", config=config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
         hidden_feat_size = config.hidden_size + feature_dim
