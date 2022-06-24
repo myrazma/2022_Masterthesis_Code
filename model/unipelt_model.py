@@ -566,6 +566,10 @@ def main():
     # add multiinput feature dim to hidden size
     config.feature_dim = feature_dim
     print(f'hidden size: {config.hidden_size}, feature dim: {feature_dim}')
+    try:
+        print('config.feature_dim:', config.feature_dim)
+    except:
+        print('Feature dim assignment did not work')
    
     model = AutoModelForSequenceClassification.from_pretrained(
         model_args.model_name_or_path,
