@@ -564,8 +564,8 @@ def main():
         config.drop_first_prefix_layers_cross = list(range(model_args.drop_first_layers - num_layers))
 
     # add multiinput feature dim to hidden size
-    config.hidden_size = config.hidden_size + feature_dim
-    print(f'new hidden size: {config.hidden_size} ({feature_dim} additional features)')
+    config.feature_dim = feature_dim
+    print(f'hidden size: {config.hidden_size}, feature dim: {feature_dim}')
    
     model = AutoModelForSequenceClassification.from_pretrained(
         model_args.model_name_or_path,
