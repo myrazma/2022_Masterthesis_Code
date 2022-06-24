@@ -558,27 +558,27 @@ def main():
         config.drop_first_prefix_layers_cross = list(range(model_args.drop_first_layers - num_layers))
 
 
-    #model = AutoModelForSequenceClassification.from_pretrained(
-    #    model_args.model_name_or_path,
-    #    from_tf=bool(".ckpt" in model_args.model_name_or_path),
-    #    config=config,
-    #    cache_dir=model_args.cache_dir,
-    #    revision=model_args.model_revision,
-    #    use_auth_token=True if model_args.use_auth_token else None,
-    #)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_args.model_name_or_path,
+        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        config=config,
+        cache_dir=model_args.cache_dir,
+        revision=model_args.model_revision,
+        use_auth_token=True if model_args.use_auth_token else None,
+    )
 
     # ---------------------------
     #       create model
     # ---------------------------
-    model = MultiinputBertForSequenceClassification(
+    ###model = MultiinputBertForSequenceClassification(
         #model_args.model_name_or_path,
         #from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
+    ###    config=config,
         #cache_dir=model_args.cache_dir,
         #revision=model_args.model_revision,
         #use_auth_token=True if model_args.use_auth_token else None,
-        feature_dim=feature_dim
-    )
+    ###    feature_dim=feature_dim
+    ###)
 
     # Setup adapters
     if adapter_args.train_adapter:
