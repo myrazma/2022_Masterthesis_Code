@@ -173,7 +173,7 @@ class ModelArguments(unipelt_arguments.ModelArguments):
         metadata={"help": "Wether or not to use the pca features (Empathy / distress dimension)."},
     )
     
-    
+
 class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.model_mixin.ModelWithHeadsAdaptersMixin, unipelt_transformers.BertPreTrainedModel):
     # Re-implement BertForSequnceClassification of UniPELT implementation but with additional feature input
     def __init__(self, config, feature_dim):
@@ -181,7 +181,7 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
         self.num_labels = config.num_labels
         print(config)
 
-        self.bert = unipelt_transformers.BertModel(config)
+        self.bert = unipelt_transformers.BertModel.from_pretrained(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
         hidden_feat_size = config.hidden_size + feature_dim
@@ -558,27 +558,27 @@ def main():
         config.drop_first_prefix_layers_cross = list(range(model_args.drop_first_layers - num_layers))
 
 
-    model = AutoModelForSequenceClassification.from_pretrained(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        use_auth_token=True if model_args.use_auth_token else None,
-    )
+    #model = AutoModelForSequenceClassification.from_pretrained(
+    #    model_args.model_name_or_path,
+    #    from_tf=bool(".ckpt" in model_args.model_name_or_path),
+    #    config=config,
+    #    cache_dir=model_args.cache_dir,
+    #    revision=model_args.model_revision,
+    #    use_auth_token=True if model_args.use_auth_token else None,
+    #)
 
     # ---------------------------
     #       create model
     # ---------------------------
-    ###model = MultiinputBertForSequenceClassification(
+    model = MultiinputBertForSequenceClassification(
         #model_args.model_name_or_path,
         #from_tf=bool(".ckpt" in model_args.model_name_or_path),
-    ###    config=config,
+        config=config,
         #cache_dir=model_args.cache_dir,
         #revision=model_args.model_revision,
         #use_auth_token=True if model_args.use_auth_token else None,
-    ###    feature_dim=feature_dim
-    ###)
+        feature_dim=feature_dim
+    )
 
     # Setup adapters
     if adapter_args.train_adapter:
