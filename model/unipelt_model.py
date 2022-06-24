@@ -96,6 +96,12 @@ TrainingArguments = getattr(unipelt_transformers, 'TrainingArguments')
 default_data_collator = getattr(unipelt_transformers, 'default_data_collator')
 set_seed = getattr(unipelt_transformers, 'set_seed')
 
+
+
+
+
+BertForSequenceClassification = getattr(unipelt_transformers, 'BertForSequenceClassification')
+
 #from transformers import (
 #    AdapterConfig,
 #    AutoConfig,
@@ -176,12 +182,12 @@ class ModelArguments(unipelt_arguments.ModelArguments):
 
 class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.model_mixin.ModelWithHeadsAdaptersMixin, unipelt_transformers.BertPreTrainedModel):
     # Re-implement BertForSequnceClassification of UniPELT implementation but with additional feature input
-    def __init__(self, config, feature_dim):
+    def __init__(self, model_name, config, feature_dim):
         super().__init__(config)
         self.num_labels = config.num_labels
         print(config)
 
-        self.bert = unipelt_transformers.BertModel.from_pretrained("bert-base-uncased", config=config)
+        self.bert = unipelt_transformers.BertModel.from_pretrained(model_name, config=config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
         hidden_feat_size = config.hidden_size + feature_dim
@@ -570,8 +576,9 @@ def main():
     # ---------------------------
     #       create model
     # ---------------------------
-    model = MultiinputBertForSequenceClassification(
-        #model_args.model_name_or_path,
+    #model = MultiinputBertForSequenceClassification(
+    model = BertForSequenceClassification(
+        model_args.model_name_or_path,
         #from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
         #cache_dir=model_args.cache_dir,
@@ -579,6 +586,8 @@ def main():
         #use_auth_token=True if model_args.use_auth_token else None,
         feature_dim=feature_dim
     )
+
+    print(model)
 
     # Setup adapters
     if adapter_args.train_adapter:
