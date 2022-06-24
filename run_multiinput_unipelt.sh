@@ -85,3 +85,4 @@ python model/unipelt_model.py \
     --freq_thresh ${freq_thresh} \
     --vocab_type ${vocab_type} \
     --vocab_size ${vocab_size} \
+    --data_seed 1244

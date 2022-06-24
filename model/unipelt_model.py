@@ -187,7 +187,7 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
         self.num_labels = config.num_labels
         print(config)
 
-        self.bert = unipelt_transformers.BertModel.from_pretrained(model_name, config=config)
+        self.bert = unipelt_transformers.BertModel(config=config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
         hidden_feat_size = config.hidden_size + feature_dim
@@ -572,19 +572,30 @@ def main():
     #    revision=model_args.model_revision,
     #    use_auth_token=True if model_args.use_auth_token else None,
     #)
+    # TODO: There is something happening in AutoForSequence clasification that we dont know and that is improving the result
+    # - Should be maybe inlcude our multiinput bert model into the transformers architecture to call it with automodel for sequence classification?
 
     # ---------------------------
     #       create model
     # ---------------------------
-    #model = MultiinputBertForSequenceClassification(
-    model = BertForSequenceClassification(
-        #model_args.model_name_or_path,
+    ###model = MultiinputBertForSequenceClassification(
+        #model = BertForSequenceClassification(  # leading to the exact same result as oru classification!
+        ###model_args.model_name_or_path,
+        #from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        ###config=config,
+        #cache_dir=model_args.cache_dir,
+        #revision=model_args.model_revision,
+        #use_auth_token=True if model_args.use_auth_token else None,
+        ###feature_dim=feature_dim
+    ###)
+
+    model = BertForSequenceClassification(  # leading to the exact same result as oru classification!
+        model_args.model_name_or_path,
         #from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
         #cache_dir=model_args.cache_dir,
         #revision=model_args.model_revision,
-        #use_auth_token=True if model_args.use_auth_token else None,
-        #feature_dim=feature_dim
+        #use_auth_token=True if model_args.use_auth_token else None
     )
 
     print(model)
