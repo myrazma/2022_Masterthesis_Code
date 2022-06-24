@@ -563,15 +563,18 @@ def main():
         config.drop_first_prefix_layers_dec = list(range(model_args.drop_first_layers - num_layers))
         config.drop_first_prefix_layers_cross = list(range(model_args.drop_first_layers - num_layers))
 
-
-    #model = AutoModelForSequenceClassification.from_pretrained(
-    #    model_args.model_name_or_path,
-    #    from_tf=bool(".ckpt" in model_args.model_name_or_path),
-    #    config=config,
-    #    cache_dir=model_args.cache_dir,
-    #    revision=model_args.model_revision,
-    #    use_auth_token=True if model_args.use_auth_token else None,
-    #)
+    # add multiinput feature dim to hidden size
+    config.hidden_size = config.hidden_size + feature_dim
+    print(f'new hidden size: {config.hidden_size} ({feature_dim} additional features)')
+   
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_args.model_name_or_path,
+        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+        config=config,
+        cache_dir=model_args.cache_dir,
+        revision=model_args.model_revision,
+        use_auth_token=True if model_args.use_auth_token else None,
+    )
     # TODO: There is something happening in AutoForSequence clasification that we dont know and that is improving the result
     # - Should be maybe inlcude our multiinput bert model into the transformers architecture to call it with automodel for sequence classification?
 
@@ -589,14 +592,14 @@ def main():
         ###feature_dim=feature_dim
     ###)
 
-    model = BertForSequenceClassification(  # leading to the exact same result as oru classification!
+    ###model = BertForSequenceClassification(  # leading to the exact same result as oru classification!
         #emodel_args.model_name_or_path,
         #from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
+    ###    config=config,
         #cache_dir=model_args.cache_dir,
         #revision=model_args.model_revision,
         #use_auth_token=True if model_args.use_auth_token else None
-    )
+    ###)
 
     print(model)
 
