@@ -218,7 +218,7 @@ class BERTSentence:
         ]
 
         self.template = self.distress_template
-        self.question_template = self.original_template
+        self.question_template = self.distress_template_3 # self.original_template
 
     def setModel(self, model=None):
         # print("Init Sentence Encoder started")

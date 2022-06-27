@@ -831,8 +831,6 @@ def main():
         trainer.save_state()
         log_wandb(metrics, use_wandb)  # Added by Myra Z.: log wandb is use_wandb == True
 
-    print
-
     #log_plot_gradients(model, tensorboard_writer, use_wandb)
     log_plot_gates(model, tensorboard_writer, use_wandb)
     log_plot_gates_per_layer(model, tensorboard_writer, use_wandb)

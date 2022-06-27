@@ -28,12 +28,13 @@ fi
 # PCA setup
 task_name=distress
 store_run=False
-dim=1
+dim=3
 data_lim=1000
 use_freq_dist=True
 freq_thresh=0.000005
 vocab_type=mm
 vocab_size=10
+use_question_template=False
 
 # Multiinput model setup
 use_pca_features=False
@@ -85,4 +86,4 @@ python model/unipelt_model.py \
     --freq_thresh ${freq_thresh} \
     --vocab_type ${vocab_type} \
     --vocab_size ${vocab_size} \
-    --data_seed 1244
+    --use_question_template ${use_question_template}
