@@ -37,7 +37,7 @@ vocab_size=10
 use_question_template=False
 
 # Multiinput model setup
-use_pca_features=False
+use_pca_features=True
 use_lexical_features=False
 
 if [ $use_pca_features == True ]; then
