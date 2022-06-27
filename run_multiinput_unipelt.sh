@@ -86,4 +86,5 @@ python model/unipelt_model.py \
     --freq_thresh ${freq_thresh} \
     --vocab_type ${vocab_type} \
     --vocab_size ${vocab_size} \
-    --use_question_template ${use_question_template}
+    --use_question_template ${use_question_template}  \
+    --data_seed 1244
