@@ -2,7 +2,7 @@ use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
 
 # UniPELT Setup: APL
-pelt_method="unipelt_apl"
+pelt_method="full"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
@@ -22,6 +22,28 @@ if [ $pelt_method == "lora" ]; then
     add_enc_prefix=False
     train_adapter=False
     add_lora=True
+    tune_bias=False
+fi
+
+# Adapters
+if [ $pelt_method == "adapter" ]; then
+    echo "Using adapter"
+    learning_rate=1e-4
+    tensorboard_output_dir=runs/multiinput_pelt_adapters
+    add_enc_prefix=False
+    train_adapter=True
+    add_lora=False
+    tune_bias=False
+fi
+
+# Full fine tuning
+if [ $pelt_method == "full" ]; then
+    echo "Using Full fine tuning"
+    learning_rate=2e-5
+    tensorboard_output_dir=runs/multiinput_pelt_full_fine_tuning_bert
+    add_enc_prefix=False
+    train_adapter=False
+    add_lora=False
     tune_bias=False
 fi
 
@@ -87,4 +109,3 @@ python model/unipelt_model.py \
     --vocab_type ${vocab_type} \
     --vocab_size ${vocab_size} \
     --use_question_template ${use_question_template}  \
-    --data_seed 1244
