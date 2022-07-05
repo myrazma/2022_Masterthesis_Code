@@ -2,7 +2,7 @@ use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
 
 # UniPELT Setup: APL
-pelt_method="full"
+pelt_method="lora"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
@@ -60,7 +60,7 @@ use_question_template=False
 
 # Multiinput model setup
 use_pca_features=True
-use_lexical_features=False
+use_lexical_features=True
 
 if [ $use_pca_features == True ]; then
     tensorboard_output_dir="${tensorboard_output_dir}_pca"
