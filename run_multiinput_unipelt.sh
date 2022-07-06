@@ -2,7 +2,7 @@ use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
 
 # UniPELT Setup: APL
-pelt_method="lora"
+pelt_method="prefix"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
@@ -47,8 +47,18 @@ if [ $pelt_method == "full" ]; then
     tune_bias=False
 fi
 
+if [ $pelt_method == "prefix" ]; then
+    echo "Using Prefix-tuning"
+    learning_rate=2e-4
+    tensorboard_output_dir=runs/test
+    add_enc_prefix=True
+    train_adapter=False
+    add_lora=False
+    tune_bias=False
+fi
+
 # PCA setup
-task_name=distress
+task_name=empathy
 store_run=False
 dim=3
 data_lim=1000
@@ -60,10 +70,13 @@ use_question_template=False
 
 # Multiinput model setup
 use_pca_features=True
-use_lexical_features=True
+use_lexical_features=False
 
 if [ $use_pca_features == True ]; then
     tensorboard_output_dir="${tensorboard_output_dir}_pca"
+    if [ $dim == 3 ]; then
+        tensorboard_output_dir="${tensorboard_output_dir}3"
+    fi
 fi
 if [ $use_lexical_features == True ]; then
     tensorboard_output_dir="${tensorboard_output_dir}_lexical"
