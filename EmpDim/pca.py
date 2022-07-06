@@ -393,6 +393,12 @@ class DataSelector:
 
                 if isinstance(words[0], str):
                     print('not implemented')
+
+
+        try:
+            print('After removing dublicate:', len(distinct_words))
+        except:
+            print()
         return distinct_words
 
 
@@ -420,6 +426,12 @@ class DataSelector:
                         verb_synset_ls = wn.synsets(word, pos=wn.VERB)
                         if len(verb_synset_ls) >= 1:
                             verbs.append(word)
+
+        
+        try:
+            print('After selecting only verbs:', len(verbs))
+        except:
+            print()
 
         return verbs
 
@@ -472,6 +484,7 @@ class DataSelector:
                 words_selected = __get_words(words, sorting=sorting)[:word_count]
                 result.append(words_selected)
        
+        # ------ neutral ------
         # if neutral word requested, also get the neutral words around the center
         if 'neut' in samples:
             # - get the center -
