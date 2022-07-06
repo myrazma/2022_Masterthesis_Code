@@ -355,6 +355,10 @@ class DataSelector:
         """
         # words -> liste of tuples (list(str, float))
         # the way to sort the scores (item[1])
+        try:
+            print('Before removing dublicate:', len(words))
+        except:
+            print()
         distinct_words = []
         if strategy == 'sorting':
             if isinstance(words, list):
