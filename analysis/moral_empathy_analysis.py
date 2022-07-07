@@ -1,4 +1,5 @@
 import pickle
+from regex import F
 import sklearn
 print (sklearn.__version__)
 from sklearn.decomposition import PCA
@@ -15,8 +16,12 @@ from utils.arguments import PCAArguments, DataTrainingArguments
 import importlib
 #import transformers
 try:
-    unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
     unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
+except:
+    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.uitls". Not exiting.')
+    sys.exit(-1)
+try:
+    unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
     unipelt_preprocessing = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing')
     unipelt_arguments = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.arguments')
 except:
@@ -120,7 +125,7 @@ labels = train_dataset['label'][:100]
 
 essay_embeddings = sent_model.get_sen_embedding(essays)
 
-mort_pca = load_mort_pca()
+mort_pca = load_mort_pca(filename=data_args.data_dir + '/MoRT_projection/projection_model.p')
 moral_dim = mort_pca.transform(essay_embeddings)
 
 print(type(moral_dim))
