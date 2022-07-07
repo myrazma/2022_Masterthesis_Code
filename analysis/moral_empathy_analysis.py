@@ -85,7 +85,7 @@ device = 'cpu'
 sent_model = BERTSentence(device=device)
 
 # TODO, add mort file to DataTrainArgs
-data_args = DataTrainingArguments(task_name='distress')
+data_args = DataTrainingArguments(task_name='empathy')
 model_args = unipelt_arguments.ModelArguments()
 training_args = TrainingArguments(output_dir='output/moral_output')
 
