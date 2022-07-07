@@ -2,6 +2,7 @@ import pickle
 from regex import F
 import sklearn
 from sklearn.decomposition import PCA
+import numpy as np
 
 import torch
 import sys
@@ -130,7 +131,7 @@ print('\n------------ ' + display_text + ' ------------\n')
 # ------------------
 print(train_dataset)
 essays = train_dataset['essay'][:100]
-labels = train_dataset['label'][:100]
+labels = np.array(train_dataset['label'][:100])
 
 essay_embeddings = sent_model.get_sen_embedding(essays)
 
