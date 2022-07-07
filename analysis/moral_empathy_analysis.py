@@ -19,6 +19,8 @@ print('Showing the pickled data:')
 cnt = 0
 for item in data:
     print('The data ', cnt, ' is : ', item)
+    print(type(item))
+    print()
     cnt += 1
 
 print(type(data))
