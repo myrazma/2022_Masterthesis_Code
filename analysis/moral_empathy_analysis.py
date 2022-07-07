@@ -15,11 +15,11 @@ from utils.arguments import PCAArguments, DataTrainingArguments
 
 import importlib
 #import transformers
-try:
-    unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
-except:
-    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.uitls". Not exiting.')
-    sys.exit(-1)
+
+unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
+#except:
+#    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.utils". Not exiting.')
+
 try:
     unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
     unipelt_preprocessing = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing')
