@@ -25,16 +25,13 @@ import importlib
 #import transformers
 
 unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
+#try:
+unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
+unipelt_preprocessing = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing')
+unipelt_arguments = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.arguments')
 #except:
-#    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT.utils". Not exiting.')
-
-try:
-    unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
-    unipelt_preprocessing = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing')
-    unipelt_arguments = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.arguments')
-except:
-    print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT". Not exiting.')
-    sys.exit(-1)
+#    print('The UniPelt Input is not available. Probably an import in "submodules.2022_Masterthesis_UnifiedPELT" not working.')
+#    sys.exit(-1)
 # use importlib in this case, because of the name in submodule starting with a number
 get_last_checkpoint = getattr(importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers.trainer_utils'), 'get_last_checkpoint')
 is_main_process = getattr(importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers.trainer_utils'), 'is_main_process')
