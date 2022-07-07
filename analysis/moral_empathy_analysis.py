@@ -12,6 +12,8 @@ import utils.utils as utils
 import utils.preprocessing as preprocessing
 from utils.arguments import PCAArguments, DataTrainingArguments
 
+from scipy.stats import pearsonr
+
 # get imports from the submodule
 from pathlib import Path
 path_root = Path(__file__).parents[1]
@@ -82,7 +84,7 @@ device = 'cpu'
 sent_model = BERTSentence(device=device)
 
 # TODO, add mort file to DataTrainArgs
-data_args = DataTrainingArguments()
+data_args = DataTrainingArguments(task_name='distress')
 model_args = unipelt_arguments.ModelArguments()
 training_args = TrainingArguments(output_dir='output/moral_output')
 
@@ -137,7 +139,20 @@ moral_dim = mort_pca.transform(essay_embeddings)
 
 print(type(moral_dim))
 print(moral_dim)
+
 try:
-    print(moral_dim.size())
+    print(moral_dim.shape)
 except:
     pass
+
+pca_dim = moral_dim.shape[1]
+
+for i in range(pca_dim):
+    print(f'correlation of PC {i+1}')
+    moral_dim_pc_i = moral_dim[:, i]
+    print('labels.shape', labels.shape)
+    print('moral_dim_pc_i.shape', moral_dim_pc_i.shape)
+    r, p = pearsonr(moral_dim_pc_i, labels)
+    print(f'r: {r}, p: {p}')
+    print()
+    
