@@ -81,7 +81,7 @@ sent_model = BERTSentence(device=device)
 # TODO, add mort file to DataTrainArgs
 data_args = DataTrainingArguments()
 model_args = unipelt_arguments.ModelArguments()
-training_args = TrainingArguments()
+training_args = TrainingArguments(output_dir='output/moral_output')
 
 data_train_pd, data_dev_pd, data_test_pd = utils.load_data_complete(train_file=data_args.train_file, dev_file=data_args.validation_file, dev_label_file=data_args.validation_labels_file, test_file=data_args.test_file)
 data_train_pd = utils.clean_raw_data(data_train_pd)
