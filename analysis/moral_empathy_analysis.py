@@ -13,6 +13,14 @@ import utils.utils as utils
 import utils.preprocessing as preprocessing
 from utils.arguments import PCAArguments, DataTrainingArguments
 
+# get imports from the submodule
+from pathlib import Path
+path_root = Path(__file__).parents[1]
+sys.path.append(str(path_root))
+sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules'))
+sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules/2022_Masterthesis_UnifiedPELT'))
+sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules/2022_Masterthesis_UnifiedPELT/transformers')) 
+print(sys.path)
 import importlib
 #import transformers
 
