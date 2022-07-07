@@ -84,8 +84,9 @@ device = 'cpu'
 
 sent_model = BERTSentence(device=device)
 
+task_name = 'distress'
 # TODO, add mort file to DataTrainArgs
-data_args = DataTrainingArguments(task_name='empathy')
+data_args = DataTrainingArguments(task_name=task_name)
 model_args = unipelt_arguments.ModelArguments()
 training_args = TrainingArguments(output_dir='output/moral_output')
 
@@ -130,8 +131,9 @@ print('\n------------ ' + display_text + ' ------------\n')
 # create moral score
 # ------------------
 print(train_dataset)
-essays = train_dataset['essay'][:100]
-labels = np.array(train_dataset['label'][:100])
+# TODO: Do this with resampled even data
+essays = train_dataset['essay']
+labels = np.array(train_dataset['label'])
 
 essay_embeddings = sent_model.get_sen_embedding(essays)
 
