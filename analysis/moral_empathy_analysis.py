@@ -1,7 +1,6 @@
 import pickle
 from regex import F
 import sklearn
-print (sklearn.__version__)
 from sklearn.decomposition import PCA
 
 import torch
