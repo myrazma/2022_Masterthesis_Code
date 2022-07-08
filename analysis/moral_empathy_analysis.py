@@ -79,8 +79,8 @@ else:
     print("\n---------- No GPU available, using the CPU instead. ----------\n")
     device = torch.device("cpu")
 
-# only use cpu for this analysis
-device = 'cpu'
+# only use cpu for this analysis when running with a100
+#device = 'cpu'
 
 sent_model = BERTSentence(device=device)
 
