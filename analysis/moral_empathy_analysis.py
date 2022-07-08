@@ -5,6 +5,7 @@ import sklearn
 from sklearn.decomposition import PCA
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.metrics import multilabel_confusion_matrix
 
 import torch
 from random import random
@@ -139,7 +140,7 @@ def scatter_moral_empdis(pca_features, labels):
 
     pca_dim = pca_features.shape[1]
 
-    fig, axes = plt.subplots(pca_dim, sharey=True)
+    fig, axes = plt.subplots(pca_dim, sharey=True, figsize=(10,10))
     for i in range(pca_dim):
         moral_dim_pc_i = pca_features[:, i]
         axes[i].scatter(labels, moral_dim_pc_i)
@@ -205,7 +206,8 @@ def bin_data(labels, moral_pca, bin_size=0.1):
     for idx, score in enumerate(labels):
         min_idx = np.where(bins <= score)[0]
         max_idx = np.where(bins > score)[0] - 1
-        item_bin_idx = np.intersect1d(min_idx, max_idx)[0]
+        if len(min_idx) > 0 or len(max_idx) > 0:
+            item_bin_idx = np.intersect1d(min_idx, max_idx)[0]
         moral_pca_i = moral_pca[idx]
         binned_pca[item_bin_idx].append(moral_pca_i)
         binned_labels[item_bin_idx].append(score)
