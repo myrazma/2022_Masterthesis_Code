@@ -1,10 +1,15 @@
 import pickle
+import matplotlib
 from regex import F
 import sklearn
 from sklearn.decomposition import PCA
 import numpy as np
+import matplotlib.pyplot as plt
 
 import torch
+from random import random
+import decimal
+import math
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__),'../'))
@@ -54,6 +59,8 @@ Trainer = getattr(unipelt_transformers, 'Trainer')
 TrainingArguments = getattr(unipelt_transformers, 'TrainingArguments')
 default_data_collator = getattr(unipelt_transformers, 'default_data_collator')
 set_seed = getattr(unipelt_transformers, 'set_seed')
+
+COLORS = ['#029e72', '#e69f00', '#f0e441', '#57b4e8']
 
 def load_mort_pca(filename='../data/MoRT_projection/projection_model.p'):
     file = open(filename, 'rb')
@@ -127,6 +134,89 @@ if data_args.task_name == 'distress':
     display_text = "Using distress data"
 print('\n------------ ' + display_text + ' ------------\n')
 
+
+def scatter_moral_empdis(pca_features, labels):
+
+    pca_dim = pca_features.shape[1]
+
+    fig, axes = plt.subplots(pca_dim, sharey=True)
+    for i in range(pca_dim):
+        moral_dim_pc_i = pca_features[:, i]
+        axes[i].scatter(labels, moral_dim_pc_i)
+
+    plt.savefig(training_args.output_dir + f'/scatter_moral_{data_args.task_name}.pdf')
+
+
+#def distance_moral_empdis(pca_features, labels, decimal_count=1):
+
+#    # round label scores, so that the scores are in sort of bins: 
+#    labels_bin = np.around(labels, decimal_count)  # sort of discrete space, depending on the decimal count
+
+#    pca_dim = pca_features.shape[1]
+
+#    fig, axes = plt.subplots(pca_dim, sharey=True)
+#    for i in range(pca_dim):
+#        moral_dim_pc_i = pca_features[:, i]
+#        axes[i].scatter(labels, moral_dim_pc_i)
+
+#    plt.savefig(training_args.output_dir + f'/scatter_moral_{data_args.task_name}.pdf')
+
+
+def plot_moral_empdis(bins, binned_data):
+    colors = ['red', 'blue', 'yellow']
+    binned_ave, binned_std, final_bins = [], [], []
+    for idx, bin in enumerate(binned_data):
+        if len(bin) >= 1:
+            ave_bin = np.mean(bin, axis=0)
+            std_bin = np.std(bin, axis=0)
+            binned_ave.append(ave_bin)
+            binned_std.append(std_bin)
+            final_bins.append(bins[idx])
+            
+    binned_ave = np.array(binned_ave)
+    binned_std = np.array(binned_std)
+
+    lower_std_bound = binned_ave - binned_std
+    upper_std_bound = binned_ave + binned_std
+    for i in range(binned_ave.shape[1]):
+        plt.plot(final_bins, binned_ave[:, i], c=COLORS[i], label=f'PC {i+1}')
+        plt.fill_between(final_bins, lower_std_bound[:, i], upper_std_bound[:, i], color=COLORS[i], alpha=0.5)
+    plt.title('The average moral score with the std')
+    plt.xlabel('Average moral score')
+    plt.ylabel('Score (in bins)')
+    plt.savefig(training_args.output_dir + f'/ave_moral_{data_args.task_name}.pdf')
+    return binned_ave, binned_std, final_bins
+
+
+def bin_data(labels, moral_pca, bin_size=0.1):
+    # - create bins -
+    decimal_count = abs(decimal.Decimal(str(bin_size)).as_tuple().exponent)
+    min_score = min([item for item in labels])
+    max_score = max([item for item in labels])
+    bins_start = math.floor(min_score * (10**decimal_count)) / (10**decimal_count)
+    bins_end = math.ceil(max_score * (10**decimal_count)) / (10**decimal_count)
+    # add the end point to the bins as well, to get the upper range for the elements
+    # this will be removed later on, since it is not actually a bin
+    bins = np.arange(bins_start, bins_end + bin_size, bin_size)
+
+    # - divide data into bins - 
+    binned_pca = [[] for i in range(len(bins))]
+    binned_labels = [[] for i in range(len(bins))]
+    for idx, score in enumerate(labels):
+        min_idx = np.where(bins <= score)[0]
+        max_idx = np.where(bins > score)[0] - 1
+        item_bin_idx = np.intersect1d(min_idx, max_idx)[0]
+        moral_pca_i = moral_pca[idx]
+        binned_pca[item_bin_idx].append(moral_pca_i)
+        binned_labels[item_bin_idx].append(score)
+    # remove last bin, because it is 0 anyways, just needed it for the calculation
+    binned_pca = binned_pca[:-1]
+    binned_labels = binned_labels[:-1]
+    bins = bins[:-1]
+
+    return binned_pca, binned_labels, bins
+
+
 # ------------------
 # create moral score
 # ------------------
@@ -158,4 +248,9 @@ for i in range(pca_dim):
     r, p = pearsonr(moral_dim_pc_i, labels)
     print(f'r: {r}, p: {p}')
     print()
+    
+scatter_moral_empdis(moral_dim, labels)
+
+binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.1)
+plot_moral_empdis(bins, binned_pca)
     
