@@ -144,7 +144,7 @@ def scatter_moral_empdis(pca_features, labels):
         moral_dim_pc_i = pca_features[:, i]
         axes[i].scatter(labels, moral_dim_pc_i)
 
-    plt.savefig(training_args.output_dir + f'/scatter_moral_{data_args.task_name}.pdf')
+    plt.savefig(get_output_dir() + f'/scatter_moral_{data_args.task_name}.pdf')
 
 
 #def distance_moral_empdis(pca_features, labels, decimal_count=1):
@@ -184,7 +184,7 @@ def plot_moral_empdis(bins, binned_data):
     plt.title('The average moral score with the std')
     plt.xlabel('Average moral score')
     plt.ylabel('Score (in bins)')
-    plt.savefig(training_args.output_dir + f'/ave_moral_{data_args.task_name}.pdf')
+    plt.savefig(get_output_dir() + f'/ave_moral_{data_args.task_name}.pdf')
     return binned_ave, binned_std, final_bins
 
 
@@ -216,7 +216,11 @@ def bin_data(labels, moral_pca, bin_size=0.1):
 
     return binned_pca, binned_labels, bins
 
-
+def get_output_dir():
+    output_name = training_args.output_dir
+    if not os.path.exists(output_name):
+        os.makedirs(output_name)
+    return output_name
 # ------------------
 # create moral score
 # ------------------
