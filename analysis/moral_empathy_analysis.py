@@ -144,7 +144,7 @@ def scatter_moral_empdis(pca_features, labels):
     for i in range(pca_dim):
         moral_dim_pc_i = pca_features[:, i]
         r, p = pearsonr(moral_dim_pc_i, labels)
-        if isinstance(r, list): r = r[0]
+        r = r[0]
         plt.scatter(labels, moral_dim_pc_i)
         plt.ylabel('MoRT score')
         plt.xlabel(f'{data_args.task_name} score')
