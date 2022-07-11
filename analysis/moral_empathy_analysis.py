@@ -147,7 +147,7 @@ def scatter_moral_empdis(pca_features, labels):
         plt.scatter(labels, moral_dim_pc_i)
         plt.ylabel('MoRT score')
         plt.xlabel(f'{data_args.task_name} score')
-        plt.title(f'Scatter plots MoRT: PC {i+1}. pearson r: {r}')
+        plt.title(f'Scatter plots MoRT: PC {i+1}. pearson r: {r:.4f}')
         plt.savefig(get_output_dir() + f'/scatter_moral_{data_args.task_name}_{i+1}.pdf')
         plt.close()
 
@@ -266,6 +266,6 @@ for i in range(pca_dim):
     
 scatter_moral_empdis(moral_dim, labels)
 
-binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.01)
+binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.1)
 plot_moral_empdis(bins, binned_pca)
     
