@@ -61,7 +61,7 @@ TrainingArguments = getattr(unipelt_transformers, 'TrainingArguments')
 default_data_collator = getattr(unipelt_transformers, 'default_data_collator')
 set_seed = getattr(unipelt_transformers, 'set_seed')
 
-COLORS = ['#029e72', '#e69f00', '#f0e441', '#57b4e8']
+COLORS = ['#029e72', '#e69f00', '#f0e441', '#57b4e8', '#6a329f']
 
 def load_mort_pca(filename='../data/MoRT_projection/projection_model.p'):
     file = open(filename, 'rb')
@@ -167,7 +167,6 @@ def scatter_moral_empdis(pca_features, labels):
 
 
 def plot_moral_empdis(bins, binned_data):
-    colors = ['red', 'blue', 'yellow']
     binned_ave, binned_std, final_bins = [], [], []
     for idx, bin in enumerate(binned_data):
         if len(bin) >= 1:
@@ -182,16 +181,13 @@ def plot_moral_empdis(bins, binned_data):
 
     lower_std_bound = binned_ave - binned_std
     upper_std_bound = binned_ave + binned_std
-    print(binned_ave.shape)
-    print(binned_ave)
     for i in range(binned_ave.shape[1]):
-        print('binned_ave[:, i]', binned_ave[:, i])
-        print('binned_ave[:, i].shape', binned_ave[:, i].shape)
         plt.plot(final_bins, binned_ave[:, i], c=COLORS[i], label=f'PC {i+1}')
         plt.fill_between(final_bins, lower_std_bound[:, i], upper_std_bound[:, i], color=COLORS[i], alpha=0.5)
     plt.title('The average moral score with the std')
     plt.xlabel('Average moral score')
     plt.ylabel('Score (in bins)')
+    plt.legend()
     plt.savefig(get_output_dir() + f'/ave_moral_{data_args.task_name}.pdf')
     return binned_ave, binned_std, final_bins
 
@@ -206,8 +202,6 @@ def bin_data(labels, moral_pca, bin_size=0.1):
     # add the end point to the bins as well, to get the upper range for the elements
     # this will be removed later on, since it is not actually a bin
     bins = np.arange(bins_start, bins_end + bin_size, bin_size)
-    print(bins_end)
-    print(bins)
 
     # - divide data into bins - 
     binned_pca = [[] for i in range(len(bins))]
@@ -223,18 +217,8 @@ def bin_data(labels, moral_pca, bin_size=0.1):
         if len(item_bin_idx) > 0:
             item_bin_idx = item_bin_idx[0]
             moral_pca_i = moral_pca[idx]
-            print('bins', bins)
-            print('item_bin_idx', item_bin_idx)
-            print('score', score)
             binned_pca[item_bin_idx].append(moral_pca_i)
             binned_labels[item_bin_idx].append(score)
-        else:
-            print('\n\n')
-            print('no intersection:', item_bin_idx)
-            print('score:', score)
-            print('bins', bins)
-    
-            print('\n\n')
     # remove last bin, because it is 0 anyways, just needed it for the calculation
     binned_pca = binned_pca[:-1]
     binned_labels = binned_labels[:-1]
