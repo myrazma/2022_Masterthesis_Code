@@ -93,7 +93,7 @@ else:
 
 sent_model = BERTSentence(device=device)
 
-task_name = 'distress'
+task_name = 'empathy'
 # TODO, add mort file to DataTrainArgs
 data_args = DataTrainingArguments(task_name=task_name)
 model_args = unipelt_arguments.ModelArguments()
