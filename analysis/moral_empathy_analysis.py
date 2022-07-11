@@ -174,7 +174,8 @@ def scatter_moral_empdis(pca_features, labels):
         plt.savefig(get_output_dir() + f'/scatter_moral_{data_args.task_name}_{i+1}.pdf')
         plt.close()
         try:
-            correlations_pd.append({'pearson_r':r, 'pearson_p': p, 'princ_comp':(i+1), 'note':'Without outliers', 'task_name': data_args.task_name})
+            new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['With outliers'], 'task_name': [data_args.task_name]})
+            correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
         except:
             pass
 
@@ -301,8 +302,9 @@ for i in range(pca_dim):
     r, p = pearsonr(moral_dim_pc_i, labels)
     r = r[0]
     print(f'r: {r}, p: {p}')
-    correlations_pd.append({'pearson_r':r, 'pearson_p': p, 'princ_comp':(i+1), 'note':'With outliers', 'task_name': data_args.task_name})
-    
+    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['With outliers'], 'task_name': [data_args.task_name]})
+    correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
+
 scatter_moral_empdis(moral_dim, labels)
 
 binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.1)
