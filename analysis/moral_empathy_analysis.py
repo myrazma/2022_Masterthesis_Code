@@ -185,8 +185,8 @@ def plot_moral_empdis(bins, binned_data):
         plt.plot(final_bins, binned_ave[:, i], c=COLORS[i], label=f'PC {i+1}')
         plt.fill_between(final_bins, lower_std_bound[:, i], upper_std_bound[:, i], color=COLORS[i], alpha=0.5)
     plt.title('The average moral score with the std')
-    plt.xlabel('Average moral score')
-    plt.ylabel('Score (in bins)')
+    plt.ylabel('Average moral score')
+    plt.xlabel(f'{data_args.task_name} score (in bins)')
     plt.legend()
     plt.savefig(get_output_dir() + f'/ave_moral_{data_args.task_name}.pdf')
     return binned_ave, binned_std, final_bins
@@ -265,6 +265,6 @@ for i in range(pca_dim):
     
 scatter_moral_empdis(moral_dim, labels)
 
-binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.1)
+binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.01)
 plot_moral_empdis(bins, binned_pca)
     
