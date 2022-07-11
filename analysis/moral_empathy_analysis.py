@@ -203,7 +203,7 @@ def bin_data(labels, moral_pca, bin_size=0.1):
     bins_end = math.ceil(max_score * (10**decimal_count)) / (10**decimal_count)
     # add the end point to the bins as well, to get the upper range for the elements
     # this will be removed later on, since it is not actually a bin
-    bins = np.arange(bins_start, bins_end + (bin_size*2), bin_size)  # *2 so that the last index fits in here
+    bins = np.arange(bins_start, bins_end + bin_size, bin_size)
     print(bins_end)
     print(bins)
 
@@ -213,12 +213,17 @@ def bin_data(labels, moral_pca, bin_size=0.1):
     for idx, score in enumerate(labels):
         min_idx = np.where(bins <= score)[0]
         max_idx = np.where(bins > score)[0] - 1
+        if len(max_idx) == 0:
+            max_idx = np.array([])  # put last index in here
         
         item_bin_idx = np.intersect1d(min_idx, max_idx)
 
         if len(item_bin_idx) > 0:
             item_bin_idx = item_bin_idx[0]
             moral_pca_i = moral_pca[idx]
+            print('bins', bins)
+            print('item_bin_idx', bins)
+            print('score', bins)
             binned_pca[item_bin_idx].append(moral_pca_i)
             binned_labels[item_bin_idx].append(score)
         else:
