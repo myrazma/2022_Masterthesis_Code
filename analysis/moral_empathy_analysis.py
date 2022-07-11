@@ -143,10 +143,11 @@ def scatter_moral_empdis(pca_features, labels):
     #fig, axes = plt.subplots(pca_dim, sharey=True, figsize=(10,10))
     for i in range(pca_dim):
         moral_dim_pc_i = pca_features[:, i]
+        r, p = pearsonr(moral_dim_pc_i, labels)
         plt.scatter(labels, moral_dim_pc_i)
         plt.ylabel('MoRT score')
         plt.xlabel(f'{data_args.task_name} score')
-        plt.title(f'Scatter plots MoRT: PC {i+1}')
+        plt.title(f'Scatter plots MoRT: PC {i+1}. pearson r: {r}')
         plt.savefig(get_output_dir() + f'/scatter_moral_{data_args.task_name}_{i+1}.pdf')
         plt.close()
 
