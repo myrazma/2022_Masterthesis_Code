@@ -220,7 +220,7 @@ def bin_data(labels, moral_pca, bin_size=0.1):
         else:
             print('\n\n')
             print('no intersection:', item_bin_idx)
-            print('binned labels', binned_labels)
+            print('score:', score)
             print('bins', bins)
             print('\n\n')
     # remove last bin, because it is 0 anyways, just needed it for the calculation
