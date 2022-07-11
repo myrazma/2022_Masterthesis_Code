@@ -1,6 +1,7 @@
 import pickle
 import matplotlib
 from regex import F
+import pandas as pd
 import sklearn
 from sklearn.decomposition import PCA
 import numpy as np
@@ -146,7 +147,6 @@ def remove_outliers(data_array):
     for idx, item in enumerate(data_array):
         if is_outlier(item):
             outlier_count += 1
-            print('outlier:', item)
             continue
         new_data.append(item)
         kept_idx.append(idx)
@@ -173,7 +173,10 @@ def scatter_moral_empdis(pca_features, labels):
         plt.title(f'Scatter plots MoRT: PC {i+1}. pearson r: {r:.4f}.')
         plt.savefig(get_output_dir() + f'/scatter_moral_{data_args.task_name}_{i+1}.pdf')
         plt.close()
-
+        try:
+            correlations_pd.append({'pearson_r':r, 'pearson_p': p, 'princ_comp':(i+1), 'note':'Without outliers', 'task_name': data_args.task_name})
+        except:
+            pass
 
 #def distance_moral_empdis(pca_features, labels, decimal_count=1):
 
@@ -256,6 +259,7 @@ def get_output_dir():
     if not os.path.exists(output_name):
         os.makedirs(output_name)
     return output_name
+
 # ------------------
 # create moral score
 # ------------------
@@ -279,17 +283,29 @@ except:
 
 pca_dim = moral_dim.shape[1]
 
+
+
+csv_path = get_output_dir() + '/moral_correlations.csv'
+if not os.path.exists(csv_path):
+    correlations_pd = pd.DataFrame()
+else: 
+    correlations_pd = pd.read_csv(csv_path)
+
+
+
 for i in range(pca_dim):
     print(f'correlation of PC {i+1}')
     moral_dim_pc_i = moral_dim[:, i]
     print('labels.shape', labels.shape)
     print('moral_dim_pc_i.shape', moral_dim_pc_i.shape)
     r, p = pearsonr(moral_dim_pc_i, labels)
+    r = r[0]
     print(f'r: {r}, p: {p}')
-    print()
+    correlations_pd.append({'pearson_r':r, 'pearson_p': p, 'princ_comp':(i+1), 'note':'With outliers', 'task_name': data_args.task_name})
     
 scatter_moral_empdis(moral_dim, labels)
 
 binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.1)
 plot_moral_empdis(bins, binned_pca)
     
+correlations_pd.to_csv(csv_path)
