@@ -136,6 +136,26 @@ if data_args.task_name == 'distress':
 print('\n------------ ' + display_text + ' ------------\n')
 
 
+def remove_outliers(data_array):
+    kept_idx, new_data = [], []
+    avr = np.mean(data_array)
+    std = np.std(data_array)
+    is_outlier = lambda x: item > avr + std*2 or item < avr - std*2
+    outlier_count = 0
+
+    for idx, item in enumerate(data_array):
+        if is_outlier(item):
+            outlier_count += 1
+            print('outlier:', item)
+            continue
+        new_data.append(item)
+        kept_idx.append(idx)
+    kept_idx = np.array(kept_idx)
+    new_data = np.array(new_data)
+    print(f'Detected {outlier_count} outlier(s)')
+    return new_data, kept_idx
+
+
 def scatter_moral_empdis(pca_features, labels):
 
     pca_dim = pca_features.shape[1]
@@ -143,12 +163,14 @@ def scatter_moral_empdis(pca_features, labels):
     #fig, axes = plt.subplots(pca_dim, sharey=True, figsize=(10,10))
     for i in range(pca_dim):
         moral_dim_pc_i = pca_features[:, i]
-        r, p = pearsonr(moral_dim_pc_i, labels)
+        moral_dim_no_outlier_pc_i, kept_idx = remove_outliers(moral_dim_pc_i)
+        labels_i = np.array(labels)[kept_idx]
+        r, p = pearsonr(moral_dim_no_outlier_pc_i, labels_i)
         r = r[0]
-        plt.scatter(labels, moral_dim_pc_i)
+        plt.scatter(labels_i, moral_dim_no_outlier_pc_i)
         plt.ylabel('MoRT score')
         plt.xlabel(f'{data_args.task_name} score')
-        plt.title(f'Scatter plots MoRT: PC {i+1}. pearson r: {r:.4f}')
+        plt.title(f'Scatter plots MoRT: PC {i+1}. pearson r: {r:.4f}.')
         plt.savefig(get_output_dir() + f'/scatter_moral_{data_args.task_name}_{i+1}.pdf')
         plt.close()
 
@@ -227,6 +249,7 @@ def bin_data(labels, moral_pca, bin_size=0.1):
     bins = bins[:-1]
 
     return binned_pca, binned_labels, bins
+
 
 def get_output_dir():
     output_name = training_args.output_dir
