@@ -185,6 +185,8 @@ def plot_moral_empdis(bins, binned_data):
     print(binned_ave.shape)
     print(binned_ave)
     for i in range(binned_ave.shape[1]):
+        print('binned_ave[:, i]', binned_ave[:, i])
+        print('binned_ave[:, i].shape', binned_ave[:, i].shape)
         plt.plot(final_bins, binned_ave[:, i], c=COLORS[i], label=f'PC {i+1}')
         plt.fill_between(final_bins, lower_std_bound[:, i], upper_std_bound[:, i], color=COLORS[i], alpha=0.5)
     plt.title('The average moral score with the std')
