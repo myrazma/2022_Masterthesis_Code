@@ -182,6 +182,8 @@ def plot_moral_empdis(bins, binned_data):
 
     lower_std_bound = binned_ave - binned_std
     upper_std_bound = binned_ave + binned_std
+    print(binned_ave.shape)
+    print(binned_ave)
     for i in range(binned_ave.shape[1]):
         plt.plot(final_bins, binned_ave[:, i], c=COLORS[i], label=f'PC {i+1}')
         plt.fill_between(final_bins, lower_std_bound[:, i], upper_std_bound[:, i], color=COLORS[i], alpha=0.5)
@@ -201,7 +203,7 @@ def bin_data(labels, moral_pca, bin_size=0.1):
     bins_end = math.ceil(max_score * (10**decimal_count)) / (10**decimal_count)
     # add the end point to the bins as well, to get the upper range for the elements
     # this will be removed later on, since it is not actually a bin
-    bins = np.arange(bins_start, bins_end + (bin_size*2), bin_size)
+    bins = np.arange(bins_start, bins_end + (bin_size*2), bin_size)  # *2 so that the last index fits in here
     print(bins_end)
     print(bins)
 
@@ -221,9 +223,7 @@ def bin_data(labels, moral_pca, bin_size=0.1):
             binned_labels[item_bin_idx].append(score)
         else:
             print('\n\n')
-            print('no intersection:', item_bin_idx)        
-            print('min_idx_tmp', min_idx_tmp)
-            print('max_idx_tmp', max_idx_tmp)
+            print('no intersection:', item_bin_idx)
             print('score:', score)
             print('bins', bins)
     
