@@ -202,6 +202,8 @@ def bin_data(labels, moral_pca, bin_size=0.1):
     # add the end point to the bins as well, to get the upper range for the elements
     # this will be removed later on, since it is not actually a bin
     bins = np.arange(bins_start, bins_end + bin_size, bin_size)
+    print(bins_end)
+    print(bins)
 
     # - divide data into bins - 
     binned_pca = [[] for i in range(len(bins))]
