@@ -335,6 +335,9 @@ essay_article_ids = np.array(train_dataset['article_id'])
 
 for i in range(moral_dim_articles.shape[1]):
     articles_mort_i = moral_dim_articles[:, i]
+    print(essay_article_ids)
+    print(essay_article_ids.shape)
+    print(article_ids)
     indices = [article_ids.index(id) for id in list(essay_article_ids)]
     article_mort_per_essay = np.take(articles_mort_i, indices)
 
