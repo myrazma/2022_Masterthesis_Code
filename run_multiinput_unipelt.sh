@@ -82,6 +82,9 @@ fi
 if [ $use_lexical_features == True ]; then
     tensorboard_output_dir="${tensorboard_output_dir}_lexical"
 fi
+if [ $use_mort_features == True ]; then
+    tensorboard_output_dir="${tensorboard_output_dir}_MoRT"
+fi
 
 
 # for testing. if not delete:
