@@ -72,6 +72,10 @@ use_question_template=False
 use_pca_features=False
 use_lexical_features=False
 use_mort_features=True
+# None means using all
+# for distress: 15 (using pc 1 and 5)
+# for empathy: 35 (using pc 3 and 5)
+mort_princ_comp=None
 
 if [ $use_pca_features == True ]; then
     tensorboard_output_dir="${tensorboard_output_dir}_pca"

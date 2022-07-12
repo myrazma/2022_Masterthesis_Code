@@ -180,6 +180,10 @@ class ModelArguments(unipelt_arguments.ModelArguments):
         default=False,
         metadata={"help": "Wether or not to use the MoRT feature (moral dimension, pca)."},
     )
+    mort_princ_comp: Optional[str] = field(
+        default=None,
+        metadata={"help": "The principle components to use for MoRT. Default to None: Use all 5 principle components of the MoRT projection."},
+    )
     
 
 class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.model_mixin.ModelWithHeadsAdaptersMixin, unipelt_transformers.BertPreTrainedModel):
@@ -494,7 +498,12 @@ def main():
                 multiinput = np.hstack((multiinput, lexical_features))
 
         if model_args.use_mort_features:
-            mort_features = fc.create_MoRT_feature(dataset['essay'])
+            if model_args.mort_princ_comp is None or model_args.mort_princ_comp == 'None':  # either None
+                principle_components_idx = None
+            else:  # or list of idx
+                principle_components_idx = [int(pc_idx) for pc_idx in model_args.mort_princ_comp]
+
+            mort_features = fc.create_MoRT_feature(dataset['essay'], principle_components_idx=principle_components_idx)
 
             if multiinput is None:  # pca is not used
                 multiinput = mort_features

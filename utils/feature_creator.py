@@ -138,8 +138,8 @@ class FeatureCreator():
         mort_pca = None
         try: 
             mort_pca = data['projection']
-        except:
-            print('No pca for MoRT found. PCA object will be None.')
+        except Exception as e:
+            print(f'\n No pca for MoRT found. PCA object will be None. Error: \n{e}')
         return mort_pca  # if not found, than pca will be None
 
     def create_MoRT_feature(self, essays, principle_components_idx=None):
@@ -156,9 +156,10 @@ class FeatureCreator():
 
         try:
             mort_pca = self.load_mort_pca(data_dir=self.data_args.data_dir)
-        except:
-            print('\n Could not load MoRT PCA.')
-            return None
+        except Exception as e:
+            print(f'\n Could not load MoRT PCA. Error: \n{e}')
+            sys.exit(-1)
+
         moral_dim = mort_pca.transform(essay_embeddings)
         mort_dimension = moral_dim.shape[1]
         if principle_components_idx is not None and isinstance(principle_components_idx, list):  # select principle components
