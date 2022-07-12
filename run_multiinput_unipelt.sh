@@ -75,7 +75,8 @@ use_mort_features=True
 # None means using all
 # for distress: 15 (using pc 1 and 5)
 # for empathy: 35 (using pc 3 and 5)
-mort_princ_comp=None
+#mort_princ_comp=None
+mort_princ_comp='15'
 
 if [ $use_pca_features == True ]; then
     tensorboard_output_dir="${tensorboard_output_dir}_pca"
@@ -88,6 +89,9 @@ if [ $use_lexical_features == True ]; then
 fi
 if [ $use_mort_features == True ]; then
     tensorboard_output_dir="${tensorboard_output_dir}_MoRT"
+    if [ $mort_princ_comp != None ]; then
+        tensorboard_output_dir="${tensorboard_output_dir}${mort_princ_comp}"
+    fi
 fi
 
 
