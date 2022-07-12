@@ -346,12 +346,12 @@ for i in range(moral_dim_articles.shape[1]):
     print('labels.shape', labels.shape)
     print('moral_dim_pc_i.shape', moral_dim_pc_i.shape)
     r, p = pearsonr(article_mort_per_essay, labels)
-    r = r[0]
+    if isinstance(r, list): r = r[0]
     print(f'Article MoRT and labels. r: {r}, p: {p}')
     new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MoRT_art and labels'], 'task_name': [data_args.task_name]})
     correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
     r, p = pearsonr(article_mort_per_essay, moral_dim_pc_i)
-    r = r[0]
+    if isinstance(r, list): r = r[0]
     print(f'Article MoRT and essay MoRT. r: {r}, p: {p}')
     new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MoRT_art and MoRT_essay'], 'task_name': [data_args.task_name]})
     correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
