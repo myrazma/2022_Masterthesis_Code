@@ -308,7 +308,6 @@ scatter_moral_empdis(moral_dim, labels)
 binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.1)
 plot_moral_empdis(bins, binned_pca)
     
-correlations_pd.to_csv(csv_path)
 
 
 
@@ -335,16 +334,11 @@ essay_article_ids = np.array(train_dataset['article_id'])
 
 for i in range(moral_dim_articles.shape[1]):
     articles_mort_i = moral_dim_articles[:, i]
-    print(essay_article_ids)
-    print(essay_article_ids.shape)
-    print(article_ids)
     article_ids_list = list(article_ids)
     indices = [article_ids_list.index(id) for id in list(essay_article_ids)]
     article_mort_per_essay = np.take(articles_mort_i, indices)
 
     moral_dim_pc_i = moral_dim[:, i]
-    print('labels.shape', labels.shape)
-    print('moral_dim_pc_i.shape', moral_dim_pc_i.shape)
     r, p = pearsonr(article_mort_per_essay, labels)
     if isinstance(r, list): r = r[0]
     print(f'Article MoRT and labels. r: {r}, p: {p}')
@@ -359,6 +353,7 @@ for i in range(moral_dim_articles.shape[1]):
 # --- Map articles on labels of empathy ---
 # TODO: We need the article ID for that in the training data, how do we do this?
 
+correlations_pd.to_csv(csv_path)
 """
 csv_path = get_output_dir() + '/moral_correlations.csv'
 if not os.path.exists(csv_path):
