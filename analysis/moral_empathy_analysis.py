@@ -100,9 +100,9 @@ model_args = unipelt_arguments.ModelArguments()
 training_args = TrainingArguments(output_dir='output/moral_output')
 
 data_train_pd, data_dev_pd, data_test_pd = utils.load_data_complete(train_file=data_args.train_file, dev_file=data_args.validation_file, dev_label_file=data_args.validation_labels_file, test_file=data_args.test_file)
-data_train_pd = utils.clean_raw_data(data_train_pd)
-data_dev_pd = utils.clean_raw_data(data_dev_pd)
-data_test_pd = utils.clean_raw_data(data_test_pd)
+data_train_pd = utils.clean_raw_data(data_train_pd, keep_id=True)
+data_dev_pd = utils.clean_raw_data(data_dev_pd, keep_id=True)
+data_test_pd = utils.clean_raw_data(data_test_pd, keep_id=True)
 
 # Padding strategy
 if data_args.pad_to_max_length:
@@ -119,9 +119,9 @@ tokenizer = AutoTokenizer.from_pretrained(
     use_auth_token=True if model_args.use_auth_token else None,
 )
 
-dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay'])
-dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay'])
-dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay'])
+dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id'])
+dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id'])
+dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id'])
 
 # --- choose dataset and data loader based on empathy ---
 # per default use empathy label
@@ -319,16 +319,38 @@ correlations_pd.to_csv(csv_path)
 articles = utils.load_articles()
 # lower textual data
 articles['text'] = articles['text'].apply(lambda x: x.lower())
-articles = preprocessing.tokenize_data(articles, 'text')
+articles = preprocessing.tokenize_data(articles, 'text')  # creates column text_tok
 articles = preprocessing.lemmatize_data(articles, 'text_tok')
 
 # --- Generate MoRT for articles ---
 articles_text = articles['text']
+article_ids = articles['article_id']
 
 articles_embeddings = sent_model.get_sen_embedding(articles_text)
 
 #mort_pca = load_mort_pca(filename=data_args.data_dir + '/MoRT_projection/projection_model.p')
-moral_dim_articles = mort_pca.transform(articles_embeddings)
+moral_dim_articles = mort_pca.transform(articles_embeddings)  # dim = 5
+
+essay_article_ids = np.array(train_dataset['article_id'])
+
+for i in moral_dim_articles.shape[1]:
+    articles_mort_i = moral_dim_articles[:, i]
+    indices = [article_ids.index(id) for id in list(essay_article_ids)]
+    article_mort_per_essay = np.take(articles_mort_i, indices)
+
+    moral_dim_pc_i = moral_dim[:, i]
+    print('labels.shape', labels.shape)
+    print('moral_dim_pc_i.shape', moral_dim_pc_i.shape)
+    r, p = pearsonr(article_mort_per_essay, labels)
+    r = r[0]
+    print(f'Article MoRT and labels. r: {r}, p: {p}')
+    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MoRT_art and labels'], 'task_name': [data_args.task_name]})
+    correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
+    r, p = pearsonr(article_mort_per_essay, moral_dim_pc_i)
+    r = r[0]
+    print(f'Article MoRT and essay MoRT. r: {r}, p: {p}')
+    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MoRT_art and MoRT_essay'], 'task_name': [data_args.task_name]})
+    correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
 
 # --- Map articles on labels of empathy ---
 # TODO: We need the article ID for that in the training data, how do we do this?
