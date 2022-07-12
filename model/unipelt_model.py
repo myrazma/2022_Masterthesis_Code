@@ -494,7 +494,7 @@ def main():
                 multiinput = np.hstack((multiinput, lexical_features))
 
         if model_args.use_mort_features:
-            mort_features = fc.create_pca_feature(dataset['essay'])
+            mort_features = fc.create_MoRT_feature(dataset['essay'])
 
             if multiinput is None:  # pca is not used
                 multiinput = mort_features
