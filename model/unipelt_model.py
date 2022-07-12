@@ -504,6 +504,7 @@ def main():
                 principle_components_idx = [int(pc_idx) for pc_idx in model_args.mort_princ_comp]
 
             mort_features = fc.create_MoRT_feature(dataset['essay'], principle_components_idx=principle_components_idx)
+            feature_dim += mort_features.shape[1]
 
             if multiinput is None:  # pca is not used
                 multiinput = mort_features
