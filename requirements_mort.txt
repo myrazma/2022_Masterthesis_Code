@@ -14,5 +14,6 @@ datasets==2.0.0
 tensorboard==2.7.0
 nltk==3.6.7
 scipy==1.8.0
+pickle==0.21.3
 wandb
 rtpt
