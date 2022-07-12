@@ -2,7 +2,7 @@ use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
 
 # UniPELT Setup: APL
-pelt_method="prefix"
+pelt_method="unipelt_apl"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
@@ -50,7 +50,7 @@ fi
 if [ $pelt_method == "prefix" ]; then
     echo "Using Prefix-tuning"
     learning_rate=2e-4
-    tensorboard_output_dir=runs/test
+    tensorboard_output_dir=runs/multiinput_pelt_prefix
     add_enc_prefix=True
     train_adapter=False
     add_lora=False
@@ -58,7 +58,7 @@ if [ $pelt_method == "prefix" ]; then
 fi
 
 # PCA setup
-task_name=empathy
+task_name=distress
 store_run=False
 dim=3
 data_lim=1000
@@ -69,8 +69,9 @@ vocab_size=10
 use_question_template=False
 
 # Multiinput model setup
-use_pca_features=True
+use_pca_features=False
 use_lexical_features=False
+use_mort_features=True
 
 if [ $use_pca_features == True ]; then
     tensorboard_output_dir="${tensorboard_output_dir}_pca"
@@ -115,6 +116,7 @@ python model/unipelt_model.py \
     --learning_rate ${learning_rate} \
     --use_pca_features ${use_pca_features} \
     --use_lexical_features ${use_lexical_features} \
+    --use_mort_features ${use_mort_features} \
     --dim ${dim} \
     --data_lim ${data_lim} \
     --use_freq_dist ${use_freq_dist} \
