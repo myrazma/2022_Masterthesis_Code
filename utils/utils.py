@@ -101,9 +101,11 @@ def load_sentenced_emotions(data_root_folder="../data/"):
     return sent_emotion_train, sent_emotion_dev
 
 
-def load_articles(data_root_folder="../data/"):
+def load_articles(data_root_folder="../data"):
     # the news articles
-    articles = pd.read_csv(data_root_folder + "buechel_empathy/articles_adobe_AMT.csv")
+    if data_root_folder[-1] == '/':
+        data_root_folder = data_root_folder[:-1]
+    articles = pd.read_csv(data_root_folder + "/buechel_empathy/articles_adobe_AMT.csv")
     return articles
 
 
