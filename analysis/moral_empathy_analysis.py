@@ -285,13 +285,11 @@ except:
 pca_dim = moral_dim.shape[1]
 
 
-
 csv_path = get_output_dir() + '/moral_correlations.csv'
 if not os.path.exists(csv_path):
     correlations_pd = pd.DataFrame()
 else: 
-    correlations_pd = pd.read_csv(csv_path)
-
+    correlations_pd = pd.read_csv(csv_path, index_col=0)
 
 
 for i in range(pca_dim):
@@ -311,3 +309,53 @@ binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.1)
 plot_moral_empdis(bins, binned_pca)
     
 correlations_pd.to_csv(csv_path)
+
+
+
+# -------------------------
+# Do analysis with articles
+# -------------------------
+
+articles = utils.load_articles()
+# lower textual data
+articles['text'] = articles['text'].apply(lambda x: x.lower())
+articles = preprocessing.tokenize_data(articles, 'text')
+articles = preprocessing.lemmatize_data(articles, 'text_tok')
+
+# --- Generate MoRT for articles ---
+articles_text = articles['text']
+
+articles_embeddings = sent_model.get_sen_embedding(articles_text)
+
+#mort_pca = load_mort_pca(filename=data_args.data_dir + '/MoRT_projection/projection_model.p')
+moral_dim_articles = mort_pca.transform(articles_embeddings)
+
+# --- Map articles on labels of empathy ---
+# TODO: We need the article ID for that in the training data, how do we do this?
+
+"""
+csv_path = get_output_dir() + '/moral_correlations.csv'
+if not os.path.exists(csv_path):
+    correlations_pd = pd.DataFrame()
+else: 
+    correlations_pd = pd.read_csv(csv_path, index_col=0)
+
+
+for i in range(pca_dim):
+    print(f'correlation of PC {i+1}')
+    moral_dim_pc_i = moral_dim[:, i]
+    print('labels.shape', labels.shape)
+    print('moral_dim_pc_i.shape', moral_dim_pc_i.shape)
+    r, p = pearsonr(moral_dim_pc_i, labels)
+    r = r[0]
+    print(f'r: {r}, p: {p}')
+    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['With outliers'], 'task_name': [data_args.task_name]})
+    correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
+
+scatter_moral_empdis(moral_dim, labels)
+
+binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.1)
+plot_moral_empdis(bins, binned_pca)
+    
+correlations_pd.to_csv(csv_path)
+"""

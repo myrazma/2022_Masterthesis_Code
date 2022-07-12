@@ -38,8 +38,6 @@ import random
 import time
 
 
-
-
 # get imports from the submodule
 sys.path.append(str(path_root))
 sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules'))
@@ -171,12 +169,16 @@ COLORS = ['#029e72', '#e69f00', '#f0e441', '#57b4e8']
 class ModelArguments(unipelt_arguments.ModelArguments):
 
     use_lexical_features: Optional[bool] = field(
-        default='',
+        default=False,
         metadata={"help": "Wether or not to use lexical features."},
     )
     use_pca_features: Optional[bool] = field(
-        default='',
+        default=False,
         metadata={"help": "Wether or not to use the pca features (Empathy / distress dimension)."},
+    )
+    use_mort_features: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Wether or not to use the MoRT feature (moral dimension, pca)."},
     )
     
 
@@ -208,8 +210,7 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
             output_hidden_states=None,
             return_dict=None,
             adapter_names=None,
-            lexical=None,  # added by Myra Z.
-            pca=None,  # added by Myra Z.
+            multiinput=None,  # added by Myra Z.
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size,)`, `optional`):
@@ -239,8 +240,8 @@ class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.mode
 
         # concat both features (pca can be n dimensional)
         concat_output = pooled_output
-        concat_output = torch.cat((concat_output, lexical), 1) if lexical is not None else concat_output  # add lexical features
-        concat_output = torch.cat((concat_output, pca), 1) if pca is not None else concat_output  # add pca features
+        concat_output = torch.cat((concat_output, multiinput), 1) if multiinput is not None else concat_output  # add lexical features
+        #concat_output = torch.cat((concat_output, pca), 1) if pca is not None else concat_output  # add pca features
         logits = self.classifier(concat_output)
 
         loss = None
@@ -463,46 +464,47 @@ def main():
     print('\n------------ ' + display_text + ' ------------\n')
 
 
-
     def add_features_dataset(dataset, fc, model_args, return_dim=True, return_feature_col=True):
-        pca_features = None
         feature_dim = 0
+        multiinput = None
         # --- create pca - empathy / distress dimension features ---
-        print('model_args.use_pca_features', model_args.use_pca_features)
         if model_args.use_pca_features:
+            print('Using pca features')
             # create pca features
             pca_features = fc.create_pca_feature(dataset['essay'], task_name=data_args.task_name)
             if pca_features.shape[1] == 1:
                 pca_features = pca_features.reshape((-1, 1))
             feature_dim += pca_features.shape[1]
+            
+            if multiinput is None:
+                multiinput = pca_features
 
-        print('model_args.use_lexical_features', model_args.use_lexical_features)
-        lexical_features = None
         # --- create lexical features ---
         if model_args.use_lexical_features:
+            print('Using lexical features')
             dataset_tmp = preprocessing.tokenize_data(dataset, 'essay')
             
             lexical_features = fc.create_lexical_feature(dataset_tmp['essay_tok'], task_name=data_args.task_name)
             lexical_features = lexical_features.reshape((-1, 1))
             feature_dim += lexical_features.shape[1]
+
+            if multiinput is None:  # pca is not used
+                multiinput = lexical_features
+            else:  # pca is used, append new features
+                multiinput = np.hstack((multiinput, lexical_features))
+
+        if model_args.use_mort_features:
+            mort_features = fc.create_pca_feature(dataset['essay'])
+
+            if multiinput is None:  # pca is not used
+                multiinput = mort_features
+            else:  # pca is used, append new features
+                multiinput = np.hstack((multiinput, mort_features))
             
-
-            #features = lexicon_rating if features is None else np.hstack((features, lexicon_rating))
-            #col_name = 'lexical'
-            #dataset[col_name] = lexicon_rating
-            #feature_cols.append(col_name)
-            #print('PEARSON R: ', pearsonr(labels, lexicon_rating.reshape(-1)))
-
-
-        #feature_dim = features.shape[1] if features is not None else 0
-        
-        # add features to dataset if they are not None
-        #if features is not None:
-        #    dataset.add_column('lexical', features)
-            #dataset['lexical'] = features
         feature_dict = {}
-        if pca_features is not None: feature_dict.update({"pca": pca_features})
-        if lexical_features is not None: feature_dict.update({"lexical": lexical_features})
+        if multiinput is not None: feature_dict.update({"multiinput": multiinput})
+        #if pca_features is not None: feature_dict.update({"pca": pca_features})
+        #if lexical_features is not None: feature_dict.update({"lexical": lexical_features})
 
         if len(feature_dict) != 0:
             dataset_features = Dataset.from_dict(feature_dict)
