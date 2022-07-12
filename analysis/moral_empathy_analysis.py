@@ -93,7 +93,7 @@ else:
 
 sent_model = BERTSentence(device=device)
 
-task_name = 'empathy'
+task_name = 'distress'
 # TODO, add mort file to DataTrainArgs
 data_args = DataTrainingArguments(task_name=task_name)
 model_args = unipelt_arguments.ModelArguments()
@@ -333,7 +333,7 @@ moral_dim_articles = mort_pca.transform(articles_embeddings)  # dim = 5
 
 essay_article_ids = np.array(train_dataset['article_id'])
 
-for i in moral_dim_articles.shape[1]:
+for i in range(moral_dim_articles.shape[1]):
     articles_mort_i = moral_dim_articles[:, i]
     indices = [article_ids.index(id) for id in list(essay_article_ids)]
     article_mort_per_essay = np.take(articles_mort_i, indices)
