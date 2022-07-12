@@ -316,7 +316,7 @@ correlations_pd.to_csv(csv_path)
 # Do analysis with articles
 # -------------------------
 
-articles = utils.load_articles()
+articles = utils.load_articles(data_root_folder=data_args.data_dir)
 # lower textual data
 articles['text'] = articles['text'].apply(lambda x: x.lower())
 articles = preprocessing.tokenize_data(articles, 'text')  # creates column text_tok
