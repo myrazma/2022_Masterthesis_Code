@@ -338,7 +338,8 @@ for i in range(moral_dim_articles.shape[1]):
     print(essay_article_ids)
     print(essay_article_ids.shape)
     print(article_ids)
-    indices = [article_ids.index(id) for id in list(essay_article_ids)]
+    article_ids_list = list(article_ids)
+    indices = [article_ids_list.index(id) for id in list(essay_article_ids)]
     article_mort_per_essay = np.take(articles_mort_i, indices)
 
     moral_dim_pc_i = moral_dim[:, i]
