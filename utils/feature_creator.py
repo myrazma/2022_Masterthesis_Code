@@ -1,6 +1,7 @@
 
 import pandas as pd
 import numpy as np
+import pickle
 
 # own modules
 import os
@@ -11,6 +12,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'../'))
 import utils.utils as utils
 from EmpDim.pca import create_pca
 from utils.arguments import PCAArguments, DataTrainingArguments
+from EmpDim.funcs_mcm import BERTSentence
 
 
 class FeatureCreator():
@@ -124,5 +126,49 @@ class FeatureCreator():
             print('MyWarning: create_pca_feature() - Results Empty')
             return []
         return results if len(results) > 1 else results[0]
+
+    
+    def load_mort_pca(data_dir='../data', filename='/MoRT_projection/projection_model.p'):
+        file = open(data_dir + filename, 'rb')
+        # dump information to that file
+        data = pickle.load(file)
+        # close the file
+        file.close()
+
+        mort_pca = None
+        try: 
+            mort_pca = data['projection']
+        except:
+            print('No pca for MoRT found. PCA object will be None.')
+        return mort_pca  # if not found, than pca will be None
+
+    def create_MoRT_feature(self, essays, principle_components_idx=None):
+        """_summary_
+
+        Args:
+            essays (_type_): _description_
+            principle_components (list(int), optional): A list of indices of the principle components ot select. 
+                                                    Only accepts input that are actualy idx for pcs in this pca (up until idx 4). 
+                                                    Defaults to None.
+        """
+        sent_model = BERTSentence(device=self.device)
+        essay_embeddings = sent_model.get_sen_embedding(essays)
+
+        try:
+            mort_pca = self.load_mort_pca(data_dir=self.data_args.data_dir)
+        except:
+            print('\n Could not load MoRT PCA.')
+            return None
+        moral_dim = mort_pca.transform(essay_embeddings)
+        mort_dimension = moral_dim.shape[1]
+        if principle_components_idx is not None and isinstance(principle_components_idx, list):  # select principle components
+            principle_components_idx = [idx for idx in principle_components_idx if (idx <=mort_dimension-1) and (idx >= 0)]
+            moral_dim = moral_dim[:, principle_components_idx]
+
+        return moral_dim
+
+
+
+    
         
 

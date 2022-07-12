@@ -626,6 +626,7 @@ def scatter_vocab(vocab, title, plot_dir='plots/'):
         plt.savefig(f'EmpDim/{plot_dir}PCA_{title}.pdf')
         plt.close()
 
+
 def run():
     """Running and evaluating pca
     """
@@ -657,6 +658,7 @@ def run():
 
     dim_pca, vocab = create_pca(my_args, data_args, tensorboard_writer=tensorboard_writer, return_vocab=True, data_selector=data_selector)
     evaluate_pca(my_args, data_args, dim_pca, vocab)
+
 
 def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, data_selector=None, device='cpu'):
     # ------------------------------------

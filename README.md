@@ -71,5 +71,14 @@ While calling the model in bash, you can enter specific hyperparameters of the m
 | kfold           | --kfold 10                | Use kfold cross validation if kfold higher than 0. Default: 0, no cross validation used and use regular training.  |
 
 
+# Running MoRT
+Since MoRT has other dependencies, we need to use another Docker image:
+
+Build the Dockerfile
+```
+docker build -t <docker-name> -f DockerfileMoRT .
+```
+
+
 # Note
 I'm still currently working on the code and trying new things, therefore cleaner, more structured code will follow for the scripts currently under construction :). Also I'm running the code on another device and commiting even small changes that might have a difference in model training.

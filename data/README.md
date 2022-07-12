@@ -13,20 +13,23 @@ data/
 │   ├── messages_dev_sentencized_automatic_emotion_tags.tsv
 │   ├── messages_train_ready_for_WS.tsv
 │   └── messages_train_sentencized_automatic_emotion_tags.tsv
-└── lexicon/
-    ├── distress/                           (Sedoc2019)
-    │   ├── distress_clusters.txt
-    │   └── distress_lexicon.txt
-    ├── empathy/                            (Sedoc2019)
-    │   ├── empathy_clusters.txt
-    │   └── empathy_lexicon.txt
-    ├── NRC-Emotion-Intensity-Lexicon-v1/   (Mohammad2018)
-    │   ├── NRC-Emotion-Intensity-Lexicon-v1.txt
-    │   └── ...
-    ├── NRC-VAD-Lexicon-Aug2018Release/     (Mohammad2018b)
-    │   ├── NRC-VAD-Lexicon.txt
-    │   └── ...
-    └── BRM-emot-submit.csv                 (Warriner2013)
+├── lexicon/
+│   ├── distress/                           (Sedoc2019)
+│   │   ├── distress_clusters.txt
+│   │   └── distress_lexicon.txt
+│   ├── empathy/                            (Sedoc2019)
+│   │   ├── empathy_clusters.txt
+│   │   └── empathy_lexicon.txt
+│   ├── NRC-Emotion-Intensity-Lexicon-v1/   (Mohammad2018)
+│   │   ├── NRC-Emotion-Intensity-Lexicon-v1.txt
+│   │   └── ...
+│   ├── NRC-VAD-Lexicon-Aug2018Release/     (Mohammad2018b)
+│   │   ├── NRC-VAD-Lexicon.txt
+│   │   └── ...
+│   └── BRM-emot-submit.csv                 (Warriner2013)
+└── MoRT_projection
+    └── projection_model.p                  (Schramowski2021)
+
 ```
 
 ## Empathy Data set
@@ -104,4 +107,11 @@ Warriner et al., 2013 - Norms of valence, arousal, and dominance for 13,915 Engl
 
 The data can be downloaded here: https://link.springer.com/article/10.3758/s13428-012-0314-x#Abs1
 
-### Valence, arousal and dominance ratings
+
+## MoRT: Projection onto the moral dimension
+
+This is a pickle file from the moral projection containing the generated projection onto the moral dimension. This file contains a .. dimensional vector.
+
+Schramowski et al. 2021 - Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do: https://arxiv.org/abs/2103.11790
+
+The data can be downloaded from their GitHub repository: https://github.com/ml-research/MoRT_NMI/tree/master/MoRT/data/subspace_proj/bert-large-nli-mean-tokens
