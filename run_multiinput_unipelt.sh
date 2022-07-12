@@ -124,6 +124,7 @@ python model/unipelt_model.py \
     --use_pca_features ${use_pca_features} \
     --use_lexical_features ${use_lexical_features} \
     --use_mort_features ${use_mort_features} \
+    --mort_princ_comp ${mort_princ_comp} \
     --dim ${dim} \
     --data_lim ${data_lim} \
     --use_freq_dist ${use_freq_dist} \

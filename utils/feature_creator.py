@@ -126,9 +126,8 @@ class FeatureCreator():
             print('MyWarning: create_pca_feature() - Results Empty')
             return []
         return results if len(results) > 1 else results[0]
-
     
-    def load_mort_pca(data_dir='../data', filename='/MoRT_projection/projection_model.p'):
+    def load_mort_pca(self, data_dir='../data', filename='/MoRT_projection/projection_model.p'):
         file = open(data_dir + filename, 'rb')
         # dump information to that file
         data = pickle.load(file)
@@ -163,7 +162,8 @@ class FeatureCreator():
         moral_dim = mort_pca.transform(essay_embeddings)
         mort_dimension = moral_dim.shape[1]
         if principle_components_idx is not None and isinstance(principle_components_idx, list):  # select principle components
-            principle_components_idx = [idx for idx in principle_components_idx if (idx <=mort_dimension-1) and (idx >= 0)]
+            # filter out idx that are not valid
+            principle_components_idx = [idx for idx in principle_components_idx if (idx <= mort_dimension-1) and (idx >= 0)]
             moral_dim = moral_dim[:, principle_components_idx]
 
         return moral_dim
