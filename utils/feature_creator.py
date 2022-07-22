@@ -21,6 +21,7 @@ class FeatureCreator():
         self.data_root_folder = data_args.data_dir
         self.empathy_lex, self.distress_lex = utils.load_empathy_distress_lexicon(self.data_root_folder)
         self.lexicon_dict = {'empathy': self.empathy_lex, 'distress': self.distress_lex}  # lexicon where we can get the features by key / task_name
+        self.article = None
 
         self.__pca_dict = {}
         self.pca_args = PCAArguments if pca_args is None else pca_args
@@ -100,6 +101,12 @@ class FeatureCreator():
 
         return self.__pca_dict[task]
 
+    def get_articles(self):
+        if self.articles == None:
+            self.articles = utils.load_articles(data_root_folder=data_args.data_dir)
+            
+        return self.articles
+
     def create_pca_feature(self, essays, task_name):
         results = []  # len(results) == len(task_name) if all items in task_name are valid tasks
         if not isinstance(task_name, list):
@@ -167,6 +174,43 @@ class FeatureCreator():
             moral_dim = moral_dim[:, principle_components_idx]
 
         return moral_dim
+
+    def create_MoRT_feature_articles(self, essay_article_ids, principle_components_idx=None):
+        """Create MoRT Features of the articles to the corresponding essays
+
+        Args:
+            essay_article_ids (_type_): The arictle ids of the different essays 
+                                        (The sorting of this is crucial: Should be the same as the training data)
+            principle_components_idx (_type_, optional): _description_. Defaults to None.
+        """
+        # get the articles
+        articles = self.get_articles()
+        articles_text = articles['text']
+        article_ids = articles['article_id']
+
+        # transform the articles into featurespace
+        moral_dim_articles = self.create_MoRT_feature(self, articles_text, principle_components_idx=principle_components_idx)
+
+        # map articles on essay article ids: result should have the same length as essays bzw essay_article_ids
+        # moral_dim_articles: x * y
+        # article_ids: x
+        # essay_article_ids: z
+        # output: z * y
+        print(moral_dim_articles.shape)
+        print(article_ids.shape)
+        print(essay_article_ids.shape)
+        article_ids_list = list(article_ids)
+        indices = [article_ids_list.index(id) for id in list(essay_article_ids)]
+        article_mort_per_essay = np.take(moral_dim_articles, indices, axis=0)
+
+        return article_mort_per_essay
+
+
+
+
+
+
+
 
 
 

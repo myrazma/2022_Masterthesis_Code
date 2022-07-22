@@ -344,11 +344,23 @@ for i in range(moral_dim_articles.shape[1]):
     print(f'Article MoRT and labels. r: {r}, p: {p}')
     new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MoRT_art and labels'], 'task_name': [data_args.task_name]})
     correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
+
     r, p = pearsonr(article_mort_per_essay, moral_dim_pc_i)
     if isinstance(r, list): r = r[0]
     print(f'Article MoRT and essay MoRT. r: {r}, p: {p}')
     new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MoRT_art and MoRT_essay'], 'task_name': [data_args.task_name]})
     correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
+
+    # Does their difference correlate with the empathy score?
+    #rmse = np.sqrt((article_mort_per_essay**2 + moral_dim_pc_i**2) / 2) # root mean squared error
+    #np.sqrt((a - b)**2)
+    similarity_morts = np.sqrt((article_mort_per_essay - moral_dim_pc_i)**2)
+    r, p = pearsonr(similarity_morts, labels)
+    if isinstance(r, list): r = r[0]
+    print(f'Sim(Article MoRT, essay MoRT) and labels. r: {r}, p: {p}')
+    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['Sim(MoRT_art, MoRT_essay) and labels'], 'task_name': [data_args.task_name]})
+    correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
+
 
 # --- Map articles on labels of empathy ---
 # TODO: We need the article ID for that in the training data, how do we do this?
