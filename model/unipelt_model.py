@@ -426,9 +426,9 @@ def main():
     # Data Loading
     # edited by Myra Z.
     data_train_pd, data_dev_pd, data_test_pd = utils.load_data_complete(train_file=data_args.train_file, dev_file=data_args.validation_file, dev_label_file=data_args.validation_labels_file, test_file=data_args.test_file)
-    data_train_pd = utils.clean_raw_data(data_train_pd)
-    data_dev_pd = utils.clean_raw_data(data_dev_pd)
-    data_test_pd = utils.clean_raw_data(data_test_pd)
+    data_train_pd = utils.clean_raw_data(data_train_pd, keep_id=True)
+    data_dev_pd = utils.clean_raw_data(data_dev_pd, keep_id=True)
+    data_test_pd = utils.clean_raw_data(data_test_pd, keep_id=True)
 
     
     # ---------------------------
@@ -454,9 +454,9 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay'])
-    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay'])
-    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay'])
+    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id'])
+    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id'])
+    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id'])
  
     # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
