@@ -8,6 +8,7 @@ if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
     learning_rate=5e-4
     tensorboard_output_dir=runs/multiinput_pelt_unified_apl_bert
+    output_dir=output/multiinput_pelt_unified_apl_bert
     add_enc_prefix=True
     train_adapter=True
     add_lora=True
@@ -19,6 +20,7 @@ if [ $pelt_method == "lora" ]; then
     echo "Using LoRA"
     learning_rate=5e-4
     tensorboard_output_dir=runs/multiinput_pelt_lora
+    output_dir=output/multiinput_pelt_lora
     add_enc_prefix=False
     train_adapter=False
     add_lora=True
@@ -30,6 +32,7 @@ if [ $pelt_method == "adapter" ]; then
     echo "Using adapter"
     learning_rate=1e-4
     tensorboard_output_dir=runs/multiinput_pelt_adapters
+    output_dir=output/multiinput_pelt_adapters
     add_enc_prefix=False
     train_adapter=True
     add_lora=False
@@ -41,6 +44,7 @@ if [ $pelt_method == "full" ]; then
     echo "Using Full fine tuning"
     learning_rate=2e-5
     tensorboard_output_dir=runs/multiinput_pelt_full_fine_tuning_bert
+    output_dir=output/multiinput_pelt_full_fine_tuning_bert
     add_enc_prefix=False
     train_adapter=False
     add_lora=False
@@ -51,6 +55,7 @@ if [ $pelt_method == "prefix" ]; then
     echo "Using Prefix-tuning"
     learning_rate=2e-4
     tensorboard_output_dir=runs/multiinput_pelt_prefix
+    output_dir=output/multiinput_pelt_prefix
     add_enc_prefix=True
     train_adapter=False
     add_lora=False
@@ -68,10 +73,13 @@ vocab_type=mm
 vocab_size=10
 use_question_template=False
 
+output_dir="${output_dir}/${task_name}"
+
 # Multiinput model setup
 use_pca_features=False
 use_lexical_features=False
-use_mort_features=True
+use_mort_features=False
+use_mort_article_features=True
 # None means using all
 # for distress: 04 (using pc 1 and 5)
 # for empathy: 24 (using pc 3 and 5)
@@ -88,12 +96,17 @@ if [ $use_lexical_features == True ]; then
     tensorboard_output_dir="${tensorboard_output_dir}_lexical"
 fi
 if [ $use_mort_features == True ]; then
-    tensorboard_output_dir="${tensorboard_output_dir}_MoRT"
+    tensorboard_output_dir="${tensorboard_output_dir}_MoRT-ess"
     if [ $mort_princ_comp != None ]; then
         tensorboard_output_dir="${tensorboard_output_dir}${mort_princ_comp}"
     fi
 fi
-
+if [ $use_mort_article_features == True ]; then
+    tensorboard_output_dir="${tensorboard_output_dir}_MoRT-art"
+    if [ $mort_princ_comp != None ]; then
+        tensorboard_output_dir="${tensorboard_output_dir}${mort_princ_comp}"
+    fi
+fi
 
 # for testing. if not delete:
 # max_train_samples
@@ -128,6 +141,7 @@ python model/unipelt_model.py \
     --use_pca_features ${use_pca_features} \
     --use_lexical_features ${use_lexical_features} \
     --use_mort_features ${use_mort_features} \
+    --use_mort_article_features ${use_mort_article_features} \
     --mort_princ_comp ${mort_princ_comp} \
     --dim ${dim} \
     --data_lim ${data_lim} \

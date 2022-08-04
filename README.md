@@ -2,6 +2,7 @@
 The code for my master's thesis.
 
 # Models
+TODO: Update the available models
 The models can be found in the directory [model](model).
 
 The script [baseline_BERT.py](model/baseline_BERT.py) is implementing a baseline RoBERTa model with the possibility of BitFit training (by setting --train_only_bias in cmd parameters]. BitFit (BIas-Term FIne-Tuning: https://arxiv.org/abs/2106.10199) is a version of parameter-efficient training where only the bias in a pre-trained transformer model are trained. There is even the option to only train the bias parameters in the mlp of the transformers (no attention layers).
@@ -9,6 +10,7 @@ The script [baseline_BERT.py](model/baseline_BERT.py) is implementing a baseline
 The script [adapter_ownhead_BERT.py](model/adapter_ownhead_BERT.py) is implementing a RoBERTa model with different parameter-efficient training methods like adapters and prefix tuning using the adapter hub.
 
 The script model_utils.py has model shared methods and class like the RegressionHead and training / evaluation methods.
+
 
 # Running the Code
 
@@ -48,6 +50,8 @@ git submodule update --recursive --remote
 for more updates of this submodule.
 
 ## Parameter setting
+TODO: Update the arguments
+
 While calling the model in bash, you can enter specific hyperparameters of the model. It should have the form of f.e. "--epochs 10", where the parameter name has "--" as a prefix. Possible parameters with example settings are:
 
 | setting         | 	example command	        | explanation   |
@@ -79,6 +83,8 @@ Build the Dockerfile
 docker build -t <docker-name> -f DockerfileMoRT .
 ```
 
+## Run bash script
+TODO
 
 # Note
 I'm still currently working on the code and trying new things, therefore cleaner, more structured code will follow for the scripts currently under construction :). Also I'm running the code on another device and commiting even small changes that might have a difference in model training.
