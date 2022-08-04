@@ -193,7 +193,7 @@ class FeatureCreator():
         article_ids = articles['article_id']
 
         # transform the articles into featurespace
-        moral_dim_articles = self.create_MoRT_feature(self, articles_text, principle_components_idx=principle_components_idx)
+        moral_dim_articles = self.create_MoRT_feature(articles_text, principle_components_idx=principle_components_idx)
 
         # map articles on essay article ids: result should have the same length as essays bzw essay_article_ids
         # moral_dim_articles: x * y
