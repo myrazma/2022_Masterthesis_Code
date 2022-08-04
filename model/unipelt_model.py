@@ -504,12 +504,12 @@ def main():
                 multiinput = np.hstack((multiinput, lexical_features))
 
         # --- create pca: moral dimension features for essays ---
+        if model_args.mort_princ_comp is None or model_args.mort_princ_comp == 'None':  # either None
+            principle_components_idx = None
+        else:  # or list of idx
+            principle_components_idx = [int(pc_idx) for pc_idx in model_args.mort_princ_comp]
+            
         if model_args.use_mort_features:
-            if model_args.mort_princ_comp is None or model_args.mort_princ_comp == 'None':  # either None
-                principle_components_idx = None
-            else:  # or list of idx
-                principle_components_idx = [int(pc_idx) for pc_idx in model_args.mort_princ_comp]
-
             mort_features = fc.create_MoRT_feature(dataset['essay'], principle_components_idx=principle_components_idx)
             feature_dim += mort_features.shape[1]
 
