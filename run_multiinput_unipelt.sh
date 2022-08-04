@@ -2,7 +2,7 @@ use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
 
 # UniPELT Setup: APL
-pelt_method="lora"
+pelt_method="full"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"

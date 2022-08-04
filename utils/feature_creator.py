@@ -200,26 +200,9 @@ class FeatureCreator():
         # article_ids: x
         # essay_article_ids: z
         # output: z * y
-        print(moral_dim_articles.shape)
-        print(article_ids.shape)
-        print(essay_article_ids.shape)
         article_ids_list = list(article_ids)
         indices = [article_ids_list.index(id) for id in list(essay_article_ids)]
         article_mort_per_essay = np.take(moral_dim_articles, indices, axis=0)
-        try:
-            print('article_mort_per_essay', article_mort_per_essay)
-        except:
-            print('No article_mort_per_essay')
-        
-        try:
-            print('article_mort_per_essay.shape', article_mort_per_essay.shape)
-        except:
-            print('No article_mort_per_essay.shape')
-
-        try:
-            print('article_mort_per_essay.size()', article_mort_per_essay.size())
-        except:
-            print('No article_mort_per_essay.size()')
 
         return article_mort_per_essay
 
