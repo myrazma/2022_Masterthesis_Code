@@ -102,7 +102,7 @@ class FeatureCreator():
         return self.__pca_dict[task]
 
     def get_articles(self):
-        if self.articles == None:
+        if self.articles is None:
             self.articles = utils.load_articles(data_root_folder=self.data_args.data_dir)
             
         return self.articles
