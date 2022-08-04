@@ -21,7 +21,7 @@ class FeatureCreator():
         self.data_root_folder = data_args.data_dir
         self.empathy_lex, self.distress_lex = utils.load_empathy_distress_lexicon(self.data_root_folder)
         self.lexicon_dict = {'empathy': self.empathy_lex, 'distress': self.distress_lex}  # lexicon where we can get the features by key / task_name
-        self.article = None
+        self.articles = None
 
         self.__pca_dict = {}
         self.pca_args = PCAArguments if pca_args is None else pca_args
