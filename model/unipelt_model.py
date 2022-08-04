@@ -180,6 +180,10 @@ class ModelArguments(unipelt_arguments.ModelArguments):
         default=False,
         metadata={"help": "Wether or not to use the MoRT feature (moral dimension, pca)."},
     )
+    use_mort_article_features: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Wether or not to use the MoRT feature for the articles (moral dimension, pca)."},
+    )
     mort_princ_comp: Optional[str] = field(
         default=None,
         metadata={"help": "The principle components to use for MoRT. Default to None: Use all 5 principle components of the MoRT projection."},
@@ -471,7 +475,7 @@ def main():
     def add_features_dataset(dataset, fc, model_args, return_dim=True, return_feature_col=True):
         feature_dim = 0
         multiinput = None
-        # --- create pca - empathy / distress dimension features ---
+        # --- create pca: empathy / distress dimension features ---
         if model_args.use_pca_features:
             print('Using pca features')
             # create pca features
@@ -480,8 +484,10 @@ def main():
                 pca_features = pca_features.reshape((-1, 1))
             feature_dim += pca_features.shape[1]
             
-            if multiinput is None:
+            if multiinput is None: # no previous input generated
                 multiinput = pca_features
+            else:  # previous input existend, append new features
+                multiinput = np.hstack((multiinput, pca_features))
 
         # --- create lexical features ---
         if model_args.use_lexical_features:
@@ -492,11 +498,12 @@ def main():
             lexical_features = lexical_features.reshape((-1, 1))
             feature_dim += lexical_features.shape[1]
 
-            if multiinput is None:  # pca is not used
+            if multiinput is None:  # no previous input generated
                 multiinput = lexical_features
-            else:  # pca is used, append new features
+            else:  # previous input existend, append new features
                 multiinput = np.hstack((multiinput, lexical_features))
 
+        # --- create pca: moral dimension features for essays ---
         if model_args.use_mort_features:
             if model_args.mort_princ_comp is None or model_args.mort_princ_comp == 'None':  # either None
                 principle_components_idx = None
@@ -506,10 +513,25 @@ def main():
             mort_features = fc.create_MoRT_feature(dataset['essay'], principle_components_idx=principle_components_idx)
             feature_dim += mort_features.shape[1]
 
-            if multiinput is None:  # pca is not used
+            if multiinput is None:  # no previous input generated
                 multiinput = mort_features
-            else:  # pca is used, append new features
+            else:  # previous input existend, append new features
                 multiinput = np.hstack((multiinput, mort_features))
+
+        # --- create pca: moral dimension features for articles ---
+        if model_args.use_mort_article_features:
+            # - Check if article id is available in train_dataset
+            if 'article_id' in dataset.features.keys():
+                essay_article_ids = np.array(train_dataset['article_id'])
+                essay_features = fc.create_MoRT_feature_articles(essay_article_ids, principle_components_idx=principle_components_idx) # TODO
+                # if the features could be created:
+                if not essay_features is None:
+                    if multiinput is None:  # no previous input generated
+                        multiinput = essay_features
+                    else:  # previous input existend, append new features
+                        multiinput = np.hstack((multiinput, essay_features))
+            else:
+                print('MyWarning: Could not use article ids for features.') 
             
         feature_dict = {}
         if multiinput is not None: feature_dict.update({"multiinput": multiinput})

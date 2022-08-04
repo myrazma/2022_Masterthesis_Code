@@ -103,7 +103,7 @@ class FeatureCreator():
 
     def get_articles(self):
         if self.articles == None:
-            self.articles = utils.load_articles(data_root_folder=data_args.data_dir)
+            self.articles = utils.load_articles(data_root_folder=self.data_args.data_dir)
             
         return self.articles
 
@@ -184,7 +184,11 @@ class FeatureCreator():
             principle_components_idx (_type_, optional): _description_. Defaults to None.
         """
         # get the articles
-        articles = self.get_articles()
+        try:
+            articles = self.get_articles()
+        except Exception as e:
+            print(f'Could not load articles:\n {e}')
+            return None
         articles_text = articles['text']
         article_ids = articles['article_id']
 
@@ -202,6 +206,20 @@ class FeatureCreator():
         article_ids_list = list(article_ids)
         indices = [article_ids_list.index(id) for id in list(essay_article_ids)]
         article_mort_per_essay = np.take(moral_dim_articles, indices, axis=0)
+        try:
+            print('article_mort_per_essay', article_mort_per_essay)
+        except:
+            print('No article_mort_per_essay')
+        
+        try:
+            print('article_mort_per_essay.shape', article_mort_per_essay.shape)
+        except:
+            print('No article_mort_per_essay.shape')
+
+        try:
+            print('article_mort_per_essay.size()', article_mort_per_essay.size())
+        except:
+            print('No article_mort_per_essay.size()')
 
         return article_mort_per_essay
 
