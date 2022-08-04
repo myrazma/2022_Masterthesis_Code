@@ -508,7 +508,7 @@ def main():
             principle_components_idx = None
         else:  # or list of idx
             principle_components_idx = [int(pc_idx) for pc_idx in model_args.mort_princ_comp]
-            
+
         if model_args.use_mort_features:
             mort_features = fc.create_MoRT_feature(dataset['essay'], principle_components_idx=principle_components_idx)
             feature_dim += mort_features.shape[1]
@@ -529,7 +529,8 @@ def main():
                     if multiinput is None:  # no previous input generated
                         multiinput = essay_features
                     else:  # previous input existend, append new features
-                        multiinput = np.hstack((multiinput, essay_features))
+                        multiinput = np.hstack((multiinput, essay_features))  
+                feature_dim += essay_features.shape[1]
             else:
                 print('MyWarning: Could not use article ids for features.') 
             
