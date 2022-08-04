@@ -522,7 +522,7 @@ def main():
         if model_args.use_mort_article_features:
             # - Check if article id is available in train_dataset
             if 'article_id' in dataset.features.keys():
-                essay_article_ids = np.array(train_dataset['article_id'])
+                essay_article_ids = np.array(dataset['article_id'])
                 essay_features = fc.create_MoRT_feature_articles(essay_article_ids, principle_components_idx=principle_components_idx) # TODO
                 # if the features could be created:
                 if not essay_features is None:
