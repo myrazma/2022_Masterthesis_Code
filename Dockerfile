@@ -1,7 +1,7 @@
 FROM python:3.8-slim-buster
 # FROM nvidia/cuda:11.4.2-base-ubuntu20.04
 
-WORKDIR /mzmarsly
+WORKDIR /src
 
 COPY requirements.txt .
 

@@ -5,4 +5,5 @@ WORKDIR /src
 
 COPY requirements_mort.txt .
 
+RUN pip install torch==1.11.0+cu115 --find-links https://download.pytorch.org/whl/torch_stable.html
 RUN pip install -r requirements_mort.txt
