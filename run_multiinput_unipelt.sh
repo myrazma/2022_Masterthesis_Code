@@ -43,8 +43,8 @@ fi
 if [ $pelt_method == "full" ]; then
     echo "Using Full fine tuning"
     learning_rate=2e-5
-    tensorboard_output_dir=runs/multiinput_pelt_full_fine_tuning_bert
-    output_dir=output/multiinput_pelt_full_fine_tuning_bert
+    tensorboard_output_dir=runs/multiinput2_pelt_full_fine_tuning_bert
+    output_dir=output/multiinput2_pelt_full_fine_tuning_bert
     add_enc_prefix=False
     train_adapter=False
     add_lora=False

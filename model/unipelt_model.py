@@ -529,7 +529,7 @@ def main():
                     if multiinput is None:  # no previous input generated
                         multiinput = essay_features
                     else:  # previous input existend, append new features
-                        multiinput = np.hstack((multiinput, essay_features))  
+                        multiinput = np.hstack((multiinput, essay_features))
                     feature_dim += essay_features.shape[1]
             else:
                 print('MyWarning: Could not use article ids for features.') 
