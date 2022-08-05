@@ -1,6 +1,13 @@
 use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
+wandb_project="Results"
 
+task_name=distress
+store_run=False
+do_predict=False
+
+
+# -------- UniPELT setup --------
 # UniPELT Setup: APL
 pelt_method="full"
 
@@ -51,6 +58,7 @@ if [ $pelt_method == "full" ]; then
     tune_bias=False
 fi
 
+# prefix Tuning
 if [ $pelt_method == "prefix" ]; then
     echo "Using Prefix-tuning"
     learning_rate=2e-4
@@ -62,9 +70,10 @@ if [ $pelt_method == "prefix" ]; then
     tune_bias=False
 fi
 
+output_dir="${output_dir}/${task_name}"
+
+# -------- Multiinput setup --------
 # PCA setup
-task_name=distress
-store_run=False
 dim=3
 data_lim=1000
 use_freq_dist=True
@@ -72,8 +81,6 @@ freq_thresh=0.000005
 vocab_type=mm
 vocab_size=10
 use_question_template=False
-
-output_dir="${output_dir}/${task_name}"
 
 # Multiinput model setup
 use_pca_features=False
@@ -84,8 +91,20 @@ use_mort_article_features=True
 # for distress: 04 (using pc 1 and 5)
 # for empathy: 24 (using pc 3 and 5)
 #mort_princ_comp=None
-mort_princ_comp='04'
+if [ $task_name == "distress" ];
+then  # distress
+    mort_princ_comp='04'
+else  # empathy
+    mort_princ_comp='24'
+fi
 
+# -------- Additional Adapters input --------
+stacking_adapter="/trained_adapters/bert-base-uncased-pf-emotion" # "AdapterHub/bert-base-uncased-pf-emotion"
+use_stacking_adapter=True
+train_all_gates_adapters=True
+
+
+# -------- Rename based on 
 if [ $use_pca_features == True ]; then
     tensorboard_output_dir="${tensorboard_output_dir}_pca"
     if [ $dim == 3 ]; then
@@ -117,10 +136,10 @@ fi
 python model/unipelt_model.py \
     --task_name ${task_name} \
     --data_dir data/ \
-    --output_dir output/unipelt_output  \
+    --output_dir ${output_dir}  \
     --overwrite_output_dir \
     --model_name_or_path bert-base-uncased \
-    --do_predict False \
+    --do_predict ${do_predict} \
     --do_eval True \
     --do_train True \
     --num_train_epochs 15 \

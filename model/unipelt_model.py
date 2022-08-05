@@ -51,6 +51,7 @@ try:
     unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
     unipelt_preprocessing = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing')
     unipelt_arguments = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.arguments')
+    unipelt_plotting = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.plotting')
 except:
     print('The UniPelt Input is not available. \n The submodule in "submodules.2022_Masterthesis_UnifiedPELT". Not exiting.')
     sys.exit(-1)
@@ -93,7 +94,7 @@ Trainer = getattr(unipelt_transformers, 'Trainer')
 TrainingArguments = getattr(unipelt_transformers, 'TrainingArguments')
 default_data_collator = getattr(unipelt_transformers, 'default_data_collator')
 set_seed = getattr(unipelt_transformers, 'set_seed')
-
+Stack = getattr(unipelt_transformers, 'Stack')
 
 
 
@@ -190,90 +191,6 @@ class ModelArguments(unipelt_arguments.ModelArguments):
     )
     
 
-class MultiinputBertForSequenceClassification(unipelt_transformers.adapters.model_mixin.ModelWithHeadsAdaptersMixin, unipelt_transformers.BertPreTrainedModel):
-    # Re-implement BertForSequnceClassification of UniPELT implementation but with additional feature input
-    def __init__(self, model_name, config, feature_dim):
-        super().__init__(config)
-        self.num_labels = config.num_labels
-        print(config)
-
-        self.bert = unipelt_transformers.BertModel(config=config)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-
-        hidden_feat_size = config.hidden_size + feature_dim
-        self.classifier = nn.Linear(hidden_feat_size, config.num_labels)
-
-        self.init_weights()
-
-    def forward(
-            self,
-            input_ids=None,
-            attention_mask=None,
-            token_type_ids=None,
-            position_ids=None,
-            head_mask=None,
-            inputs_embeds=None,
-            labels=None,
-            output_attentions=None,
-            output_hidden_states=None,
-            return_dict=None,
-            adapter_names=None,
-            multiinput=None,  # added by Myra Z.
-    ):
-        r"""
-        labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size,)`, `optional`):
-            Labels for computing the sequence classification/regression loss. Indices should be in :obj:`[0, ...,
-            config.num_labels - 1]`. If :obj:`config.num_labels == 1` a regression loss is computed (Mean-Square loss),
-            If :obj:`config.num_labels > 1` a classification loss is computed (Cross-Entropy).
-        """
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-
-        outputs = self.bert(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-            return_dict=return_dict,
-            adapter_names=adapter_names,
-        )
-
-        pooled_output = outputs[1]
-
-        pooled_output = self.dropout(pooled_output)
-        # if features are not None, concat to pooled bert output
-
-        # concat both features (pca can be n dimensional)
-        concat_output = pooled_output
-        concat_output = torch.cat((concat_output, multiinput), 1) if multiinput is not None else concat_output  # add lexical features
-        #concat_output = torch.cat((concat_output, pca), 1) if pca is not None else concat_output  # add pca features
-        logits = self.classifier(concat_output)
-
-        loss = None
-        if labels is not None:
-            if self.num_labels == 1:
-                #  We are doing regression
-                loss_fct = MSELoss()
-                loss = loss_fct(logits.view(-1), labels.view(-1))
-            else:
-                loss_fct = CrossEntropyLoss()
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-
-        if not return_dict:
-            output = (logits,) + outputs[2:]
-            return ((loss,) + output) if loss is not None else output
-
-        return unipelt_transformers.modeling_outputs.SequenceClassifierOutput(
-            loss=loss,
-            logits=logits,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
-        )
-
-
 def run():
 
     #parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, MultiLingAdapterArguments))
@@ -312,9 +229,6 @@ def run():
     data_dev_pd = utils.clean_raw_data(data_dev_pd)
 
     labels = data_train_pd[task_name].to_numpy().reshape(-1)
-
-
-
 
 
 ###### from run_emp.py
@@ -454,9 +368,9 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id'])
-    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id'])
-    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id'])
+    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_ids'])
+    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_ids'])
+    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_ids'])
  
     # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
@@ -555,7 +469,7 @@ def main():
     num_labels = 1
     label_list = None  # edit this, if classification should be used
 
-    # Load pretrained model 
+    # Load pretrained model
     # In distributed training, the .from_pretrained methods guarantee that only one local process can concurrently
     # download model & vocab.
     config = AutoConfig.from_pretrained(
@@ -664,6 +578,31 @@ def main():
             # otherwise, add a fresh adapter
             else:
                 model.add_adapter(task_name, config=adapter_config)
+        
+
+        if model_args.use_stacking_adapter:  # Added by Myra Z.
+            # TODO: Make this adapter based on the model inputs
+            # TODO: Might need to use the code from above
+            try: # TODO: other adapter here
+
+                additional_adapter_name_path = data_args.data_dir + model_args.stacking_adapter
+                try:
+                    adapt_name = additional_adapter_name_path.split('/')[-1]
+                except:
+                    adapt_name = 'additional_adapter'
+                additional_adapter_name = model.load_adapter(additional_adapter_name_path, load_as=adapt_name)
+                #print('emotion_adapter_name:', emotion_adapter_name)
+                #emotion_adapter_name = model.load_adapter(model_args.stacking_adapter, source="hf")
+                #config = AdapterConfig.load("pfeiffer")
+                #emotion_adapter_name = model.load_adapter("sentiment/imdb@ukp", config=config)
+                #emotion_adapter_name = model.load_adapter(model_args.stacking_adapter, config=config)
+            except Exception as e:
+                print(f'\n Stacking adapter cannot be used. Exception: \n {e}')
+                additional_adapter_name = None
+        else:
+            additional_adapter_name = None
+
+        
         # optionally load a pre-trained language adapter
         if adapter_args.load_lang_adapter:
             # resolve the language adapter config
@@ -683,10 +622,23 @@ def main():
         # Freeze all model weights except of those of this adapter
         model.train_adapter([task_name])
         # Set the adapters to be used in every forward pass
-        if lang_adapter_name:
-            model.set_active_adapters([lang_adapter_name, task_name])
-        else:
-            model.set_active_adapters([task_name])
+        active_adapters_list = [task_name]
+        if lang_adapter_name: active_adapters_list.append(lang_adapter_name)
+        if additional_adapter_name: active_adapters_list.append(additional_adapter_name)
+        
+        if model_args.use_stacking_adapter and additional_adapter_name and task_name:  # if use emotion_stack is true and we have two adapters
+            print(' ----- using Stack -----')
+            model.active_adapters = Stack(additional_adapter_name, task_name)
+            #model.set_active_adapters([emotion_adapter_name, task_name])
+        else:  # Otherwise just set them to active
+            model.set_active_adapters(active_adapters_list)
+
+        if model_args.train_all_gates_adapters:  # all gates of the adapters will be trainable, by default only the trainable adapters will have trainable gates
+            names = [n for n, p in model.named_parameters()]
+            paramsis = [param for param in model.parameters()]
+            for n, p in zip(names, paramsis):
+                if 'adapters' in n and 'gate' in n:
+                    p.requires_grad = True
     else:
         except_para_l = []
         if config.tune_bias:
@@ -711,7 +663,7 @@ def main():
     logger.info(f"trainable_params: {trainable_params}, total_params: {total_params}, percentage:  {(trainable_params/total_params)*100}")
 
     log_wandb({'trainable_params':trainable_params, 'trainable_params_percentage':trainable_params/total_params*100}, use_wandb)
-    if False:
+    if True:
             names = [n for n, p in model.named_parameters()]
             paramsis = [param for param in model.parameters()]
             for n, p in zip(names, paramsis):
@@ -859,17 +811,13 @@ def main():
         metrics["train_samples"] = min(max_train_samples, len(train_dataset))
 
         trainer.save_model()  # Saves the tokenizer too for easy upload
-        #print('\n -------------------------- trainer state', trainer.state.log_history)
-        print(metrics)
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
         trainer.save_state()
         log_wandb(metrics, use_wandb)  # Added by Myra Z.: log wandb is use_wandb == True
 
     #log_plot_gradients(model, tensorboard_writer, use_wandb)
-    log_plot_gates(model, tensorboard_writer, use_wandb)
-    log_plot_gates_per_layer(model, tensorboard_writer, use_wandb)
-    log_plot_gates_per_epoch(model, tensorboard_writer, use_wandb)
+    unipelt_plotting.log_plot_gates(model, tensorboard_writer, use_wandb, output_dir=training_args.output_dir)
 
 
     # set epoch of trainer state control to None so we know that training is over
@@ -899,12 +847,42 @@ def main():
             trainer.save_metrics("eval", metrics)
             log_wandb(metrics, use_wandb)  # Added by Myra Z.: log wandb is use_wandb == True
             
-            predictions = trainer.predict(test_dataset=eval_dataset).predictions
-            predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
+            #predictions = trainer.predict(test_dataset=eval_dataset).predictions
+            #predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
 
+            #true_score = np.reshape(eval_dataset['label'],(-1,))
+            #if tensorboard_writer is not None:
+            #    log_plot_predictions(true_score, predictions, tensorboard_writer)
+
+            output, eval_gates_df = trainer.predict(test_dataset=eval_dataset, return_gates=True)
+            predictions = output.predictions
+            predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
+            
+            try:
+                print(len(eval_gates_df))
+            except:
+                pass
             true_score = np.reshape(eval_dataset['label'],(-1,))
-            if tensorboard_writer is not None:
-                log_plot_predictions(true_score, predictions, tensorboard_writer)
+
+            try:
+                essay_ids = np.reshape(eval_dataset['message_id'],(-1,))
+                layer_count = len(set(eval_gates_df['encoder_layer'].to_numpy()))
+                assert len(eval_gates_df[eval_gates_df['encoder_layer'] == 0]) == len(essay_ids)
+
+                layered_ids = []
+                for i in range(layer_count):
+                    layered_ids += list(essay_ids)
+
+                eval_gates_df = eval_gates_df.sort_index()
+                eval_gates_df = eval_gates_df.sort_values('encoder_layer')
+                eval_gates_df['message_ids'] = layered_ids
+
+                eval_gates_df.to_csv(training_args.output_dir + '/eval_gates_w_ids.csv')
+            except AssertionError as a_e:
+                print('Could not map model with ids, do not store the gates with ids')
+                pass
+            unipelt_plotting.log_plot_predictions(true_score, predictions, tensorboard_writer, use_wandb)
+
 
     if training_args.do_predict:
         logger.info("*** Test ***")
@@ -931,8 +909,7 @@ def main():
             
             # Added by Myra Z.
             true_score = np.reshape(test_dataset['label'],(-1,))
-            if tensorboard_writer is not None:
-                log_plot_predictions(true_score, predictions, tensorboard_writer)
+            unipelt_plotting.log_plot_predictions(true_score, predictions, tensorboard_writer, use_wandb, output_dir=training_args.output_dir, split='test')
 
             output_test_file = os.path.join(training_args.output_dir, f"test_results_{task}.txt")
             if trainer.is_world_process_zero():
@@ -946,240 +923,16 @@ def main():
                             item = label_list[item]
                             writer.write(f"{index}\t{item}\n")
     
+    unipelt_plotting.log_plot_gates_per_layer(model, tensorboard_writer, use_wandb, output_dir=training_args.output_dir)
+    unipelt_plotting.log_plot_gates_per_epoch(model, tensorboard_writer, use_wandb, output_dir=training_args.output_dir)
     # Added by Myra Z.
     if len(model.bert.gates) > 0:
         model.bert.gates.to_csv(training_args.output_dir + '/gates.csv')
     
 
-
-# Added by Myra Z.
-def log_plot_predictions(y_true, y_hat, tensorboard_writer, use_wandb=False):
-    plt.scatter(y_true, y_hat)
-    plt.xlabel('true score')
-    plt.ylabel('predictions')
-    plt.title('Scatterplot of the true labels and the predictions.')
-    if tensorboard_writer is not None:
-        tensorboard_writer.add_figure('Scatter_Predictions', plt.gcf())
-    if use_wandb:
-        wandb.log({'Predictions', plt})
-    plt.close()
-
 def log_wandb(metrics, use_wandb):
     if use_wandb:  # only log if True, otherwise package might not be available
         wandb.log(metrics)  # Added by Myra Z.
-
-def log_plot_gradients(model, tensorboard_writer, use_wandb=False):
-    # plot gating of the gradients of the last state of the model
-    # investigate gating
-    grad_by_layer = {}
-    for name, param in model.named_parameters():
-        if param.requires_grad and 'gat' in name and not 'bias' in name:
-            gate_grad = param.data.detach().squeeze().cpu().numpy()
-            # get the number of the layer using regex
-            layer = re.search('layer\.[0-9]{1,}', name)
-            if layer is None: continue  # just go to next step and do nothing
-            layer_num = re.search('[0-9]{1,}', layer.group(0)).group(0)
-            # make dictionary for each layer with the different elements as touples:
-            # (dict(str:(str, np.array)), e.g. {'1': ('layer1.lora', np.array([1,2]))}))
-            if layer_num not in grad_by_layer:
-                grad_by_layer[layer_num] = [(name, gate_grad)]
-            else:
-                grad_by_layer[layer_num].append((name, gate_grad))
-
-    # create figure from the gating layers
-    sub_fig_y = len(grad_by_layer.keys())
-    sub_fig_x = max([len(grad_by_layer[key]) for key in grad_by_layer.keys()])
-
-    fig, axs = plt.subplots(sub_fig_y, sub_fig_x, sharey=True, sharex=True, figsize=(sub_fig_x*5, sub_fig_y*5))
-
-    for i, (key, val) in enumerate(sorted(grad_by_layer.items(), key=lambda x: int(x[0]))):
-        key_num = int(key)
-        for j, (name, grads) in enumerate(val):
-            axs[i, j].hist(grads, orientation="horizontal")
-            axs[i,j].set_title(name)
-    
-    if tensorboard_writer is not None:
-        tensorboard_writer.add_figure('Gating gradients per layer', plt.gcf())
-    if use_wandb:
-        wandb.log({'Gating gradients per layer': wandb.Image(plt)})
-
-    plt.close()
-
-    fig, axs = plt.subplots(sub_fig_y, 1, sharey=True, sharex=False, figsize=(sub_fig_x*5/2, sub_fig_y*5))
-
-    for i, (key, val) in enumerate(sorted(grad_by_layer.items(), key=lambda x: int(x[0]))):
-        key_num = int(key)
-        gradients = [grads for (n, grads) in val]
-        names = [n for (n, grads) in val]
-        axs[i].boxplot(gradients, labels=names)
-    
-    if tensorboard_writer is not None:
-        tensorboard_writer.add_figure('Gating gradients per layer', plt.gcf())
-    if use_wandb:
-        wandb.log({'Gating gradients per layer: Boxplot': wandb.Image(plt)})
-    plt.close()
-
-
-def log_plot_gates(model, tensorboard_writer, use_wandb=False):
-    gates = model.bert.gates
-    if gates.empty:
-        return
-    encoder_layers = sorted(set(gates['encoder_layer']))
-    # get eval and train of last epoch while in train
-    last_train = gates[(gates['split'] == 'train_evaluation') & (gates['epoch'] == max(gates['epoch'])) & (gates['is_in_train'] == True)].reset_index()
-    after_train_eval = gates[(gates['split'] == 'eval') & (gates['is_in_train'] == False)].reset_index()
-    after_train_test = gates[(gates['split'] == 'test') & (gates['is_in_train'] == False)].reset_index()
-
-    show_plot_crit = lambda key: len(gate_per_set[key]) > 0 # criterion to not show the plot for the data set, here: if dataset not used / df is empty
-    gate_per_set = {'train':last_train, 'eval':after_train_eval, 'test':after_train_test}
-    count_data_available = sum([1 for key in gate_per_set.keys() if show_plot_crit(key)])
-
-    for layer in encoder_layers:
-        fig, axs = plt.subplots(count_data_available, sharey=True, sharex=False, constrained_layout=True)
-        idx = 0
-        print('Non empty datasets:', count_data_available)
-        for key in gate_per_set.keys():
-            columns = ['gate_prefix', 'gate_lora_value', 'gate_lora_query', 'gate_adapters']
-            if show_plot_crit(key):
-                #print(gate_per_set[key]) 
-                dataset = gate_per_set[key]
-                dataset = dataset[dataset['encoder_layer'] == layer].reset_index()
-                dataset.dropna(axis=1, inplace=True)
-               
-                if count_data_available == 1:
-                    for i, col in enumerate(columns):
-                        if col not in dataset.columns:
-                            continue
-                        axs.plot(dataset[col].to_numpy(), label=col[5:], c=COLORS[i])
-                    axs.set_ylabel('gating value')
-                    axs.set_title(f'{key} data set')
-                else:
-                    for i, col in enumerate(columns):
-                        if col not in dataset.columns:
-                            continue
-                        axs[idx].plot(dataset[col].to_numpy(), label=col[5:], c=COLORS[i])
-                    #axs[idx].plot(dataset[['gate_prefix', 'gate_lora_value', 'gate_lora_query', 'gate_adapters']], label=['gate_prefix', 'gate_lora_value', 'gate_lora_query', 'gate_adapters'])
-                    axs[idx].set_ylabel('gating value')
-                    axs[idx].set_title(f'{key} data set')
-                idx += 1
-
-        title = f'{key}/gating/layer{int(layer) + 1}'
-        fig.suptitle(title)
-        plt.legend()
-        plt.xlabel('data sample')
-        plt.ylim(0,1)
-        if tensorboard_writer is not None:
-            tensorboard_writer.add_figure(title, plt.gcf())
-        if use_wandb:
-            wandb.log({title: wandb.Image(plt)})
-        plt.close()
-
-
-def log_plot_gates_per_layer(model, tensorboard_writer, use_wandb):
-    gates = model.bert.gates
-    if gates.empty:
-        return
-    encoder_layers = sorted(set(gates['encoder_layer']))
-    # get eval and train of last epoch while in train
-    last_train = gates[(gates['split'] == 'train') & (gates['epoch'] == max(gates['epoch'])) & (gates['is_in_train'] == True)].reset_index()
-    after_train_eval = gates[(gates['split'] == 'eval') & (gates['is_in_train'] == False)].reset_index()
-    after_train_test = gates[(gates['split'] == 'test') & (gates['is_in_train'] == False)].reset_index()
-
-    show_plot_crit = lambda key: len(gate_per_set[key]) > 0 # criterion to not show the plot for the data set, here: if dataset not used / df is empty
-    gate_per_set = {'train':last_train, 'eval':after_train_eval, 'test':after_train_test}
-    count_data_available = sum([1 for key in gate_per_set.keys() if show_plot_crit(key)])
-
-    idx = 0
-    for key in gate_per_set.keys():
-        if show_plot_crit(key):
-            fig, axs = plt.subplots()
-            dataset = gate_per_set[key]
-            #dataset = dataset[dataset['encoder_layer'] == layer].reset_index()
-            grouped_mean = dataset.groupby(['encoder_layer']).agg({'gate_prefix':'mean', 'gate_lora_value':'mean', 'gate_lora_query':'mean', 'gate_adapters':'mean'})
-            grouped_std = dataset.groupby(['encoder_layer']).agg({'gate_prefix':'std', 'gate_lora_value':'std', 'gate_lora_query':'std', 'gate_adapters':'std'})
-            
-            bar_width = 2
-            width = bar_width*4 + bar_width*1.5
-            x = grouped_mean.index.to_numpy() * width
-            axs.barh(y=x - ((bar_width/2)+bar_width), xerr=grouped_std['gate_prefix'], width=grouped_mean['gate_prefix'], height=bar_width, label='Prefix Tuning', color='#029e72')#, 'gate_lora_value', 'gate_lora_query', 'gate_adapters']], label=['gate_prefix', 'gate_lora_value', 'gate_lora_query', 'gate_adapters'])
-            axs.barh(y=x - (bar_width/2), xerr=grouped_std['gate_lora_value'], width=grouped_mean['gate_lora_value'], height=bar_width, label='LoRA value', color='#e69f00')#, 'gate_lora_value', 'gate_lora_query', 'gate_adapters']], label=['gate_prefix', 'gate_lora_value', 'gate_lora_query', 'gate_adapters'])
-            axs.barh(y=x + (bar_width/2), xerr=grouped_std['gate_lora_query'], width=grouped_mean['gate_lora_query'], height=bar_width, label='LoRA query', color='#f0e441')#, 'gate_lora_value', 'gate_lora_query', 'gate_adapters']], label=['gate_prefix', 'gate_lora_value', 'gate_lora_query', 'gate_adapters'])
-            axs.barh(y=x + ((bar_width/2)+bar_width), xerr=grouped_std['gate_adapters'], width=grouped_mean['gate_adapters'], height=bar_width, label='Adapters', color='#57b4e8')#, 'gate_lora_value', 'gate_lora_query', 'gate_adapters']], label=['gate_prefix', 'gate_lora_value', 'gate_lora_query', 'gate_adapters'])
-            axs.set_ylabel('Encoder Layer')
-            axs.set_yticklabels(grouped_mean.index.to_numpy())
-            axs.set_yticks(x)
-            axs.set_title(f'{key} data set')
-            axs.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-            idx += 1
-
-            title = f'Mean Gating Values for all Encoder Layers'
-            fig.suptitle(title)
-            plt.xlabel('Mean gating value')
-            fig.tight_layout()
-            if tensorboard_writer is not None:
-                tensorboard_writer.add_figure(title, plt.gcf())
-            if use_wandb:
-                wandb.log({f'{key}/gating_layers': wandb.Image(plt)})
-            plt.close()
-
-def log_plot_gates_per_epoch(model, tensorboard_writer=None, use_wandb=False):
-    gates = model.bert.gates
-    if gates.empty:
-        return
-    encoder_layers = sorted(set(gates['encoder_layer']))
-
-    last_train = gates[(gates['split'] == 'train') & (gates['is_in_train'] == True)].reset_index()
-    after_train_eval = gates[(gates['split'] == 'eval') & (gates['is_in_train'] == True)].reset_index()
-    after_train_test = gates[(gates['split'] == 'test') & (gates['is_in_train'] == False)].reset_index()
-
-    show_plot_crit = lambda key: len(gate_per_set[key]) > 0 if key in gate_per_set.keys() else False # criterion to not show the plot for the data set, here: if dataset not used / df is empty
-    gate_per_set = {'train':last_train, 'eval':after_train_eval, 'test':after_train_test}
-    
-    idx = 0
-    for key in gate_per_set.keys():
-        columns = ['gate_prefix', 'gate_lora_value', 'gate_lora_query', 'gate_adapters']
-        if show_plot_crit(key):
-            dataset = gate_per_set[key]
-            dataset.dropna(axis=1, inplace=True)
-            available_columns = [c for c in columns if c in dataset.columns]
-            if len(available_columns) < 2:  # No column available -> no plot
-                continue
-            grouped_mean = dataset.groupby(['encoder_layer', 'epoch']).agg({c: 'mean' for c in available_columns})
-            grouped_std = dataset.groupby(['encoder_layer', 'epoch']).agg({c: 'std' for c in available_columns})
-            for layer in encoder_layers:
-                layer_mean = grouped_mean.loc[layer]
-                layer_std = grouped_std.loc[layer]
-                fig, axs = plt.subplots()
-                bar_width = 2
-                width = bar_width*4 + bar_width*1.5
-                
-                for i, col in enumerate(columns):
-                    if col not in available_columns:
-                        continue
-
-                    x = np.array(range(len(layer_mean[col].to_numpy())))
-                    axs.plot(x, layer_mean[col].to_numpy(), c=COLORS[i], label=col[5:])
-                    axs.fill_between(x, layer_mean[col].to_numpy() + layer_std[col].to_numpy(), layer_mean[col].to_numpy() - layer_std[col].to_numpy(), color=COLORS[i], alpha=0.5)
-                if len(x) <= 1:
-                    plt.close()
-                    continue
-                axs.set_xlabel('epochs')
-                axs.set_ylabel('gating value')
-                axs.set_ylim(0,1)
-                axs.set_xticks(x)
-                axs.set_xticklabels([str(item + 1) for item in x])
-                axs.set_title(f'Layer {layer +1}: Mean of the Gating Values with Std \n {key} data')
-                axs.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-                idx += 1
-                fig.tight_layout()
-                
-                plt.show()
-                title = f'{key}/gating_plot/layer{layer + 1}'
-                if tensorboard_writer is not None:
-                    tensorboard_writer.add_figure(title, plt.gcf())
-                if use_wandb:
-                    wandb.log({title: wandb.Image(plt)})
-                plt.close()
 
 
 def _mp_fn(index):
