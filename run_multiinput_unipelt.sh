@@ -1,6 +1,6 @@
 use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
-wandb_project="Results"
+wandb_project="UniPELT" #"Results"
 
 task_name=distress
 store_run=False
@@ -9,13 +9,12 @@ do_predict=False
 
 # -------- UniPELT setup --------
 # UniPELT Setup: APL
-pelt_method="full"
+pelt_method="adapter"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
     learning_rate=5e-4
-    tensorboard_output_dir=runs/multiinput_pelt_unified_apl_bert
-    output_dir=output/multiinput_pelt_unified_apl_bert
+    model_name=multiinput_pelt_unified_apl_bert
     add_enc_prefix=True
     train_adapter=True
     add_lora=True
@@ -26,8 +25,7 @@ fi
 if [ $pelt_method == "lora" ]; then
     echo "Using LoRA"
     learning_rate=5e-4
-    tensorboard_output_dir=runs/multiinput_pelt_lora
-    output_dir=output/multiinput_pelt_lora
+    model_name=multiinput_pelt_lora
     add_enc_prefix=False
     train_adapter=False
     add_lora=True
@@ -38,8 +36,7 @@ fi
 if [ $pelt_method == "adapter" ]; then
     echo "Using adapter"
     learning_rate=1e-4
-    tensorboard_output_dir=runs/multiinput_pelt_adapters
-    output_dir=output/multiinput_pelt_adapters
+    model_name=multiinput_pelt_adapters
     add_enc_prefix=False
     train_adapter=True
     add_lora=False
@@ -50,8 +47,7 @@ fi
 if [ $pelt_method == "full" ]; then
     echo "Using Full fine tuning"
     learning_rate=2e-5
-    tensorboard_output_dir=runs/multiinput2_pelt_full_fine_tuning_bert
-    output_dir=output/multiinput2_pelt_full_fine_tuning_bert
+    model_name=multiinput_pelt_full_fine_tuning_bert
     add_enc_prefix=False
     train_adapter=False
     add_lora=False
@@ -62,15 +58,13 @@ fi
 if [ $pelt_method == "prefix" ]; then
     echo "Using Prefix-tuning"
     learning_rate=2e-4
-    tensorboard_output_dir=runs/multiinput_pelt_prefix
-    output_dir=output/multiinput_pelt_prefix
+    model_name=multiinput_pelt_prefix
     add_enc_prefix=True
     train_adapter=False
     add_lora=False
     tune_bias=False
 fi
 
-output_dir="${output_dir}/${task_name}"
 
 # -------- Multiinput setup --------
 # PCA setup
@@ -86,7 +80,7 @@ use_question_template=False
 use_pca_features=False
 use_lexical_features=False
 use_mort_features=False
-use_mort_article_features=True
+use_mort_article_features=False
 # None means using all
 # for distress: 04 (using pc 1 and 5)
 # for empathy: 24 (using pc 3 and 5)
@@ -99,33 +93,47 @@ else  # empathy
 fi
 
 # -------- Additional Adapters input --------
-stacking_adapter="/trained_adapters/bert-base-uncased-pf-emotion" # "AdapterHub/bert-base-uncased-pf-emotion"
+trained_adapter_dir="data/trained_adapters"
+# Stacking adapter
+stacking_adapter="bert-base-uncased-pf-emotion" # "AdapterHub/bert-base-uncased-pf-emotion"
 use_stacking_adapter=True
+submodules/2022_Masterthesis_UnifiedPELT/data/trained_adapters
 train_all_gates_adapters=True
+
+# Multi task adapter
+use_multitask_adapter=True
 
 
 # -------- Rename based on 
 if [ $use_pca_features == True ]; then
-    tensorboard_output_dir="${tensorboard_output_dir}_pca"
-    if [ $dim == 3 ]; then
-        tensorboard_output_dir="${tensorboard_output_dir}3"
-    fi
+    model_name="${model_name}_pca${dim}"
 fi
 if [ $use_lexical_features == True ]; then
-    tensorboard_output_dir="${tensorboard_output_dir}_lexical"
+    model_name="${model_name}_lexical"
 fi
 if [ $use_mort_features == True ]; then
-    tensorboard_output_dir="${tensorboard_output_dir}_MoRT-ess"
+    model_name="${model_name}_MoRT-ess"
     if [ $mort_princ_comp != None ]; then
-        tensorboard_output_dir="${tensorboard_output_dir}${mort_princ_comp}"
+        model_name="${model_name}${mort_princ_comp}"
     fi
 fi
 if [ $use_mort_article_features == True ]; then
-    tensorboard_output_dir="${tensorboard_output_dir}_MoRT-art"
+    model_name="${model_name}_MoRT-art"
     if [ $mort_princ_comp != None ]; then
-        tensorboard_output_dir="${tensorboard_output_dir}${mort_princ_comp}"
+        model_name="${model_name}${mort_princ_comp}"
     fi
 fi
+if [ $use_stacking_adapter == True ]; then
+    model_name="${model_name}_stack"
+fi
+if [ $use_multitask_adapter == True ]; then
+    model_name="${model_name}_multitask"
+fi
+
+model_name="${model_name}/${task_name}"
+
+tensorboard_output_dir="runs/${model_name}"
+output_dir="output/${model_name}"
 
 # for testing. if not delete:
 # max_train_samples
@@ -169,3 +177,7 @@ python model/unipelt_model.py \
     --vocab_type ${vocab_type} \
     --vocab_size ${vocab_size} \
     --use_question_template ${use_question_template}  \
+    --stacking_adapter ${stacking_adapter} \
+    --use_stacking_adapter ${use_stacking_adapter} \
+    --train_all_gates_adapters ${train_all_gates_adapters} \
+    --use_multitask_adapter ${use_multitask_adapter}

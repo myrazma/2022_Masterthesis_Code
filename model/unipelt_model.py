@@ -581,23 +581,14 @@ def main():
         
 
         if model_args.use_stacking_adapter:  # Added by Myra Z.
-            # TODO: Make this adapter based on the model inputs
-            # TODO: Might need to use the code from above
-            try: # TODO: other adapter here
-
-                additional_adapter_name_path = data_args.data_dir + model_args.stacking_adapter
-                try:
-                    adapt_name = additional_adapter_name_path.split('/')[-1]
-                except:
-                    adapt_name = 'additional_adapter'
+        #if model_args.stacking_adapter or model_args.stacking_adapter != '':  # if path to stacking adapter is avaiable
+            try:
+                additional_adapter_name_path = model_args.trained_adapter_dir + "/" + model_args.stacking_adapter
+                adapt_name = model_args.stacking_adapter
                 additional_adapter_name = model.load_adapter(additional_adapter_name_path, load_as=adapt_name)
-                #print('emotion_adapter_name:', emotion_adapter_name)
-                #emotion_adapter_name = model.load_adapter(model_args.stacking_adapter, source="hf")
-                #config = AdapterConfig.load("pfeiffer")
-                #emotion_adapter_name = model.load_adapter("sentiment/imdb@ukp", config=config)
-                #emotion_adapter_name = model.load_adapter(model_args.stacking_adapter, config=config)
+                print(f'Load and use adapter: {adapt_name}')
             except Exception as e:
-                print(f'\n Stacking adapter cannot be used. Exception: \n {e}')
+                print(f'\n Stacking adapter {model_args.stacking_adapter} cannot be used. Exception: \n {e}')
                 additional_adapter_name = None
         else:
             additional_adapter_name = None
@@ -619,26 +610,67 @@ def main():
             )
         else:
             lang_adapter_name = None
+
+        
+        # TODO: Add multitask_adapter:
+        # to turn of, set use_multitask_adapter to False
+        if model_args.use_multitask_adapter:
+            other_task = "empathy" if task_name == "distress" else "distress"
+            try:  # try loading multitask adapter:
+                adapter_path = model_args.trained_adapter_dir
+                adapter_path = adapter_path + "/" + other_task
+                adapt_name = other_task + "_side_task"
+                multitask_adapter_name = model.load_adapter(adapter_path, load_as=adapt_name)
+                print(f'Load and use adapter: {adapt_name}')
+            except Exception as e:
+                print(f'MyWarning: Could not load the multitask adapter for {other_task}. Error:\n {e}')
+                multitask_adapter_name = None
+        else:
+            multitask_adapter_name = None
+
         # Freeze all model weights except of those of this adapter
         model.train_adapter([task_name])
         # Set the adapters to be used in every forward pass
         active_adapters_list = [task_name]
         if lang_adapter_name: active_adapters_list.append(lang_adapter_name)
         if additional_adapter_name: active_adapters_list.append(additional_adapter_name)
-        
-        if model_args.use_stacking_adapter and additional_adapter_name and task_name:  # if use emotion_stack is true and we have two adapters
-            print(' ----- using Stack -----')
-            model.active_adapters = Stack(additional_adapter_name, task_name)
-            #model.set_active_adapters([emotion_adapter_name, task_name])
+        if multitask_adapter_name: active_adapters_list.append(multitask_adapter_name)
+
+        # combine adapters
+        if model_args.use_stacking_adapter or model_args.use_multitask_adapter:
+            # TODO: Make sure that we can use this setup without using the emotion adapter
+            # TODO: Right now it is not allowed by the agrument setup (I think)
+            stacking_adapters = []  # for the correct sequence of the adapters
+            if additional_adapter_name: stacking_adapters.append(additional_adapter_name)
+            if multitask_adapter_name: stacking_adapters.append(multitask_adapter_name)
+            if task_name: stacking_adapters.append(task_name)  # task name on top
+            if len(stacking_adapters) > 1:
+                #and additional_adapter_name and task_name:  # if use emotion_stack is true and we have two adapters
+                model.active_adapters = Stack(*stacking_adapters)
+            else:
+                model.set_active_adapters(active_adapters_list)
         else:  # Otherwise just set them to active
             model.set_active_adapters(active_adapters_list)
+        
+        
+        #if model_args.use_stacking_adapter and additional_adapter_name and task_name:  # if use emotion_stack is true and we have two adapters
+        #    print(' ----- using Stack -----')
+        #    model.active_adapters = Stack(additional_adapter_name, task_name)
+        #    #model.set_active_adapters([emotion_adapter_name, task_name])
+        #else:  # Otherwise just set them to active
+        #    model.set_active_adapters(active_adapters_list)
+
+        # TODO: Reset the gates of multitask adapter for standard initialization, or don't even load them
 
         if model_args.train_all_gates_adapters:  # all gates of the adapters will be trainable, by default only the trainable adapters will have trainable gates
             names = [n for n, p in model.named_parameters()]
             paramsis = [param for param in model.parameters()]
             for n, p in zip(names, paramsis):
                 if 'adapters' in n and 'gate' in n:
+                    # Train gate adapters
                     p.requires_grad = True
+                    # init gate adapters
+                    
     else:
         except_para_l = []
         if config.tune_bias:
