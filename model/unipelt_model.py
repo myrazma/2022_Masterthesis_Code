@@ -96,6 +96,7 @@ default_data_collator = getattr(unipelt_transformers, 'default_data_collator')
 set_seed = getattr(unipelt_transformers, 'set_seed')
 
 
+
 BertForSequenceClassification = getattr(unipelt_transformers, 'BertForSequenceClassification')
 
 #from transformers import (
@@ -366,9 +367,9 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_ids'])
-    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_ids'])
-    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_ids'])
+    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_id'])
+    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_id'])
+    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_id'])
  
     # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
@@ -905,7 +906,7 @@ def main():
 
                 eval_gates_df = eval_gates_df.sort_index()
                 eval_gates_df = eval_gates_df.sort_values('encoder_layer')
-                eval_gates_df['message_ids'] = layered_ids
+                eval_gates_df['message_id'] = layered_ids
 
                 eval_gates_df.to_csv(training_args.output_dir + '/eval_gates_w_ids.csv')
             except AssertionError as a_e:

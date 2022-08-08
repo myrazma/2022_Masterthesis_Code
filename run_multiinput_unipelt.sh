@@ -129,9 +129,8 @@ if [ $use_multitask_adapter == True ]; then
     model_name="${model_name}_multitask"
 fi
 
-model_name="${model_name}/${task_name}"
-
 tensorboard_output_dir="runs/${model_name}"
+model_name="${model_name}/${task_name}"
 output_dir="output/${model_name}"
 
 # for testing. if not delete:
