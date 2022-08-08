@@ -897,7 +897,8 @@ def main():
 
             try:
                 essay_ids = np.reshape(eval_dataset['message_id'],(-1,))
-                layer_count = len(set(eval_gates_df['encoder_layer'].to_numpy()))
+                if 'encoder_layer' in eval_gates_df.columns:
+                    layer_count = len(set(eval_gates_df['encoder_layer'].to_numpy()))
                 assert len(eval_gates_df[eval_gates_df['encoder_layer'] == 0]) == len(essay_ids)
 
                 layered_ids = []
@@ -910,8 +911,10 @@ def main():
 
                 eval_gates_df.to_csv(training_args.output_dir + '/eval_gates_w_ids.csv')
             except AssertionError as a_e:
-                print('Could not map model with ids, do not store the gates with ids')
-                pass
+                print(f'AssertionError: Could not map model with ids, do not store the gates with ids\n {a_e}')
+            except Exception as e:
+                print(f'Could not map model with ids, do not store the gates with ids \n {e}')
+
             unipelt_plotting.log_plot_predictions(true_score, predictions, tensorboard_writer, use_wandb)
 
 
