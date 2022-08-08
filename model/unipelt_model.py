@@ -94,9 +94,6 @@ Trainer = getattr(unipelt_transformers, 'Trainer')
 TrainingArguments = getattr(unipelt_transformers, 'TrainingArguments')
 default_data_collator = getattr(unipelt_transformers, 'default_data_collator')
 set_seed = getattr(unipelt_transformers, 'set_seed')
-Stack = getattr(unipelt_transformers, 'Stack')
-
-
 
 
 BertForSequenceClassification = getattr(unipelt_transformers, 'BertForSequenceClassification')
@@ -134,6 +131,7 @@ AdapterLayerBaseMixin = getattr(importlib.import_module('submodules.2022_Mastert
 #from transformers.adapters.layer import AdapterLayerBaseMixin
 AdapterLayerBaseMixin = getattr(importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers.models.bert.modeling_bert'), 'BertSelfAttention')
 #from transformers.models.bert.modeling_bert import BertSelfAttention
+Stack = getattr(importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers.adapters.composition'), 'Stack')
 
 import pandas as pd
 import importlib.util
@@ -670,7 +668,7 @@ def main():
                     # Train gate adapters
                     p.requires_grad = True
                     # init gate adapters
-                    
+
     else:
         except_para_l = []
         if config.tune_bias:

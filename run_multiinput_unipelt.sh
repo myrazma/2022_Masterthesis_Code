@@ -97,7 +97,6 @@ trained_adapter_dir="data/trained_adapters"
 # Stacking adapter
 stacking_adapter="bert-base-uncased-pf-emotion" # "AdapterHub/bert-base-uncased-pf-emotion"
 use_stacking_adapter=True
-submodules/2022_Masterthesis_UnifiedPELT/data/trained_adapters
 train_all_gates_adapters=True
 
 # Multi task adapter
