@@ -587,9 +587,13 @@ def main():
             # load pre-trained adapter from local direcotry, if you are not able to load it from the Hub
             # this adapter is then used as the base adapter for sequentially fine tuning
             elif model_args.pre_trained_sequential_transfer_adapter:
-                sequential_adater_path = model_args.trained_adapter_dir + "/" + model_args.pre_trained_sequential_transfer_adapter
-                model.load_adapter(sequential_adater_path, load_as=task_name)
-                print(f'Load and use pre-trained adapter as taskname for {task_name}: {model_args.pre_trained_sequential_transfer_adapter}')
+                try:
+                    sequential_adater_path = model_args.trained_adapter_dir + "/" + model_args.pre_trained_sequential_transfer_adapter
+                    model.load_adapter(sequential_adater_path, load_as=task_name, config=adapter_config)
+                    print(f'Load and use pre-trained adapter as taskname for {task_name}: {model_args.pre_trained_sequential_transfer_adapter}')
+                except:
+                    model.add_adapter(task_name, config=adapter_config)
+
             # otherwise, add a fresh adapter
             else:
                 model.add_adapter(task_name, config=adapter_config)
@@ -670,6 +674,8 @@ def main():
                 model.set_active_adapters(active_adapters_list)
         else:  # Otherwise just set them to active
             model.set_active_adapters(active_adapters_list)
+
+        print('Active Adapters:', model.active_adapters)
         
         
         #if model_args.use_stacking_adapter and additional_adapter_name and task_name:  # if use emotion_stack is true and we have two adapters
