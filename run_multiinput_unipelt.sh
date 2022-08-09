@@ -96,12 +96,14 @@ fi
 trained_adapter_dir="data/trained_adapters"
 # Stacking adapter
 stacking_adapter="bert-base-uncased-pf-emotion" # "AdapterHub/bert-base-uncased-pf-emotion"
-use_stacking_adapter=True
-train_all_gates_adapters=True
+use_stacking_adapter=False
+train_all_gates_adapters=False
 
 # Multi task adapter
-use_multitask_adapter=True
+use_multitask_adapter=False
 
+# Sequential tansfer learning adapter
+pre_trained_sequential_transfer_adapter="bert-base-uncased-pf-emotion"
 
 # -------- Rename based on 
 if [ $use_pca_features == True ]; then

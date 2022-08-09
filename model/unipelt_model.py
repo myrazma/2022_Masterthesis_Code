@@ -2,8 +2,12 @@
 Should capture:
 1. Different Input:
     a. Lexicon - word average
-    b. Lexicon - PCA
-2. Changeable parameters for UniPELT settings (Learning rate, methods, etc.)
+    b. Lexicon - PCA (dimension 1 to 3)
+    c. Morality score of the essay or / and article
+2. Using different adpaters:
+    1. adding emotion based adapter as a stack
+    2. Using emotion based adapter as a base for fine-tuning this again on the distress task
+3. Changeable parameters for UniPELT settings (Learning rate, methods, etc.)
 
 In here: use trainer (best from submodule/..UnifiedPELT/transformers), same like in run_emp.py
 
@@ -11,6 +15,7 @@ In here: use trainer (best from submodule/..UnifiedPELT/transformers), same like
 Can we maybe build a framework for this trainer to use it for other models too? So for the model of / in adapter_BERT
 """
 
+from msilib import sequence
 from multiprocessing import pool
 import torch
 from torch import nn
@@ -133,7 +138,8 @@ AdapterLayerBaseMixin = getattr(importlib.import_module('submodules.2022_Mastert
 AdapterLayerBaseMixin = getattr(importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers.models.bert.modeling_bert'), 'BertSelfAttention')
 #from transformers.models.bert.modeling_bert import BertSelfAttention
 Stack = getattr(importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers.adapters.composition'), 'Stack')
-
+Fuse = getattr(importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers.adapters.composition'), 'Fuse')
+ 
 import pandas as pd
 import importlib.util
 
@@ -187,6 +193,10 @@ class ModelArguments(unipelt_arguments.ModelArguments):
     mort_princ_comp: Optional[str] = field(
         default=None,
         metadata={"help": "The principle components to use for MoRT. Default to None: Use all 5 principle components of the MoRT projection."},
+    )
+    pre_trained_sequential_transfer_adapter: Optional[str] = field(
+        default=None,
+        metadata={"help": "Enter the name of the adapter that should be loaded from local directory. The name is sufficient if you already have trained_adapter_dir as parameter, will be used as the base directory."},
     )
     
 
@@ -574,6 +584,13 @@ def main():
                     config=adapter_config,
                     load_as=task_name,
                 )
+            # Added by Myra Z.
+            # load pre-trained adapter from local direcotry, if you are not able to load it from the Hub
+            # this adapter is then used as the base adapter for sequentially fine tuning
+            elif model_args.pre_trained_sequential_transfer_adapter:
+                model_args.trained_adapter_dir + "/" + model_args.pre_trained_sequential_transfer_adapter
+                additional_adapter_name = model.load_adapter(additional_adapter_name_path, load_as=task_name)
+                print(f'Load and use pre-trained adapter as taskname for {task_name}: {model_args.pre_trained_sequential_transfer_adapter}')
             # otherwise, add a fresh adapter
             else:
                 model.add_adapter(task_name, config=adapter_config)
@@ -627,6 +644,8 @@ def main():
         else:
             multitask_adapter_name = None
 
+        # load emotion adapter and pre train on it
+
         # Freeze all model weights except of those of this adapter
         model.train_adapter([task_name])
         # Set the adapters to be used in every forward pass
@@ -646,6 +665,8 @@ def main():
             if len(stacking_adapters) > 1:
                 #and additional_adapter_name and task_name:  # if use emotion_stack is true and we have two adapters
                 model.active_adapters = Stack(*stacking_adapters)
+
+                model.set_active_adapters(Fuse(*stacking_adapters))
             else:
                 model.set_active_adapters(active_adapters_list)
         else:  # Otherwise just set them to active
