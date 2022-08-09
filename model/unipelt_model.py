@@ -587,8 +587,8 @@ def main():
             # load pre-trained adapter from local direcotry, if you are not able to load it from the Hub
             # this adapter is then used as the base adapter for sequentially fine tuning
             elif model_args.pre_trained_sequential_transfer_adapter:
-                model_args.trained_adapter_dir + "/" + model_args.pre_trained_sequential_transfer_adapter
-                additional_adapter_name = model.load_adapter(additional_adapter_name_path, load_as=task_name)
+                sequential_adater_path = model_args.trained_adapter_dir + "/" + model_args.pre_trained_sequential_transfer_adapter
+                model.load_adapter(sequential_adater_path, load_as=task_name)
                 print(f'Load and use pre-trained adapter as taskname for {task_name}: {model_args.pre_trained_sequential_transfer_adapter}')
             # otherwise, add a fresh adapter
             else:
