@@ -15,7 +15,6 @@ In here: use trainer (best from submodule/..UnifiedPELT/transformers), same like
 Can we maybe build a framework for this trainer to use it for other models too? So for the model of / in adapter_BERT
 """
 
-from msilib import sequence
 from multiprocessing import pool
 import torch
 from torch import nn
