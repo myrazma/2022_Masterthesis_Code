@@ -180,4 +180,5 @@ python model/unipelt_model.py \
     --stacking_adapter ${stacking_adapter} \
     --use_stacking_adapter ${use_stacking_adapter} \
     --train_all_gates_adapters ${train_all_gates_adapters} \
-    --use_multitask_adapter ${use_multitask_adapter}
+    --use_multitask_adapter ${use_multitask_adapter} \
+    --pre_trained_sequential_transfer_adapter ${pre_trained_sequential_transfer_adapter}
