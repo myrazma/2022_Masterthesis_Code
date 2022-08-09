@@ -5,11 +5,11 @@ wandb_project="UniPELT" #"Results"
 task_name=distress
 store_run=False
 do_predict=False
-
+train_ff_layers=False
 
 # -------- UniPELT setup --------
 # UniPELT Setup: APL
-pelt_method="adapter"
+pelt_method="feedforward"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
@@ -65,6 +65,18 @@ if [ $pelt_method == "prefix" ]; then
     tune_bias=False
 fi
 
+# Full fine tuning
+if [ $pelt_method == "feedforward" ]; then
+    echo "Using Feed forward fine tuning"
+    learning_rate=2e-5
+    model_name=multiinput_pelt_feed_forward_bert
+    add_enc_prefix=False
+    train_adapter=False
+    add_lora=False
+    tune_bias=False
+    train_ff_layers=True # Only fine tuning of Forwardlayers
+fi
+
 
 # -------- Multiinput setup --------
 # PCA setup
@@ -103,7 +115,8 @@ train_all_gates_adapters=False
 use_multitask_adapter=False
 
 # Sequential tansfer learning adapter
-pre_trained_sequential_transfer_adapter="bert-base-uncased-pf-emotion"
+pre_trained_sequential_transfer_adapter=None # "bert-base-uncased-pf-emotion"
+
 
 # -------- Rename based on 
 if [ $use_pca_features == True ]; then
@@ -181,4 +194,5 @@ python model/unipelt_model.py \
     --use_stacking_adapter ${use_stacking_adapter} \
     --train_all_gates_adapters ${train_all_gates_adapters} \
     --use_multitask_adapter ${use_multitask_adapter} \
-    --pre_trained_sequential_transfer_adapter ${pre_trained_sequential_transfer_adapter}
+    --pre_trained_sequential_transfer_adapter ${pre_trained_sequential_transfer_adapter} \
+    --train_ff_layers ${train_ff_layers}

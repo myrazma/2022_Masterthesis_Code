@@ -197,6 +197,10 @@ class ModelArguments(unipelt_arguments.ModelArguments):
         default=None,
         metadata={"help": "Enter the name of the adapter that should be loaded from local directory. The name is sufficient if you already have trained_adapter_dir as parameter, will be used as the base directory."},
     )
+    train_ff_layers: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Wether or not to only train the ff_layers of the BERT model."},
+    )
     
 
 def run():
@@ -562,8 +566,6 @@ def main():
         #use_auth_token=True if model_args.use_auth_token else None
     ###)
 
-    print(model)
-
     # Setup adapters
     if adapter_args.train_adapter:
         task_name = data_args.task_name
@@ -714,6 +716,17 @@ def main():
                 "Adapters can only be loaded in adapters training mode."
                 "Use --train_adapter to enable adapter training"
             )
+
+
+    if model_args.train_ff_layers:
+        names = [n for n, p in model.named_parameters()]
+        params = [param for param in model.parameters()]
+        for n, p in zip(names, params):
+            if 'output' in n:
+                p.requires_grad = True
+            else:
+                p.requires_grad = False
+        
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
