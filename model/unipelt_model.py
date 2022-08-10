@@ -380,9 +380,11 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_id'])
-    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_id'])
-    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, additional_cols=['essay', 'article_id', 'message_id'])
+
+    normalize_scores = True  # Normalize scores between 0 and 1 for the prediction
+    dataset_emp_train, dataset_dis_train = preprocessing.get_preprocessed_dataset(data_train_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, shuffle=True, additional_cols=['essay', 'article_id', 'message_id'], normalize_scores=normalize_scores)
+    dataset_emp_dev, dataset_dis_dev = preprocessing.get_preprocessed_dataset(data_dev_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, shuffle=False, additional_cols=['essay', 'article_id', 'message_id'], normalize_scores=normalize_scores)
+    dataset_emp_test, dataset_dis_test = preprocessing.get_preprocessed_dataset(data_test_pd, tokenizer, training_args.seed, return_huggingface_ds=True, padding=padding, shuffle=False, additional_cols=['essay', 'article_id', 'message_id'], normalize_scores=normalize_scores)
  
     # --- choose dataset and data loader based on empathy ---
     # per default use empathy label
@@ -474,6 +476,13 @@ def main():
     train_dataset, feature_dim = add_features_dataset(train_dataset, fc, model_args, return_dim=True)
     eval_dataset = add_features_dataset(eval_dataset, fc, model_args, return_dim=False)
     test_dataset = add_features_dataset(test_dataset, fc, model_args, return_dim=False)
+
+    # Make sure, the classifier is active when using multi input
+    if feature_dim > 0:
+        classifier_params = model.classifier.parameters()
+        for p in classifier_params:
+            if not p.requires_grad:
+                print(f'\n --------- MyWarning ------------ \n Your are using features of input dim {feature_dim}, but some gradients in the classifier are set to False: {p}')
 
     # Task selection was here before, but since we are only using one task (regression),
     # these settings can stay the same for us
@@ -580,13 +589,6 @@ def main():
             output_params = layer.output.parameters()
             for p in output_params:
                 p.requires_grad = True
-
-        for n, p in zip(names, params):
-            # freeze all params
-            print(f'{n}: {p.requires_grad}')
-
-
-                
 
     # Setup adapters
     if adapter_args.train_adapter:
@@ -984,18 +986,31 @@ def main():
             # only do_predict if train_as_val
             # Removing the `label` columns because it contains -1 and Trainer won't like that.
             # test_dataset.remove_columns_("label")
-            metrics = trainer.evaluate(eval_dataset=test_dataset, metric_key_prefix='test')
-            trainer.log_metrics("test", metrics)
-            trainer.save_metrics("test", metrics)
-            log_wandb(metrics, use_wandb)  # Added by Myra Z.: log wandb is use_wandb == True
-
-            predictions = trainer.predict(test_dataset=test_dataset).predictions
+            
+            #predictions = trainer.predict(test_dataset=test_dataset).predictions
+            #predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
+            
+            output, eval_gates_df = trainer.predict(test_dataset=eval_dataset, return_gates=True)
+            predictions = output.predictions
             predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
             
-            # Added by Myra Z.
-            true_score = np.reshape(test_dataset['label'],(-1,))
-            unipelt_plotting.log_plot_predictions(true_score, predictions, tensorboard_writer, use_wandb, output_dir=training_args.output_dir, split='test')
 
+            if 'label' in test_dataset.features.keys() or data_args.task_name in test_dataset.features.keys():
+                metrics = trainer.evaluate(eval_dataset=test_dataset, metric_key_prefix='test')
+                trainer.log_metrics("test", metrics)
+                trainer.save_metrics("test", metrics)
+                log_wandb(metrics, use_wandb)  # Added by Myra Z.: log wandb is use_wandb == True
+
+                # Added by Myra Z.
+                true_score = np.reshape(test_dataset['label'],(-1,))
+                unipelt_plotting.log_plot_predictions(true_score, predictions, tensorboard_writer, use_wandb, output_dir=training_args.output_dir, split='test')
+
+
+            # Normalize results to map from (0,1) to (1,7)
+            predictions = preprocessing.scale_scores(predictions, (0,1), (1,7))
+            # Store results
+            print('predictions:', predictions)
+            
             output_test_file = os.path.join(training_args.output_dir, f"test_results_{task}.txt")
             if trainer.is_world_process_zero():
                 with open(output_test_file, "w") as writer:
@@ -1024,6 +1039,10 @@ def _mp_fn(index):
     # For xla_spawn (TPUs)
     main()
 
+
+def write_predictions_tsv(predictions, task_name):
+    # TODO
+    pass
 
 if __name__ == "__main__":
     # --- run on GPU if available ---

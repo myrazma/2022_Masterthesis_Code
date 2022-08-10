@@ -4,12 +4,12 @@ wandb_project="UniPELT" #"Results"
 
 task_name=distress
 store_run=False
-do_predict=False
+do_predict=True
 train_ff_layers=False
 
 # -------- UniPELT setup --------
 # UniPELT Setup: APL
-pelt_method="feedforward"
+pelt_method="lora"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
@@ -65,10 +65,22 @@ if [ $pelt_method == "prefix" ]; then
     tune_bias=False
 fi
 
+# BitFit
+if [ $pelt_method == "bitfit" ]; then
+    echo "Using BitFit"
+    learning_rate=1e-3
+    tensorboard_output_dir=runs/pelt_bitfit_bert
+    output_dir=output/pelt_bitfit_bert
+    add_enc_prefix=False
+    train_adapter=False
+    add_lora=False
+    tune_bias=True
+fi
+
 # Full fine tuning
 if [ $pelt_method == "feedforward" ]; then
     echo "Using Feed forward fine tuning"
-    learning_rate=2e-5
+    learning_rate=2e-4
     model_name=multiinput_pelt_feed_forward_bert
     add_enc_prefix=False
     train_adapter=False
