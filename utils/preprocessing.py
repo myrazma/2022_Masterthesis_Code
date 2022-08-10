@@ -88,7 +88,7 @@ def remove_stopwords(text_tok):
     return text_processed
 
 
-def normalize_scores(data, input_interval):
+def scale_scores(data, input_interval, output_interval):
     """Maps from desired input intervall to [0,1]
 
     Args:
@@ -98,8 +98,10 @@ def normalize_scores(data, input_interval):
     Returns:
         _type_: _description_
     """
-    normalized = (data - input_interval[0]) / (input_interval[1] - input_interval[0])
-    return normalized
+    term_1 = (data - min(input_interval))/(max(input_interval) - min(input_interval))
+    term_2 = max(output_interval) - min(output_interval) 
+    scaled = term_1 * term_2 + min(output_interval)
+    return scaled
 
 
 def tokenize(batch, tokenizer, column, padding='max_length', max_length=256):
@@ -123,10 +125,10 @@ def create_tensor_data(*args):
     return dataset
 
 
-def create_dataloaders(inputs, masks, labels, batch_size):
+def create_dataloaders(inputs, masks, labels, batch_size, shuffle=False):
     # Source: [2]
     dataset = create_tensor_data(inputs, masks, labels)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     return dataloader
 
 
@@ -143,14 +145,14 @@ def pd_to_dataset(data_df):
     return data_df
 
 
-def create_dataloaders_multi_in(inputs, masks, labels, lexical_features, batch_size):
+def create_dataloaders_multi_in(inputs, masks, labels, lexical_features, batch_size, shuffle=False):
     # Source: [2]
     input_tensor = torch.tensor(inputs)
     mask_tensor = torch.tensor(masks)
     labels_tensor = torch.tensor(labels)
     lexical_features_tensor = torch.tensor(lexical_features)
     dataset = TensorDataset(input_tensor, mask_tensor, labels_tensor, lexical_features_tensor)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     return dataloader
 
 
@@ -159,7 +161,7 @@ def create_dataloaders_multi_in(inputs, masks, labels, lexical_features, batch_s
 # ---------------------------------------------------
 
 
-def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=False, padding='max_length', shuffle=True, additional_cols=[]):
+def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=False, padding='max_length', shuffle=False, additional_cols=[], normalize_scores=True):
     """Preprocess the data from input as pandas pd and return a TensorDataset
     
     Do the following steps:
@@ -211,8 +213,12 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
         label_distress_train = np.array(data_encoded["distress"]).astype(np.float32).reshape(-1, 1)
 
         # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
-        label_scaled_empathy_train = normalize_scores(label_empathy_train, (1,7))
-        label_scaled_distress_train = normalize_scores(label_distress_train, (1,7))
+        if normalize_scores:
+            label_scaled_empathy_train = scale_scores(label_empathy_train, (1,7), (0,1))
+            label_scaled_distress_train = scale_scores(label_distress_train, (1,7), (0,1))
+        else:
+            label_scaled_empathy_train = label_empathy_train
+            label_scaled_distress_train = label_distress_train
 
         # --- create datasets ---
         # for empathy
@@ -246,7 +252,7 @@ def get_preprocessed_dataset(data_pd, tokenizer, seed, return_huggingface_ds=Fal
 
 
 
-def get_preprocessed_dataset_huggingface(data_pd, tokenizer, seed, return_huggingface_ds=True, padding='max_length', max_length=256):
+def get_preprocessed_dataset_huggingface(data_pd, tokenizer, seed, return_huggingface_ds=True, padding='max_length', max_length=256, normalize=True):
     """Preprocess the data from input as pandas pd and return a TensorDataset
     
     Do the following steps:
@@ -289,8 +295,12 @@ def get_preprocessed_dataset_huggingface(data_pd, tokenizer, seed, return_huggin
         label_distress_train = np.array(data_encoded_shuff["distress"]).astype(np.float32).reshape(-1, 1)
 
         # --- scale labels: map empathy and distress labels from [1,7] to [0,1] ---
-        label_scaled_empathy_train = normalize_scores(label_empathy_train, (1,7))
-        label_scaled_distress_train = normalize_scores(label_distress_train, (1,7))
+        if normalize:
+            label_scaled_empathy_train = scale_scores(label_empathy_train, (1,7), (0,1))
+            label_scaled_distress_train = scale_scores(label_distress_train, (1,7), (0,1))
+        else:
+            label_scaled_empathy_train = label_empathy_train
+            label_scaled_distress_train = label_distress_train
 
         # --- create datasets ---
         # for empathy
