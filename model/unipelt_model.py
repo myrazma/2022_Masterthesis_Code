@@ -569,18 +569,17 @@ def main():
     # train only the ff_layers
     if model_args.train_ff_layers:
         print('You are only training the feedforward layers. All others are set to frozen')
-        names = [n for n, p in model.named_parameters()]
-        params = [param for param in model.parameters()]
+        names = [n for n, p in model.bert.named_parameters()]
+        params = [param for param in model.bert.parameters()]
         for n, p in zip(names, params):
             # freeze all params
             p.requires_grad = False
         # unfreeze the feed forward layers
-        for idx, layer in enumerate(model.encoder.layer):
+        for idx, layer in enumerate(model.bert.encoder.layer):
             # only set parameters of bert output to true
             output_params = layer.output.parameters()
             for p in output_params:
                 p.requires_grad = True
-
 
         for n, p in zip(names, params):
             # freeze all params
