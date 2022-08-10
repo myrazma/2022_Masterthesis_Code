@@ -566,6 +566,29 @@ def main():
         #use_auth_token=True if model_args.use_auth_token else None
     ###)
 
+    # train only the ff_layers
+    if model_args.train_ff_layers:
+        print('You are only training the feedforward layers. All others are set to frozen')
+        names = [n for n, p in model.named_parameters()]
+        params = [param for param in model.parameters()]
+        for n, p in zip(names, params):
+            # freeze all params
+            p.requires_grad = False
+        # unfreeze the feed forward layers
+        for idx, layer in enumerate(model.encoder.layer):
+            # only set parameters of bert output to true
+            output_params = layer.output.parameters()
+            for p in output_params:
+                p.requires_grad = True
+
+
+        for n, p in zip(names, params):
+            # freeze all params
+            print(f'{n}: {p.requires_grad}')
+
+
+                
+
     # Setup adapters
     if adapter_args.train_adapter:
         task_name = data_args.task_name
@@ -716,16 +739,6 @@ def main():
                 "Adapters can only be loaded in adapters training mode."
                 "Use --train_adapter to enable adapter training"
             )
-
-
-    if model_args.train_ff_layers:
-        names = [n for n, p in model.named_parameters()]
-        params = [param for param in model.parameters()]
-        for n, p in zip(names, params):
-            if 'output' in n:
-                p.requires_grad = True
-            else:
-                p.requires_grad = False
         
 
     total_params = sum(p.numel() for p in model.parameters())
