@@ -955,12 +955,15 @@ def main():
                 assert len(eval_gates_df[eval_gates_df['encoder_layer'] == 0]) == len(essay_ids)
 
                 layered_ids = []
+                layered_labels = []
                 for i in range(layer_count):
-                    layered_ids += list(essay_ids)
+                    layered_ids += list(essay_ids)  # add message ids
+                    layered_labels += list(true_score)  # add labels
 
                 eval_gates_df = eval_gates_df.sort_index()
                 eval_gates_df = eval_gates_df.sort_values('encoder_layer')
-                eval_gates_df['message_id'] = layered_ids
+                eval_gates_df['message_id'] = layered_ids  # add message ids
+                eval_gates_df['label'] = layered_labels  # add lables
 
                 eval_gates_df.to_csv(training_args.output_dir + '/eval_gates_w_ids.csv')
             except AssertionError as a_e:
