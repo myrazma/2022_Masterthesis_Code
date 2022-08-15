@@ -2,19 +2,19 @@ use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
 wandb_project="UniPELT" #"Results"
 
-task_name=distress
+task_name=empathy
 store_run=False
 do_predict=True
 train_ff_layers=False
 
 # -------- UniPELT setup --------
 # UniPELT Setup: APL
-pelt_method="lora"
+pelt_method="unipelt_apl"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
-    learning_rate=5e-4
-    model_name=multiinput_pelt_unified_apl_bert
+    learning_rate=1e-4
+    model_name=multiinput_pelt_unified_apl_bert_1e-4
     add_enc_prefix=True
     train_adapter=True
     add_lora=True
@@ -118,12 +118,13 @@ fi
 
 # -------- Additional Adapters input --------
 trained_adapter_dir="data/trained_adapters"
-# Stacking adapter
+# Stacking adapter (emotion most likely)
 stacking_adapter="bert-base-uncased-pf-emotion" # "AdapterHub/bert-base-uncased-pf-emotion"
-use_stacking_adapter=False
-train_all_gates_adapters=False
+use_stacking_adapter=True
+train_all_gates_adapters=True
 
 # Multi task adapter
+# Add the adapter of the other task to the model
 use_multitask_adapter=False
 
 # Sequential tansfer learning adapter
