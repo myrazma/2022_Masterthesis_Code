@@ -695,7 +695,7 @@ def main():
                 #and additional_adapter_name and task_name:  # if use emotion_stack is true and we have two adapters
                 model.active_adapters = Stack(*stacking_adapters)
 
-                model.set_active_adapters(Fuse(*stacking_adapters))
+                #model.set_active_adapters(Fuse(*stacking_adapters))
             else:
                 model.set_active_adapters(active_adapters_list)
         else:  # Otherwise just set them to active
