@@ -9,7 +9,7 @@ train_ff_layers=False
 
 # -------- UniPELT setup --------
 # UniPELT Setup: APL
-pelt_method="unipelt_apl"
+pelt_method="feedforward"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
@@ -120,8 +120,8 @@ fi
 trained_adapter_dir="data/trained_adapters"
 # Stacking adapter (emotion most likely)
 stacking_adapter="bert-base-uncased-pf-emotion" # "AdapterHub/bert-base-uncased-pf-emotion"
-use_stacking_adapter=True
-train_all_gates_adapters=True
+use_stacking_adapter=False
+train_all_gates_adapters=False
 
 # Multi task adapter
 # Add the adapter of the other task to the model

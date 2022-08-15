@@ -584,11 +584,18 @@ def main():
             # freeze all params
             p.requires_grad = False
         # unfreeze the feed forward layers
-        for idx, layer in enumerate(model.bert.encoder.layer):
+        #for idx, layer in enumerate(model.bert.encoder.layer):
+        #    # only set parameters of bert output to true
+        #    output_params = layer.output.parameters()
+        #    for p in output_params:
+        #        p.requires_grad = True
+        for idx, layer in enumerate(model.bert.layer):
             # only set parameters of bert output to true
-            output_params = layer.output.parameters()
-            for p in output_params:
-                p.requires_grad = True
+            output_params = layer.parameters()
+            output_params_names = layer.named_parameters()
+            for p, n in zip(output_params,output_params_names):
+                if '11' in n or '10' in n or '9' in n:
+                    p.requires_grad = True
 
     # Setup adapters
     if adapter_args.train_adapter:
