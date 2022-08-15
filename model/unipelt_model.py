@@ -584,18 +584,11 @@ def main():
             # freeze all params
             p.requires_grad = False
         # unfreeze the feed forward layers
-        #for idx, layer in enumerate(model.bert.encoder.layer):
-        #    # only set parameters of bert output to true
-        #    output_params = layer.output.parameters()
-        #    for p in output_params:
-        #        p.requires_grad = True
-        for idx, layer in enumerate(model.bert.layer):
+        for idx, layer in enumerate(model.bert.encoder.layer):
             # only set parameters of bert output to true
-            output_params = layer.parameters()
-            output_params_names = layer.named_parameters()
-            for p, n in zip(output_params,output_params_names):
-                if '11' in n or '10' in n or '9' in n:
-                    p.requires_grad = True
+            output_params = layer.output.parameters()
+            for p in output_params:
+                p.requires_grad = True
 
     # Setup adapters
     if adapter_args.train_adapter:
@@ -673,6 +666,7 @@ def main():
                 adapter_path = adapter_path + "/" + other_task
                 adapt_name = other_task + "_side_task"
                 multitask_adapter_name = model.load_adapter(adapter_path, load_as=adapt_name)
+                # leave_out: leave adapter out of layers from list(int), set this in config
                 print(f'Load and use adapter: {adapt_name}')
             except Exception as e:
                 print(f'MyWarning: Could not load the multitask adapter for {other_task}. Error:\n {e}')
