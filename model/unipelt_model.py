@@ -341,7 +341,8 @@ def main():
     # Create RTPT object
     if RTPT_AVAILABLE:
         exp_name = 'DistressedBERT' if data_args.task_name == 'distress' else 'EmpathicBERT'
-        exp_name = exp_name + '_'
+        model_name = data_args.tensorboard_output_dir.split('/')[-1]
+        exp_name = exp_name + f'_{model_name}'
         rtpt = RTPT(name_initials='MZ', experiment_name=exp_name, max_iterations=training_args.num_train_epochs)
         # Start the RTPT tracking
         rtpt.start()  
