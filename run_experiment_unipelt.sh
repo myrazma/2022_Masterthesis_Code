@@ -256,3 +256,4 @@ do
         --use_sidetask_adapter ${use_sidetask_adapter} \
         --pre_trained_sequential_transfer_adapter ${pre_trained_sequential_transfer_adapter} \
         --train_ff_layers ${train_ff_layers}
+done
