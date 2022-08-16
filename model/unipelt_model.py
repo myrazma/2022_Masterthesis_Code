@@ -762,7 +762,12 @@ def main():
     trainable_lora_params = sum(p.numel() for p in lora_params if p.requires_grad)
     lora_gates = sum(p.numel() for n, p in model.bert.named_parameters() if 'gate' in n and 'lora' in n)
     # prefix
+    for n, p in model.bert.named_parameters():
+        if not 'gate' in n and 'prefix' in n:
+            print(n)
+            print(p.numel())
     prefix_params = [p for n, p in model.bert.named_parameters() if not 'gate' in n and 'prefix' in n]
+
     total_prefix_params = sum(p.numel() for p in prefix_params)
     trainable_prefix_params = sum(p.numel() for p in prefix_params if p.requires_grad)
     prefix_gates = sum(p.numel() for n, p in model.bert.named_parameters() if 'gate' in n and 'prefix' in n)
