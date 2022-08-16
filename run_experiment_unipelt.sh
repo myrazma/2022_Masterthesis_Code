@@ -19,7 +19,7 @@ do
     if [ $pelt_method == "unipelt_aplb" ]; then
         echo "Using Unipelt (Prefix, adapter, lora, bitfit)"
         learning_rate=5e-4
-        model_name=unipelt_aplb_bert
+        model_name=unipelt_aplb
         add_enc_prefix=True
         train_adapter=True
         add_lora=True
@@ -29,7 +29,7 @@ do
     if [ $pelt_method == "unipelt_apl" ]; then
         echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
         learning_rate=1e-4
-        model_name=unipelt_apl_bert
+        model_name=unipelt_apl
         add_enc_prefix=True
         train_adapter=True
         add_lora=True
@@ -40,7 +40,7 @@ do
     if [ $pelt_method == "unipelt_ap" ]; then
         echo "Using Unipelt APL (adapter, prefix-tuning; exclude: LoRA, BitFit)"
         learning_rate=5e-4
-        model_name=unipelt_ap_bert
+        model_name=unipelt_ap
         add_enc_prefix=True
         train_adapter=True
         add_lora=False
@@ -51,7 +51,7 @@ do
     if [ $pelt_method == "unipelt_al" ]; then
         echo "Using Unipelt APL (adapter, LoRA; exclude: prefix-tuning, BitFit)"
         learning_rate=5e-4
-        model_name=unipelt_al_bert
+        model_name=unipelt_al
         add_enc_prefix=False
         train_adapter=True
         add_lora=True
