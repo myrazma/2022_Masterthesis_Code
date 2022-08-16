@@ -134,7 +134,7 @@ pre_trained_sequential_transfer_adapter=None # "bert-base-uncased-pf-emotion"
 # -------- Rename based on variables --------
 
 # own name add on
-model_name="${model_name}_${learning_rate}"
+#model_name="${model_name}_${learning_rate}"
 
 if [ $use_pca_features == True ]; then
     model_name="${model_name}_pca${dim}"

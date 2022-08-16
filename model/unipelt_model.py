@@ -771,36 +771,56 @@ def main():
     total_prefix_params = sum(p.numel() for p in prefix_params)
     trainable_prefix_params = sum(p.numel() for p in prefix_params if p.requires_grad)
     prefix_gates = sum(p.numel() for n, p in model.bert.named_parameters() if 'gate' in n and 'prefix' in n)
-
-    param_info = f"""
-    -- Complete model --
-    total_params: {total_params}
-    trainable_params:       {total_trainable_params}
-    percentage:             {(total_trainable_params/total_params)*100}
-    bert:                   {bert_params}
-    bert_trainable_params:  {bert_trainable_params}
-    gate_params:            {gate_params}
+    total_params_classification_head = sum(p.numel() for p in model.classifier.parameters())
+    trainable_params_classification_head = sum(p.numel() for p in model.classifier.parameters() if p.requires_grad)
     
-    -- Methods --
-    total_adapter_params:   {total_adapter_params}
-    trainable_adapter_p:    {trainable_adapter_params}
-    adapter_gates:          {adapter_gates}
+    param_count_dict = {
+        'total_params': total_params,
+        'total_trainable_params': total_trainable_params,
+        'total_params_head': total_params_classification_head,
+        'trainable_params_head': trainable_params_classification_head,
+        'total_bert_params': bert_params,
+        'bert_trainable_params': bert_trainable_params,
+        'gate_params': gate_params,
+        'total_adapter_params': total_adapter_params,
+        'trainable_adapter_p': trainable_adapter_params,
+        'adapter_gates': adapter_gates,
+        'total_lora_params': total_lora_params,
+        'trainable_lora_params': trainable_lora_params,
+        'lora_gates': lora_gates,
+        'total_prefix_params': total_prefix_params,
+        'trainable_prefix_p': trainable_prefix_params,
+        'prefix_gates': prefix_gates
+    }
 
-    total_lora_params:      {total_lora_params}
-    trainable_lora_params:  {trainable_lora_params}
-    lora_gates:             {lora_gates}
+    param_info = '\n'.join([f'{key}: {param_count_dict[key]}' for key in param_count_dict.keys()])
+    #f"""
+    #-- Complete model --
+    #total_params: {total_params}
+    #trainable_params:       {total_trainable_params}
+    #percentage:             {(total_trainable_params/total_params)*100}
+    #bert:                   {bert_params}
+    #bert_trainable_params:  {bert_trainable_params}
+    #gate_params:            {gate_params}
+    # 
+    # -- Methods --
+    # total_adapter_params:   {total_adapter_params}
+    # trainable_adapter_p:    {trainable_adapter_params}
+    # adapter_gates:          {adapter_gates}
 
-    total_prefix_params:    {total_prefix_params}
-    trainable_prefix_p:     {trainable_prefix_params}
-    prefix_gates:           {prefix_gates}
-    """
+    #total_lora_params:      {total_lora_params}
+    #trainable_lora_params:  {trainable_lora_params}
+    #lora_gates:             {lora_gates}
+
+    #total_prefix_params:    {total_prefix_params}
+    #trainable_prefix_p:     {trainable_prefix_params}
+    #prefix_gates:           {prefix_gates}
+    #"""
     logger.info(param_info)
-    
-    params_classification_head = sum(p.numel() for p in model.classifier.parameters() if p.requires_grad)
     
     #logger.info(f"trainable_params: {trainable_params}, total_params: {total_params}, percentage:  {(trainable_params/total_params)*100}")
 
-    #log_wandb({'trainable_params': trainable_params, 'trainable_params_percentage':trainable_params/total_params*100}, use_wandb)
+    log_wandb(param_count_dict, use_wandb)
     if True:
             names = [n for n, p in model.named_parameters()]
             paramsis = [param for param in model.parameters()]
