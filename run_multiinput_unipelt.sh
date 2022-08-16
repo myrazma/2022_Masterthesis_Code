@@ -2,19 +2,19 @@ use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
 wandb_project="UniPELT" #"Results"
 
-task_name=empathy
+task_name=distress
 store_run=False
 do_predict=True
 train_ff_layers=False
 
 # -------- UniPELT setup --------
 # UniPELT Setup: APL
-pelt_method="adapter"
+pelt_method="feedforward"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
     learning_rate=1e-4
-    model_name=multiinput_pelt_unified_apl_bert_1e-4
+    model_name=multiinput_pelt_unified_apl_bert
     add_enc_prefix=True
     train_adapter=True
     add_lora=True
@@ -120,8 +120,8 @@ fi
 trained_adapter_dir="data/trained_adapters"
 # Stacking adapter (emotion most likely)
 stacking_adapter="bert-base-uncased-pf-emotion" # "AdapterHub/bert-base-uncased-pf-emotion"
-use_stacking_adapter=True
-train_all_gates_adapters=True
+use_stacking_adapter=False
+train_all_gates_adapters=False
 
 # Multi task adapter
 # Add the adapter of the other task to the model
@@ -130,11 +130,12 @@ use_multitask_adapter=False
 # Sequential tansfer learning adapter
 pre_trained_sequential_transfer_adapter=None # "bert-base-uncased-pf-emotion"
 
+
+# -------- Rename based on variables --------
+
 # own name add on
-model_name="${model_name}_leaveout"
+model_name="${model_name}_${learning_rate}"
 
-
-# -------- Rename based on 
 if [ $use_pca_features == True ]; then
     model_name="${model_name}_pca${dim}"
 fi
