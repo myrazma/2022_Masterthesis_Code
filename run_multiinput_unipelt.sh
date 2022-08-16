@@ -9,7 +9,7 @@ train_ff_layers=False
 
 # -------- UniPELT setup --------
 # UniPELT Setup: APL
-pelt_method="feedforward"
+pelt_method="unipelt_apl"
 
 if [ $pelt_method == "unipelt_apl" ]; then
     echo "Using Unipelt APL (adapter, prefix-tuning, lora; exclude: BitFit)"
@@ -125,7 +125,7 @@ train_all_gates_adapters=False
 
 # Multi task adapter
 # Add the adapter of the other task to the model
-use_multitask_adapter=False
+use_sidetask_adapter=False
 
 # Sequential tansfer learning adapter
 pre_trained_sequential_transfer_adapter=None # "bert-base-uncased-pf-emotion"
@@ -157,7 +157,7 @@ fi
 if [ $use_stacking_adapter == True ]; then
     model_name="${model_name}_stack"
 fi
-if [ $use_multitask_adapter == True ]; then
+if [ $use_sidetask_adapter == True ]; then
     model_name="${model_name}_multitask"
 fi
 
@@ -210,6 +210,6 @@ python model/unipelt_model.py \
     --stacking_adapter ${stacking_adapter} \
     --use_stacking_adapter ${use_stacking_adapter} \
     --train_all_gates_adapters ${train_all_gates_adapters} \
-    --use_multitask_adapter ${use_multitask_adapter} \
+    --use_sidetask_adapter ${use_sidetask_adapter} \
     --pre_trained_sequential_transfer_adapter ${pre_trained_sequential_transfer_adapter} \
     --train_ff_layers ${train_ff_layers}

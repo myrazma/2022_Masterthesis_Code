@@ -341,6 +341,7 @@ def main():
     # Create RTPT object
     if RTPT_AVAILABLE:
         exp_name = 'DistressedBERT' if data_args.task_name == 'distress' else 'EmpathicBERT'
+        exp_name = exp_name + '_'
         rtpt = RTPT(name_initials='MZ', experiment_name=exp_name, max_iterations=training_args.num_train_epochs)
         # Start the RTPT tracking
         rtpt.start()  
@@ -659,8 +660,8 @@ def main():
 
         
         # TODO: Add multitask_adapter:
-        # to turn of, set use_multitask_adapter to False
-        if model_args.use_multitask_adapter:
+        # to turn of, set use_sidetask_adapter to False
+        if model_args.use_sidetask_adapter:
             other_task = "empathy" if task_name == "distress" else "distress"
             try:  # try loading multitask adapter:
                 adapter_path = model_args.trained_adapter_dir
@@ -686,7 +687,7 @@ def main():
         if multitask_adapter_name: active_adapters_list.append(multitask_adapter_name)
 
         # combine adapters
-        if model_args.use_stacking_adapter or model_args.use_multitask_adapter:
+        if model_args.use_stacking_adapter or model_args.use_sidetask_adapter:
             # TODO: Make sure that we can use this setup without using the emotion adapter
             # TODO: Right now it is not allowed by the agrument setup (I think)
             stacking_adapters = []  # for the correct sequence of the adapters
@@ -744,11 +745,57 @@ def main():
             )
         
 
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logger.info(f"trainable_params: {trainable_params}, total_params: {total_params}, percentage:  {(trainable_params/total_params)*100}")
+    total_params = sum(p.numel() for p in model.parameters()) ##
+    total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad) ##
+    bert_params = sum(p.numel() for p in model.bert.parameters()) ##
+    bert_trainable_params = sum(p.numel() for p in model.bert.parameters() if p.requires_grad) ##
+    gate_params = sum([p.numel() for n, p in model.bert.named_parameters() if 'gate' in n]) ##
+    
+    # adapters: gate not in name, but 'adapters' in name and trainable (p.requires_grad)
+    adapter_params = [p for n, p in model.bert.named_parameters() if not 'gate' in n and 'adapters' in n]
+    total_adapter_params = sum(p.numel() for p in adapter_params) ##
+    trainable_adapter_params = sum(p.numel() for p in adapter_params if p.requires_grad) ##
+    adapter_gates = sum(p.numel() for n, p in model.bert.named_parameters() if 'gate' in n and 'adapters' in n) ##
+    # lora
+    lora_params = [p for n, p in model.bert.named_parameters() if not 'gate' in n and 'lora' in n]
+    total_lora_params = sum(p.numel() for p in lora_params)
+    trainable_lora_params = sum(p.numel() for p in lora_params if p.requires_grad)
+    lora_gates = sum(p.numel() for n, p in model.bert.named_parameters() if 'gate' in n and 'lora' in n)
+    # prefix
+    prefix_params = [p for n, p in model.bert.named_parameters() if not 'gate' in n and 'prefix' in n]
+    total_prefix_params = sum(p.numel() for p in prefix_params)
+    trainable_prefix_params = sum(p.numel() for p in prefix_params if p.requires_grad)
+    prefix_gates = [p for n, p in model.bert.named_parameters() if 'gate' in n and 'prefix' in n]
 
-    log_wandb({'trainable_params':trainable_params, 'trainable_params_percentage':trainable_params/total_params*100}, use_wandb)
+    param_info = f"""
+    -- Complete model --
+    total_params: {total_params}
+    trainable_params:       {total_trainable_params}
+    percentage:             {(total_trainable_params/total_params)*100}
+    bert:                   {bert_params}
+    bert_trainable_params:  {bert_trainable_params}
+    gate_params:            {gate_params}
+    
+    -- Methods --
+    total_adapter_params:   {total_adapter_params}
+    trainable_adapter_p:    {trainable_adapter_params}
+    adapter_gates:          {adapter_gates}
+
+    total_lora_params:      {total_lora_params}
+    trainable_lora_params:  {trainable_lora_params}
+    lora_gates:             {lora_gates}
+
+    total_prefix_params:    {total_prefix_params}
+    trainable_prefix_p:     {trainable_prefix_params}
+    prefix_gates:           {prefix_gates}
+    """
+    logger.info(param_info)
+    
+    params_classification_head = sum(p.numel() for p in model.classifier.parameters() if p.requires_grad)
+    
+    #logger.info(f"trainable_params: {trainable_params}, total_params: {total_params}, percentage:  {(trainable_params/total_params)*100}")
+
+    #log_wandb({'trainable_params': trainable_params, 'trainable_params_percentage':trainable_params/total_params*100}, use_wandb)
     if True:
             names = [n for n, p in model.named_parameters()]
             paramsis = [param for param in model.parameters()]
