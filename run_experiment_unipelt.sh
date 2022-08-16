@@ -127,7 +127,8 @@ do
     fi
 
     # overwrite learning rate if desired and specified in the beginning
-    if [ -z "$overwrite_learning_rate"]; then
+    # if overwrite learning rate is not Null
+    if [ ! -z "$overwrite_learning_rate" ]; then
         learning_rate=$overwrite_learning_rate
         model_name="${model_name}_${learning_rate}"
     fi
