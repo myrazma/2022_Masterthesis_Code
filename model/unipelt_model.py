@@ -324,7 +324,7 @@ def main():
     print('Use wandb:', use_wandb)
     if use_wandb:  # should already be imported
         os.system('cmd /k "wandb login"')  # login
-        wandb.init(project="UniPELT", entity=data_args.wandb_entity, name=data_args.tensorboard_output_dir[5:])
+        wandb.init(project=data_args.wandb_project, entity=data_args.wandb_entity, name=data_args.tensorboard_output_dir[5:])
 
     # store model config
     if use_wandb:

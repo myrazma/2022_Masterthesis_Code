@@ -188,6 +188,7 @@ python model/unipelt_model.py \
     --evaluation_strategy epoch \
     --save_strategy no \
     --wandb_entity ${wandb_entity} \
+    --wandb_project ${wandb_project} \
     --use_tensorboard ${use_tensorboard}\
     --tensorboard_output_dir ${tensorboard_output_dir} \
     --add_enc_prefix ${add_enc_prefix} \

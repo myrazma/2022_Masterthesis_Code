@@ -67,6 +67,10 @@ class DataTrainingArguments:
         default=None, metadata={"help": "The entity name of the wandb user. Leave empty if you do not wish to use wandb"}
     )
     # added by Myra Z.
+    wandb_project: str = field(
+        default="Results", metadata={"help": "The Project of the wandb."}
+    )
+    # added by Myra Z.
     use_tensorboard: Optional[bool] = field(
         default=False, metadata={"help": "If True, use a writer for tensorboard"}
     )
