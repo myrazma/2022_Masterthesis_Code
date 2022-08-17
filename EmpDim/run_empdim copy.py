@@ -322,8 +322,6 @@ def run():
 
 
 
-
-
 def select_vocab(lexicon, count):
     """Select the vocabulary with max and min ranking score in the dictionary
 
