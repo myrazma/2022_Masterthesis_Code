@@ -7,7 +7,7 @@ import os
 import pandas as pd
 
 
-def generate_result_file(model_name, output_dir='../output/', store_as_tsv=True, columns=['empathy', 'distress']):
+def generate_result_file(model_name, output_dir='../output/', store_as_tsv=True, columns=['empathy', 'distress'], output_file_name='predictions_EMP'):
     """Loading from results file of a model and generate an output file
 
     Args:
@@ -37,9 +37,9 @@ def generate_result_file(model_name, output_dir='../output/', store_as_tsv=True,
     results_df = results_df.sort_index(axis=1, ascending=False)
 
     if store_as_tsv:
-        results_df.to_csv(model_dir + test_result_file_name + '.tsv', index=None, header=None, sep='\t')
+        results_df.to_csv(model_dir + output_file_name + '.tsv', index=None, header=None, sep='\t')
     else:
-        results_df.to_csv(model_dir + test_result_file_name + '.csv')
+        results_df.to_csv(model_dir + output_file_name + '.csv')
 
 
 if __name__ == "__main__":
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     args = sys.argv[1:]  # ignore first argument (name of file)
     for model_name in args:
         try:
-            generate_result_file(model_name)
+            generate_result_file(model_name, store_as_tsv=True)
         except Exception as e:
             print(f"MyWarning: Wasn't able to generate output from the following model {model_name}. Exception occured:\n {e}")
 

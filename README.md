@@ -83,6 +83,15 @@ Build the Dockerfile
 docker build -t <docker-name> -f DockerfileMoRT .
 ```
 
+# Generate output format for CodaLab
+Using the script *output_formatter.py* in utils, you can input a model name. The model has to be in the output folder and already generated some results (as seen in the output foler).
+The form should be as follows: 
+- output/model_name/empathy/
+- output/model_name/distress/
+and containing the file *test_results_distress.txt* (or empathy).
+This file is generated, setting the parameter *do_predict* to True.
+
+
 ## Run bash script
 TODO
 
