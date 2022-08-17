@@ -357,10 +357,6 @@ def main():
     data_train_pd = utils.clean_raw_data(data_train_pd, keep_id=True)
     data_dev_pd = utils.clean_raw_data(data_dev_pd, keep_id=True)
     data_test_pd = utils.clean_raw_data(data_test_pd, keep_id=True)
-
-    print('data_train_pd.shape', data_train_pd.shape)
-    print('data_dev_pd.shape', data_dev_pd.shape)
-    print('data_test_pd.shape', data_test_pd.shape)
     
     # ---------------------------
     #       get the features
@@ -903,7 +899,7 @@ def main():
         print('Using train als validation set and validation set as test set.')
         test_dataset = eval_dataset
         eval_dataset = train_dataset_all.select(range(data_args.max_train_samples, data_args.max_train_samples + 1000))
-    print('test_dataset', test_dataset)
+
     # Log a few random samples from the training set:
     if training_args.do_train:
         for index in random.sample(range(len(train_dataset)), 3):
@@ -1071,8 +1067,7 @@ def main():
             
             #predictions = trainer.predict(test_dataset=test_dataset).predictions
             #predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
-            print(test_dataset)
-            output, eval_gates_df = trainer.predict(test_dataset=eval_dataset, return_gates=True)
+            output, eval_gates_df = trainer.predict(test_dataset=test_dataset, return_gates=True)
             predictions = output.predictions
             predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
             
@@ -1091,7 +1086,6 @@ def main():
             # Normalize results to map from (0,1) to (1,7)
             predictions = preprocessing.scale_scores(predictions, (0,1), (1,7))
             # Store results
-            print('predictions:', predictions)
             
             output_test_file = os.path.join(training_args.output_dir, f"test_results_{task}.txt")
             if trainer.is_world_process_zero():

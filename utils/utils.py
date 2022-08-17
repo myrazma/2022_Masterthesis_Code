@@ -40,9 +40,6 @@ def load_data_complete(train_file='', dev_file='', dev_label_file='', test_file=
         # since dev labels initially have no column names, add them manually
         labels_dev.columns = label_columns
         data_dev = features_dev.join(labels_dev)
-    print('data_train.shape', data_train.shape)
-    print('data_dev.shape', data_dev.shape)
-    print('data_test.shape', data_test.shape)
     return data_train, data_dev, data_test
 
 def clean_raw_data(data_df, keep_id=False):
