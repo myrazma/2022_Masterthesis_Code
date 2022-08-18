@@ -963,8 +963,8 @@ def evaluate_pca(my_args, data_args, dim_pca, vocab, data_selector=None, plot_di
             os.mkdir(output_dir)
         output_path = output_dir + f'pca_dim_test_{data_args.task_name}.tsv'
         df.to_csv(output_path, index=None, sep='\t')
-    except:
-        print('No output generated')
+    except Exception as e:
+        print(f'No output generated: {e}. Outputdir: {output_dir}')
         pass # doesn't really matter here
 
     
