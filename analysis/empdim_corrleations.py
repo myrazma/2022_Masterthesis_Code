@@ -72,6 +72,15 @@ def run():
     else:
         print("\n---------- No GPU available, using the CPU instead. ----------\n")
         device = torch.device("cpu")
+
+
+    data_args = DataTrainingArguments()
+    data_args.task_name = 'distress'
+    if data_args.task_name == 'distress':
+        lexicon = distress_lex
+    else:
+        lexicon = empathy_lex
+        
     empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=data_args.data_dir)
 
     data_train_pd, data_dev_pd, data_test_pd = utils.load_data_complete(train_file=data_args.train_file, dev_file=data_args.validation_file, dev_label_file=data_args.validation_labels_file, test_file=data_args.test_file)
@@ -80,12 +89,6 @@ def run():
     data_test_pd = utils.clean_raw_data(data_test_pd, keep_id=True)
     datasets = {'train': data_train_pd, 'dev': data_dev_pd, 'test': data_test_pd}
     
-    data_args = DataTrainingArguments()
-    data_args.task_name = 'distress'
-    if data_args.task_name == 'distress':
-        lexicon = distress_lex
-    else:
-        lexicon = empathy_lex
 
     ds = DataSelector()
     subsampled_lex, bins = ds.subsample_even_score_distr(distress_lex, datapoints_per_bin=15, bin_size=0.1, return_bins=True)
