@@ -641,7 +641,7 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
     pca_dir = this_file_path + f'/../EmpDim/{data_args.task_name}/'
     pca_file_path = pca_dir + 'emp_dim_pca_projection.p'
     if not os.path.exists(pca_file_path):
-        os.mkdir()
+        os.mkdir(pca_dir)
         # load pca
         try:
             dim_pca = pickle.load(open(pca_file_path,'rb'))
