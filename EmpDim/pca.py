@@ -988,7 +988,7 @@ def run():
 
     # get arguments
     parser = HfArgumentParser((PCAArguments, DataTrainingArguments))
-    my_args, data_args = parser.parse_args_into_dataclasses()[0]
+    my_args, data_args = parser.parse_args_into_dataclasses()
 
     if data_args.task_name not in ['empathy', 'distress']:
         print("task name not available, choose 'empathy' or 'distress' next time. Usign empathy now")
