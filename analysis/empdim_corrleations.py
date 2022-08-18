@@ -76,13 +76,13 @@ def run():
 
     data_args = DataTrainingArguments()
     data_args.task_name = 'distress'
+
+    empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=data_args.data_dir)
+
     if data_args.task_name == 'distress':
         lexicon = distress_lex
     else:
         lexicon = empathy_lex
-        
-    empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=data_args.data_dir)
-
     data_train_pd, data_dev_pd, data_test_pd = utils.load_data_complete(train_file=data_args.train_file, dev_file=data_args.validation_file, dev_label_file=data_args.validation_labels_file, test_file=data_args.test_file)
     data_train_pd = utils.clean_raw_data(data_train_pd, keep_id=True)
     data_dev_pd = utils.clean_raw_data(data_dev_pd, keep_id=True)
