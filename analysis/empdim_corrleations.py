@@ -135,3 +135,6 @@ def run():
             dataset = datasets[s]
             generate_pca_output(output_dir=output_dir, split=s, essays=dataset['essay'], pca_args=pca_args, data_args=data_args, device=device)
   
+
+if __name__=='__main__':
+    run()
