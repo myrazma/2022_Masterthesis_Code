@@ -149,7 +149,7 @@ class DisDimPCA:
             subplot_title = f'PC {i}. Explained var: {self.explained_var[i]:.4f}.'
             if pca_pearsonr is not None: subplot_title = subplot_title + f' Pearson r: {pca_pearsonr[i]:.4f}'
             ax[i].scatter(sent_transformed[:, i], true_scores)
-            ax[i].set_box_aspect(1)
+            #ax[i].set_box_aspect(1)
             ax[i].set_title(subplot_title)
             ax[i].set_ylabel(f'{self.task_name} score')
         plt.xlabel('PCA dimension projection score')
@@ -637,7 +637,7 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
     # ------------------------------------
     # TODO
     pca_exists = False
-    pca_file_path = data_args.data_dir + '/../EmpDim/emp_dim_pca_projection.p'
+    pca_file_path = data_args.data_dir + f'/../EmpDim/{data_args.task_name}/emp_dim_pca_projection.p'
 
     if os.path.exists(pca_file_path):
         # load pca
