@@ -643,12 +643,12 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
     if not os.path.exists(pca_file_path):
         os.mkdir(pca_dir)
         # load pca
-        try:
-            dim_pca = pickle.load(open(pca_file_path,'rb'))
-            pca_exists = True
-        except:
-            print('Could not load the pca, even though the file exists at {pca_file_path}.')
-            pca_exists = False
+    try:
+        dim_pca = pickle.load(open(pca_file_path,'rb'))
+        pca_exists = True
+    except:
+        print(f'Could not load the pca at file {pca_file_path}.')
+        pca_exists = False
     
 
     # ------------------------------------
