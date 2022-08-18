@@ -105,25 +105,26 @@ def run():
     pca_args.vocab_type = 'mm'
     pca_args.vocab_size=10
 
-    pca_args_1 = pca_args.copy()
+
+    pca_args_1 = pca_args
     pca_args_1.dim = 3
     pca_args_1.use_freq_dist = True
     pca_args_1.freq_thresh=0.000005
 
-    pca_args_2 = pca_args.copy()
-    pca_args_2.dim = 1
-    pca_args_2.use_freq_dist = False
-
-    pca_args_3 = pca_args.copy()
-    pca_args_3.dim = 3
-    pca_args_3.use_freq_dist = False
-    pca_args_3.use_question_template=0.000005
-
     r, p = correlate_pca(labels, words, pca_args_1, data_args, device=device)
     print(f'arg 1. r: {r}, p: {p}')
 
+    pca_args_2 = pca_args
+    pca_args_2.dim = 1
+    pca_args_2.use_freq_dist = False
+
     r, p = correlate_pca(labels, words, pca_args_2, data_args, device=device)
     print(f'arg 1. r: {r}, p: {p}')
+
+    pca_args_3 = pca_args
+    pca_args_3.dim = 3
+    pca_args_3.use_freq_dist = False
+    pca_args_3.use_question_template=0.000005
 
     r, p = correlate_pca(labels, words, pca_args_3, data_args, device=device)
     print(f'arg 1. r: {r}, p: {p}')
