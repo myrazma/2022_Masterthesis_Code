@@ -648,6 +648,71 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
             print('Could not load the pca, even though the file exists at {pca_file_path}.')
             pca_exists = False
     
+
+    # ------------------------------------
+    # ------------------------------------
+    #           Create Vocab
+    # ------------------------------------
+    # ------------------------------------
+    # ------------------------
+    #     Load the lexicon 
+    # ------------------------
+    empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=data_args.data_dir)
+
+    if data_args.task_name == 'distress':
+        lexicon = distress_lex
+    else:
+        lexicon = empathy_lex
+
+    print(f'Task name: {data_args.task_name}')
+    sorted_lexicon = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
+    score_range = (1, 7)
+    actual_score_range = (min([item[1] for item in sorted_lexicon]), max([item[1] for item in sorted_lexicon]) )
+    
+    # setup data selector class
+    if data_selector is None:
+        data_selector = DataSelector()
+    
+    # --- normalize the scores in the lexicon ---
+    # lexicon = dict([(key, lexicon[key] / score_range[1]) for key in lexicon])
+
+    # --- select the most representative words for low and high distress and empathy ---
+    # n words with highest and words with lowest ranking values
+    
+    # -----------------------------
+    #     Select the vocabulary 
+    # -----------------------------
+    print('\n ------------------ Vocabulary info ------------------')
+    if my_args.vocab_type == 'mmn':  # min, max, neutral
+        sample_type = ['min', 'max', 'neut']  # max, min, neutral (with words from center) -> ! decide for center strategy !
+        score_min, score_max, score_neutr = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=sample_type, center_strategy=my_args.vocab_center_strategy, use_freq_dist=my_args.use_freq_dist, freq_thresh=my_args.freq_thresh)
+        print('Mode: min | max | neut ')
+        print(f'score min count: {len(score_min)}  \n Range from {min([score for word, score in score_min])} to {max([score for word, score in score_min])} \n{score_min}')
+        print(f'score max count: {len(score_max)}  \n Range from {min([score for word, score in score_max])} to {max([score for word, score in score_max])} \n{score_max}')
+        print(f'score neutr count: {len(score_neutr)}  \n Range from {min([score for word, score in score_neutr])} to {max([score for word, score in score_neutr])} \n{score_neutr}')
+        vocab = score_min + score_max + score_neutr
+    elif my_args.vocab_type == 'mm':  # max, min
+        sample_type = ['min', 'max']
+        score_min, score_max = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=sample_type, use_freq_dist=my_args.use_freq_dist, freq_thresh=my_args.freq_thresh)
+        print('Mode: min | max')
+        print(f'score min count: {len(score_min)}  \n Range from {min([score for word, score in score_min])} to {max([score for word, score in score_min])} \n{score_min}')
+        print(f'score max count: {len(score_max)}  \n Range from {min([score for word, score in score_max])} to {max([score for word, score in score_max])} \n{score_max}')
+        vocab = score_min + score_max
+    elif my_args.vocab_type == 'range':  # words from the whole range
+        datapoints_per_bin = my_args.vocab_size  # for type range, the vocabulary size is the amount of data per bin
+        bin_size = my_args.vocab_bin_size
+        sample_type = ['min']
+        print('Mode: range')
+        verbs_sorted = data_selector.select_words(lexicon, None, random_vocab=my_args.random_vocab, samples=sample_type, use_freq_dist=my_args.use_freq_dist, freq_thresh=my_args.freq_thresh)[0]
+        verbs_even = data_selector.subsample_even_score_distr(verbs_sorted, datapoints_per_bin, bin_size)
+        print('range verb selection')
+        print(f'score whole range count: {len(verbs_even)} \n Range from {min([score for word, score in verbs_even])} to {max([score for word, score in verbs_even])} \n{verbs_even}')
+        vocab = verbs_even
+    else:
+        print('Vocab type not implemented. Choose between "mmn" (min, max, neutral), "mm" (min, max) or range (select even verbs from whole range).')
+        sys.exit(-1)
+
+
     if not pca_exists:
         # ------------------------------------
         # ------------------------------------
@@ -655,63 +720,6 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
         # ------------------------------------
         # ------------------------------------
         print('Creating PCA from scratch...')
-        # ------------------------
-        #     Load the lexicon 
-        # ------------------------
-        empathy_lex, distress_lex = utils.load_empathy_distress_lexicon(data_root_folder=data_args.data_dir)
-
-        if data_args.task_name == 'distress':
-            lexicon = distress_lex
-        else:
-            lexicon = empathy_lex
-
-        print(f'Task name: {data_args.task_name}')
-        sorted_lexicon = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
-        score_range = (1, 7)
-        actual_score_range = (min([item[1] for item in sorted_lexicon]), max([item[1] for item in sorted_lexicon]) )
-        
-        # setup data selector class
-        if data_selector is None:
-            data_selector = DataSelector()
-        
-        # --- normalize the scores in the lexicon ---
-        # lexicon = dict([(key, lexicon[key] / score_range[1]) for key in lexicon])
-
-        # --- select the most representative words for low and high distress and empathy ---
-        # n words with highest and words with lowest ranking values
-        
-        # -----------------------------
-        #     Select the vocabulary 
-        # -----------------------------
-        print('\n ------------------ Vocabulary info ------------------')
-        if my_args.vocab_type == 'mmn':  # min, max, neutral
-            sample_type = ['min', 'max', 'neut']  # max, min, neutral (with words from center) -> ! decide for center strategy !
-            score_min, score_max, score_neutr = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=sample_type, center_strategy=my_args.vocab_center_strategy, use_freq_dist=my_args.use_freq_dist, freq_thresh=my_args.freq_thresh)
-            print('Mode: min | max | neut ')
-            print(f'score min count: {len(score_min)}  \n Range from {min([score for word, score in score_min])} to {max([score for word, score in score_min])} \n{score_min}')
-            print(f'score max count: {len(score_max)}  \n Range from {min([score for word, score in score_max])} to {max([score for word, score in score_max])} \n{score_max}')
-            print(f'score neutr count: {len(score_neutr)}  \n Range from {min([score for word, score in score_neutr])} to {max([score for word, score in score_neutr])} \n{score_neutr}')
-            vocab = score_min + score_max + score_neutr
-        elif my_args.vocab_type == 'mm':  # max, min
-            sample_type = ['min', 'max']
-            score_min, score_max = data_selector.select_words(lexicon, my_args.vocab_size, random_vocab=my_args.random_vocab, samples=sample_type, use_freq_dist=my_args.use_freq_dist, freq_thresh=my_args.freq_thresh)
-            print('Mode: min | max')
-            print(f'score min count: {len(score_min)}  \n Range from {min([score for word, score in score_min])} to {max([score for word, score in score_min])} \n{score_min}')
-            print(f'score max count: {len(score_max)}  \n Range from {min([score for word, score in score_max])} to {max([score for word, score in score_max])} \n{score_max}')
-            vocab = score_min + score_max
-        elif my_args.vocab_type == 'range':  # words from the whole range
-            datapoints_per_bin = my_args.vocab_size  # for type range, the vocabulary size is the amount of data per bin
-            bin_size = my_args.vocab_bin_size
-            sample_type = ['min']
-            print('Mode: range')
-            verbs_sorted = data_selector.select_words(lexicon, None, random_vocab=my_args.random_vocab, samples=sample_type, use_freq_dist=my_args.use_freq_dist, freq_thresh=my_args.freq_thresh)[0]
-            verbs_even = data_selector.subsample_even_score_distr(verbs_sorted, datapoints_per_bin, bin_size)
-            print('range verb selection')
-            print(f'score whole range count: {len(verbs_even)} \n Range from {min([score for word, score in verbs_even])} to {max([score for word, score in verbs_even])} \n{verbs_even}')
-            vocab = verbs_even
-        else:
-            print('Vocab type not implemented. Choose between "mmn" (min, max, neutral), "mm" (min, max) or range (select even verbs from whole range).')
-            sys.exit(-1)
 
         random.shuffle(vocab)
         print(f'overall vocabulary length: {len(vocab)}')
@@ -730,14 +738,15 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
             vocab_embeddings = dim_pca.sent_model.get_question_template_mean_sen_embeddings(vocab_sentences)
 
         dim_pca.fit(vocab_embeddings)
-        if return_vocab:
-            return dim_pca, vocab
 
         # store pca as pickle file, if possible
         try:
             pickle.dump(dim_pca, open(pca_file_path,"wb"))
         except:
             print(f'Could not store dis dim pca to {pca_file_path}')
+
+    if return_vocab:
+        return dim_pca, vocab
 
     return dim_pca
 
