@@ -628,38 +628,6 @@ def scatter_vocab(vocab, title, plot_dir='plots/'):
         plt.close()
 
 
-def run():
-    """Running and evaluating pca
-    """
-    
-    # --- run on GPU if available ---
-    if torch.cuda.is_available():       
-        device = torch.device("cuda")
-        print("\n------------------ Using GPU. ------------------\n")
-    else:
-        print("\n---------- No GPU available, using the CPU instead. ----------\n")
-        device = torch.device("cpu")
-
-
-    # get arguments
-    parser = HfArgumentParser(PCAArguments, DataTrainingArguments)
-    my_args, data_args = parser.parse_args_into_dataclasses()[0]
-
-    if data_args.task_name not in ['empathy', 'distress']:
-        print("task name not available, choose 'empathy' or 'distress' next time. Usign empathy now")
-        data_args.task_name = 'empathy'
-
-    torch.manual_seed(data_args.data_seed)
-    random.seed(data_args.data_seed)
-    
-    str_center_strategy = '_' + my_args.vocab_center_strategy if 'mmn' in my_args.vocab_type else ''
-    tensorboard_writer = SummaryWriter(f'runs/{data_args.task_name}_{my_args.vocab_type}{str_center_strategy}{"_fdis" if my_args.use_freq_dist else ""}_{ID}{my_args.model_name}') if data_args.use_tensorboard else None
-
-    data_selector = DataSelector()
-
-    dim_pca, vocab = create_pca(my_args, data_args, tensorboard_writer=tensorboard_writer, return_vocab=True, data_selector=data_selector)
-    evaluate_pca(my_args, data_args, dim_pca, vocab)
-
 
 def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, data_selector=None, device='cpu'):
     # ------------------------------------
@@ -1004,6 +972,38 @@ def evaluate_pca(my_args, data_args, dim_pca, vocab, data_selector=None, plot_di
     # - correlate this score with the actual label -
 
 
+
+def run():
+    """Running and evaluating pca
+    """
+    
+    # --- run on GPU if available ---
+    if torch.cuda.is_available():       
+        device = torch.device("cuda")
+        print("\n------------------ Using GPU. ------------------\n")
+    else:
+        print("\n---------- No GPU available, using the CPU instead. ----------\n")
+        device = torch.device("cpu")
+
+
+    # get arguments
+    parser = HfArgumentParser((PCAArguments, DataTrainingArguments))
+    my_args, data_args = parser.parse_args_into_dataclasses()[0]
+
+    if data_args.task_name not in ['empathy', 'distress']:
+        print("task name not available, choose 'empathy' or 'distress' next time. Usign empathy now")
+        data_args.task_name = 'empathy'
+
+    torch.manual_seed(data_args.data_seed)
+    random.seed(data_args.data_seed)
+    
+    str_center_strategy = '_' + my_args.vocab_center_strategy if 'mmn' in my_args.vocab_type else ''
+    tensorboard_writer = SummaryWriter(f'runs/{data_args.task_name}_{my_args.vocab_type}{str_center_strategy}{"_fdis" if my_args.use_freq_dist else ""}_{ID}{my_args.model_name}') if data_args.use_tensorboard else None
+
+    data_selector = DataSelector()
+
+    dim_pca, vocab = create_pca(my_args, data_args, tensorboard_writer=tensorboard_writer, return_vocab=True, data_selector=data_selector)
+    evaluate_pca(my_args, data_args, dim_pca, vocab)
 
 
 if __name__ == '__main__':
