@@ -21,6 +21,7 @@ from transformers import AutoTokenizer, AutoModel
 from transformers import HfArgumentParser
 from sentence_transformers import SentenceTransformer
 import pickle
+import pathlib
 
 from datasets import Dataset
 
@@ -71,6 +72,7 @@ import utils.utils as utils
 import utils.preprocessing as preprocessing
 from utils.arguments import PCAArguments, DataTrainingArguments
 
+this_file_path = str(pathlib.Path(__file__).parent.resolve())
 
 ID = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 print(ID)
@@ -635,11 +637,11 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
     #        Load pca if available 
     # ------------------------------------
     # ------------------------------------
-    # TODO
     pca_exists = False
-    pca_file_path = data_args.data_dir + f'/../EmpDim/{data_args.task_name}/emp_dim_pca_projection.p'
-
-    if os.path.exists(pca_file_path):
+    pca_dir = this_file_path + f'/../EmpDim/{data_args.task_name}/'
+    pca_file_path = pca_dir + 'emp_dim_pca_projection.p'
+    if not os.path.exists(pca_file_path):
+        os.mkdir()
         # load pca
         try:
             dim_pca = pickle.load(open(pca_file_path,'rb'))
@@ -955,7 +957,7 @@ def evaluate_pca(my_args, data_args, dim_pca, vocab, data_selector=None, plot_di
         test_sent = dim_pca.sent_model.get_sen_embedding(data_test_pd['essay'])
         test_sent_transformed = dim_pca.transform(test_sent)
         df = pd.DataFrame(test_sent_transformed)
-        output_dir = data_args.data_dir + '/../output'
+        output_dir = this_file_path + '/../output'
         output_dir = output_dir + f'/EmpDim/{data_args.task_name}/'
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
