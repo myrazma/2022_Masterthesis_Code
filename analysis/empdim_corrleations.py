@@ -30,7 +30,7 @@ except:
     sys.exit(-1)
 
 import importlib
-DataTrainingArguments = unipelt_transformers.DataTrainingArguments
+DataTrainingArguments = unipelt_arguments.DataTrainingArguments
 
 from torch import t
 import utils.utils as utils
