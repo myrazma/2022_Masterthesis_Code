@@ -1,0 +1,19 @@
+{
+  "config": {
+    "activation_function": "tanh",
+    "head_type": "multiple_choice",
+    "label2id": {
+      "1": 0,
+      "2": 1,
+      "3": 2
+    },
+    "layers": 2,
+    "num_choices": 3,
+    "use_pooler": false
+  },
+  "hidden_size": 768,
+  "model_class": "BertModelWithHeads",
+  "model_name": "bert-base-uncased",
+  "model_type": "bert",
+  "name": "social_i_qa"
+}
