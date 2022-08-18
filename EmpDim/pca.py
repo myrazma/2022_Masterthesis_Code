@@ -640,7 +640,7 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
     pca_exists = False
     pca_dir = this_file_path + f'/../EmpDim/{data_args.task_name}/'
     pca_file_path = pca_dir + 'emp_dim_pca_projection.p'
-    if not os.path.exists(pca_file_path):
+    if not os.path.exists(pca_dir):
         os.mkdir(pca_dir)
         # load pca
     try:
