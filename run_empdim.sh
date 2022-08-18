@@ -9,10 +9,9 @@ use_fdist=True
 freq_thresh=0.000005
 vocab_type=mm
 vocab_size=10
-# for stacking and adding of another adapter
-stacking_adapter="sentiment/imdb@ukp"
-use_stacking_adapter=True
-train_all_gates_adapters=True
+
+use_question_template=False
+
 
 python EmpDim/pca.py --task_name $task_name \
                 --data_dir $data_dir \
@@ -24,7 +23,4 @@ python EmpDim/pca.py --task_name $task_name \
                 --use_freq_dist $use_fdist \
                 --freq_thresh $freq_thresh \
                 --use_tensorboard $use_tensorboard \
-                --use_question_template False \
-                --stacking_adapter $stacking_adapter \
-                --use_stacking_adapter $use_stacking_adapter \
-                --train_all_gates_adapters $train_all_gates_adapters
+                --use_question_template $use_question_template \
