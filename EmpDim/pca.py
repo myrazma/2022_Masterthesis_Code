@@ -974,20 +974,23 @@ def evaluate_pca(my_args, data_args, dim_pca, vocab, data_selector=None, plot_di
 
 
     # generate labels for test set
-    test_sent = dim_pca.sent_model.get_sen_embedding(data_test_pd['essay'])
-    test_sent_transformed = dim_pca.transform(test_sent)
-
+    try:
+        test_sent = dim_pca.sent_model.get_sen_embedding(data_test_pd['essay'])
+        test_sent_transformed = dim_pca.transform(test_sent)
+        df = pd.DataFrame(test_sent_transformed)
+        output_dir = data_args.data_dir + '/../output'
+        output_dir = output_dir + f'/EmpDim/{data_args.task_name}/'
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+        output_path = output_dir + f'pca_dim_test_{data_args.task_name}.tsv'
+        df.to_csv(output_path, index=None, sep='\t')
+    except:
+        print('No output generated')
+        pass # doesn't really matter here
 
     
 
-                                  
-
-    # essay encoded
-    #print(dataset_train)
-    #train_input_ids = torch.tensor(np.array(dataset_train["input_ids"]).astype(int))
-    #train_attention_mask = torch.tensor(np.array(dataset_train["attention_mask"]).astype(int))
-    #train_labels = torch.tensor(np.array(dataset_train["label"]).astype(np.float32).reshape(-1, 1))
-
+           
     # ---
     # use other sentence mbeddings
 
