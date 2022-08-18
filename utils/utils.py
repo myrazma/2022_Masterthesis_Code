@@ -80,8 +80,8 @@ def load_empathy_distress_lexicon(data_root_folder="../data/"):
         _type_: _description_
     """
     # read lexical data
-    empathy_lex = pd.read_csv(data_root_folder + "lexicon/empathy/empathy_lexicon.txt")
-    distress_lex = pd.read_csv(data_root_folder + "lexicon/distress/distress_lexicon.txt")
+    empathy_lex = pd.read_csv(data_root_folder + "/lexicon/empathy/empathy_lexicon.txt")
+    distress_lex = pd.read_csv(data_root_folder + "/lexicon/distress/distress_lexicon.txt")
 
     # convert into dictionary
     empathy_lex = dict(zip(empathy_lex.word, empathy_lex.rating))
@@ -95,8 +95,8 @@ def load_empathy_distress_lexicon(data_root_folder="../data/"):
 
 def load_sentenced_emotions(data_root_folder="../data/"):
     # sentencized automatic emotion tags
-    sent_emotion_train = pd.read_csv(data_root_folder + "buechel_empathy/messages_train_sentencized_automatic_emotion_tags.tsv", sep='\t')
-    sent_emotion_dev = pd.read_csv(data_root_folder + "buechel_empathy/messages_dev_sentencized_automatic_emotion_tags.tsv", sep='\t')
+    sent_emotion_train = pd.read_csv(data_root_folder + "/buechel_empathy/messages_train_sentencized_automatic_emotion_tags.tsv", sep='\t')
+    sent_emotion_dev = pd.read_csv(data_root_folder + "/buechel_empathy/messages_dev_sentencized_automatic_emotion_tags.tsv", sep='\t')
     return sent_emotion_train, sent_emotion_dev
 
 
