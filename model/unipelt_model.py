@@ -478,13 +478,6 @@ def main():
     eval_dataset = add_features_dataset(eval_dataset, fc, model_args, return_dim=False)
     test_dataset = add_features_dataset(test_dataset, fc, model_args, return_dim=False)
 
-    # Make sure, the classifier is active when using multi input
-    if feature_dim > 0:
-        classifier_params = model.classifier.parameters()
-        for p in classifier_params:
-            if not p.requires_grad:
-                print(f'\n --------- MyWarning ------------ \n Your are using features of input dim {feature_dim}, but some gradients in the classifier are set to False: {p}')
-
     # Task selection was here before, but since we are only using one task (regression),
     # these settings can stay the same for us
     is_regression = True  
@@ -550,6 +543,16 @@ def main():
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
+
+
+    # Make sure, the classifier is active when using multi input
+    if feature_dim > 0:
+        classifier_params = model.classifier.parameters()
+        for p in classifier_params:
+            if not p.requires_grad:
+                print(f'\n --------- MyWarning ------------ \n Your are using features of input dim {feature_dim}, but some gradients in the classifier are set to False: {p}')
+
+
     # TODO: There is something happening in AutoForSequence clasification that we dont know and that is improving the result
     # - Should be maybe inlcude our multiinput bert model into the transformers architecture to call it with automodel for sequence classification?
 
