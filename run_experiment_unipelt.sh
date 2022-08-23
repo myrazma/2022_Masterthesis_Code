@@ -4,7 +4,7 @@ wandb_project="Results"
 
 # -------- UniPELT setup --------
 # UniPELT Setup: APL
-pelt_method="unipelt_apl"
+pelt_method="full"
 task_names=( distress empathy )
 overwrite_learning_rate=1e-4
 
@@ -201,6 +201,9 @@ do
     if [ $use_sidetask_adapter == True ]; then
         model_name="${model_name}_multitask"
     fi
+    if [ $pre_trained_sequential_transfer_adapter == True ]; then
+        model_name="${model_name}_sequential_tuning"
+    fi
 
     tensorboard_output_dir="runs/${model_name}"
     model_name="${model_name}/${task_name}"
@@ -224,7 +227,7 @@ do
         --do_predict ${do_predict} \
         --do_eval True \
         --do_train True \
-        --num_train_epochs 15 \
+        --num_train_epochs 3 \
         --per_device_eval_batch_size 16 \
         --per_device_train_batch_size 16 \
         --early_stopping_patience 5 \

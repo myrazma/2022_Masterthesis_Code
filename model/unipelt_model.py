@@ -143,6 +143,8 @@ import pandas as pd
 import importlib.util
 
 
+import transformers as hf_transformers
+
 # Setup wandb
 package_name = 'wandb'
 WANDB_AVAILABLE = importlib.util.find_spec("wandb") is not None
@@ -534,15 +536,28 @@ def main():
         print('config.feature_dim:', config.feature_dim)
     except:
         print('Feature dim assignment did not work')
-   
-    model = AutoModelForSequenceClassification.from_pretrained(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        use_auth_token=True if model_args.use_auth_token else None,
-    )
+
+    # TODO: For FFT, FeFo and BitFit set to false
+    use_unipelt = True
+    if use_unipelt:
+
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_args.model_name_or_path,
+            from_tf=bool(".ckpt" in model_args.model_name_or_path),
+            config=config,
+            cache_dir=model_args.cache_dir,
+            revision=model_args.model_revision,
+            use_auth_token=True if model_args.use_auth_token else None,
+        )
+    else:
+        model = hf_transformers.AutoModelForSequenceClassification.from_pretrained(
+                model_args.model_name_or_path,
+                from_tf=bool(".ckpt" in model_args.model_name_or_path),
+                config=config,
+                cache_dir=model_args.cache_dir,
+                revision=model_args.model_revision,
+                use_auth_token=True if model_args.use_auth_token else None,
+            )
 
 
     # Make sure, the classifier is active when using multi input
@@ -1049,6 +1064,9 @@ def main():
             except Exception as e:
                 print(f'Could not map model with ids, do not store the gates with ids \n {e}')
 
+            r, p_val = pearsonr(true_score, predictions)
+            dev_metric = {'dev_r': r, 'dev_p': p_val}
+            log_wandb(dev_metric, use_wandb)
             unipelt_plotting.log_plot_predictions(true_score, predictions, tensorboard_writer, use_wandb)
 
 
