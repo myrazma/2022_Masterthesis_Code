@@ -538,7 +538,13 @@ def main():
         print('Feature dim assignment did not work')
 
     # TODO: For FFT, FeFo and BitFit set to false
-    use_unipelt = True
+
+    add_enc_prefix=False
+    train_adapter=False
+    add_lora=False
+    tune_bias=False
+    # if any of those is set to true, then we are usign unipelt
+    use_unipelt = any([add_enc_prefix, train_adapter, add_lora, tune_bias])
     if use_unipelt:
 
         model = AutoModelForSequenceClassification.from_pretrained(
@@ -762,83 +768,83 @@ def main():
                 "Use --train_adapter to enable adapter training"
             )
         
+    if use_unipelt:
+        total_params = sum(p.numel() for p in model.parameters()) ##
+        total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad) ##
+        bert_params = sum(p.numel() for p in model.bert.parameters()) ##
+        bert_trainable_params = sum(p.numel() for p in model.bert.parameters() if p.requires_grad) ##
+        gate_params = sum([p.numel() for n, p in model.bert.named_parameters() if 'gate' in n]) ##
+        
+        # adapters: gate not in name, but 'adapters' in name and trainable (p.requires_grad)
+        adapter_params = [p for n, p in model.bert.named_parameters() if not 'gate' in n and 'adapters' in n]
+        total_adapter_params = sum(p.numel() for p in adapter_params) ##
+        trainable_adapter_params = sum(p.numel() for p in adapter_params if p.requires_grad) ##
+        adapter_gates = sum(p.numel() for n, p in model.bert.named_parameters() if 'gate' in n and 'adapters' in n) ##
+        # lora
+        lora_params = [p for n, p in model.bert.named_parameters() if not 'gate' in n and 'lora' in n]
+        total_lora_params = sum(p.numel() for p in lora_params)
+        trainable_lora_params = sum(p.numel() for p in lora_params if p.requires_grad)
+        lora_gates = sum(p.numel() for n, p in model.bert.named_parameters() if 'gate' in n and 'lora' in n)
+        # prefix
+        for n, p in model.bert.named_parameters():
+            if not 'gate' in n and 'prefix' in n:
+                print(n)
+                print(p.numel())
+        prefix_params = [p for n, p in model.bert.named_parameters() if not 'gate' in n and 'prefix' in n]
 
-    total_params = sum(p.numel() for p in model.parameters()) ##
-    total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad) ##
-    bert_params = sum(p.numel() for p in model.bert.parameters()) ##
-    bert_trainable_params = sum(p.numel() for p in model.bert.parameters() if p.requires_grad) ##
-    gate_params = sum([p.numel() for n, p in model.bert.named_parameters() if 'gate' in n]) ##
+        total_prefix_params = sum(p.numel() for p in prefix_params)
+        trainable_prefix_params = sum(p.numel() for p in prefix_params if p.requires_grad)
+        prefix_gates = sum(p.numel() for n, p in model.bert.named_parameters() if 'gate' in n and 'prefix' in n)
+        total_params_classification_head = sum(p.numel() for p in model.classifier.parameters())
+        trainable_params_classification_head = sum(p.numel() for p in model.classifier.parameters() if p.requires_grad)
+        
+        param_count_dict = {
+            'total_params': total_params,
+            'total_trainable_params': total_trainable_params,
+            'total_params_head': total_params_classification_head,
+            'trainable_params_head': trainable_params_classification_head,
+            'total_bert_params': bert_params,
+            'bert_trainable_params': bert_trainable_params,
+            'gate_params': gate_params,
+            'total_adapter_params': total_adapter_params,
+            'trainable_adapter_p': trainable_adapter_params,
+            'adapter_gates': adapter_gates,
+            'total_lora_params': total_lora_params,
+            'trainable_lora_params': trainable_lora_params,
+            'lora_gates': lora_gates,
+            'total_prefix_params': total_prefix_params,
+            'trainable_prefix_p': trainable_prefix_params,
+            'prefix_gates': prefix_gates
+        }
+
+        param_info = '\n'.join([f'{key}: {param_count_dict[key]}' for key in param_count_dict.keys()])
+        #f"""
+        #-- Complete model --
+        #total_params: {total_params}
+        #trainable_params:       {total_trainable_params}
+        #percentage:             {(total_trainable_params/total_params)*100}
+        #bert:                   {bert_params}
+        #bert_trainable_params:  {bert_trainable_params}
+        #gate_params:            {gate_params}
+        # 
+        # -- Methods --
+        # total_adapter_params:   {total_adapter_params}
+        # trainable_adapter_p:    {trainable_adapter_params}
+        # adapter_gates:          {adapter_gates}
+
+        #total_lora_params:      {total_lora_params}
+        #trainable_lora_params:  {trainable_lora_params}
+        #lora_gates:             {lora_gates}
+
+        #total_prefix_params:    {total_prefix_params}
+        #trainable_prefix_p:     {trainable_prefix_params}
+        #prefix_gates:           {prefix_gates}
+        #"""
+        logger.info(param_info)
     
-    # adapters: gate not in name, but 'adapters' in name and trainable (p.requires_grad)
-    adapter_params = [p for n, p in model.bert.named_parameters() if not 'gate' in n and 'adapters' in n]
-    total_adapter_params = sum(p.numel() for p in adapter_params) ##
-    trainable_adapter_params = sum(p.numel() for p in adapter_params if p.requires_grad) ##
-    adapter_gates = sum(p.numel() for n, p in model.bert.named_parameters() if 'gate' in n and 'adapters' in n) ##
-    # lora
-    lora_params = [p for n, p in model.bert.named_parameters() if not 'gate' in n and 'lora' in n]
-    total_lora_params = sum(p.numel() for p in lora_params)
-    trainable_lora_params = sum(p.numel() for p in lora_params if p.requires_grad)
-    lora_gates = sum(p.numel() for n, p in model.bert.named_parameters() if 'gate' in n and 'lora' in n)
-    # prefix
-    for n, p in model.bert.named_parameters():
-        if not 'gate' in n and 'prefix' in n:
-            print(n)
-            print(p.numel())
-    prefix_params = [p for n, p in model.bert.named_parameters() if not 'gate' in n and 'prefix' in n]
+        #logger.info(f"trainable_params: {trainable_params}, total_params: {total_params}, percentage:  {(trainable_params/total_params)*100}")
 
-    total_prefix_params = sum(p.numel() for p in prefix_params)
-    trainable_prefix_params = sum(p.numel() for p in prefix_params if p.requires_grad)
-    prefix_gates = sum(p.numel() for n, p in model.bert.named_parameters() if 'gate' in n and 'prefix' in n)
-    total_params_classification_head = sum(p.numel() for p in model.classifier.parameters())
-    trainable_params_classification_head = sum(p.numel() for p in model.classifier.parameters() if p.requires_grad)
-    
-    param_count_dict = {
-        'total_params': total_params,
-        'total_trainable_params': total_trainable_params,
-        'total_params_head': total_params_classification_head,
-        'trainable_params_head': trainable_params_classification_head,
-        'total_bert_params': bert_params,
-        'bert_trainable_params': bert_trainable_params,
-        'gate_params': gate_params,
-        'total_adapter_params': total_adapter_params,
-        'trainable_adapter_p': trainable_adapter_params,
-        'adapter_gates': adapter_gates,
-        'total_lora_params': total_lora_params,
-        'trainable_lora_params': trainable_lora_params,
-        'lora_gates': lora_gates,
-        'total_prefix_params': total_prefix_params,
-        'trainable_prefix_p': trainable_prefix_params,
-        'prefix_gates': prefix_gates
-    }
-
-    param_info = '\n'.join([f'{key}: {param_count_dict[key]}' for key in param_count_dict.keys()])
-    #f"""
-    #-- Complete model --
-    #total_params: {total_params}
-    #trainable_params:       {total_trainable_params}
-    #percentage:             {(total_trainable_params/total_params)*100}
-    #bert:                   {bert_params}
-    #bert_trainable_params:  {bert_trainable_params}
-    #gate_params:            {gate_params}
-    # 
-    # -- Methods --
-    # total_adapter_params:   {total_adapter_params}
-    # trainable_adapter_p:    {trainable_adapter_params}
-    # adapter_gates:          {adapter_gates}
-
-    #total_lora_params:      {total_lora_params}
-    #trainable_lora_params:  {trainable_lora_params}
-    #lora_gates:             {lora_gates}
-
-    #total_prefix_params:    {total_prefix_params}
-    #trainable_prefix_p:     {trainable_prefix_params}
-    #prefix_gates:           {prefix_gates}
-    #"""
-    logger.info(param_info)
-    
-    #logger.info(f"trainable_params: {trainable_params}, total_params: {total_params}, percentage:  {(trainable_params/total_params)*100}")
-
-    log_wandb(param_count_dict, use_wandb)
+        log_wandb(param_count_dict, use_wandb)
     if True:
             names = [n for n, p in model.named_parameters()]
             paramsis = [param for param in model.parameters()]
@@ -1031,7 +1037,11 @@ def main():
             #if tensorboard_writer is not None:
             #    log_plot_predictions(true_score, predictions, tensorboard_writer)
 
-            output, eval_gates_df = trainer.predict(test_dataset=eval_dataset, return_gates=True)
+            if use_unipelt:
+                output, eval_gates_df = trainer.predict(test_dataset=eval_dataset, return_gates=True)
+            else:
+                output = trainer.predict(test_dataset=eval_dataset, return_gates=False)
+            
             predictions = output.predictions
             predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
             
@@ -1088,7 +1098,11 @@ def main():
             
             #predictions = trainer.predict(test_dataset=test_dataset).predictions
             #predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
-            output, eval_gates_df = trainer.predict(test_dataset=test_dataset, return_gates=True)
+
+            if use_unipelt:
+                output, eval_gates_df = trainer.predict(test_dataset=test_dataset, return_gates=True)
+            else:
+                output = trainer.predict(test_dataset=test_dataset, return_gates=False)
             predictions = output.predictions
             predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
             
@@ -1123,9 +1137,12 @@ def main():
     unipelt_plotting.log_plot_gates_per_layer(model, tensorboard_writer, use_wandb, output_dir=training_args.output_dir)
     unipelt_plotting.log_plot_gates_per_epoch(model, tensorboard_writer, use_wandb, output_dir=training_args.output_dir)
     # Added by Myra Z.
-    if len(model.bert.gates) > 0:
-        model.bert.gates.to_csv(training_args.output_dir + '/gates.csv')
-    
+    try:
+        if len(model.bert.gates) > 0:
+            model.bert.gates.to_csv(training_args.output_dir + '/gates.csv')
+    except:
+        print('No gate file available')
+        
 
 def log_wandb(metrics, use_wandb):
     if use_wandb:  # only log if True, otherwise package might not be available

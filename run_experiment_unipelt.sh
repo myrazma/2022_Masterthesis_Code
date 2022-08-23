@@ -6,7 +6,7 @@ wandb_project="Results"
 # UniPELT Setup: APL
 pelt_method="full"
 task_names=( distress empathy )
-overwrite_learning_rate=1e-4
+#overwrite_learning_rate=1e-4
 
 #task_name=distress
 store_run=False
@@ -201,7 +201,7 @@ do
     if [ $use_sidetask_adapter == True ]; then
         model_name="${model_name}_multitask"
     fi
-    if [ $pre_trained_sequential_transfer_adapter == True ]; then
+    if [ $pre_trained_sequential_transfer_adapter != None ]; then
         model_name="${model_name}_sequential_tuning"
     fi
 
