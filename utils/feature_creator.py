@@ -126,7 +126,10 @@ class FeatureCreator():
             essay_embeddings = task_pca.sent_model.get_sen_embedding(essays)
             # Transform the embeddings of the essays with pca
             essays_emp_dim = task_pca.transform(essay_embeddings)
-
+            pca_dims = int(self.pca_args.dim)
+            print('before essays_emp_dim.shape', essays_emp_dim.shape)
+            essays_emp_dim = essays_emp_dim[:,:pca_dims]
+            print('after essays_emp_dim.shape', essays_emp_dim.shape)
             results.append(essays_emp_dim)  # append the features for the essays to results list
 
         if len(results) == 0:
