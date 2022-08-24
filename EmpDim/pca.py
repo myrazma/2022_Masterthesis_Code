@@ -646,19 +646,11 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
     try:
         dim_pca = pickle.load(open(pca_file_path,'rb'))
         pca_exists = True
-        if dim_pca.n_components_ < my_args.dim:  # if the dimension is not high enough, we need to create a new pca with higher n_components
+        if dim_pca.n_components < my_args.dim:  # if the dimension is not high enough, we need to create a new pca with higher n_components
             pca_exists = False
     except:
         print(f'Could not load the pca at file {pca_file_path}.')
         pca_exists = False
-    try:
-        print('dim_pca.n_components_', dim_pca.n_components_)
-    except:
-        pass
-    try:
-        print('dim_pca.n_components', dim_pca.n_components)
-    except:
-        pass
 
     # ------------------------------------
     # ------------------------------------
