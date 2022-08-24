@@ -651,7 +651,14 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
     except:
         print(f'Could not load the pca at file {pca_file_path}.')
         pca_exists = False
-    print(dim_pca.n_components_)
+    try:
+        print('dim_pca.n_components_', dim_pca.n_components_)
+    except:
+        pass
+    try:
+        print('dim_pca.n_components', dim_pca.n_components)
+    except:
+        pass
 
     # ------------------------------------
     # ------------------------------------
