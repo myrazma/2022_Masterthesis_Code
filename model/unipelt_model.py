@@ -1074,6 +1074,18 @@ def main():
             log_wandb(dev_metric, use_wandb)
             unipelt_plotting.log_plot_predictions(true_score, predictions, tensorboard_writer, use_wandb)
 
+            output_test_file = os.path.join(training_args.output_dir, f"eval_results_{task}.txt")
+            if trainer.is_world_process_zero():
+                with open(output_test_file, "w") as writer:
+                    logger.info(f"***** Eval results {task} *****")
+                    writer.write("index\tprediction\n")
+                    for index, item in enumerate(predictions):
+                        if is_regression:
+                            writer.write(f"{index}\t{item:3.3f}\n")
+                        else:
+                            item = label_list[item]
+                            writer.write(f"{index}\t{item}\n")
+
 
     if training_args.do_predict:
         logger.info("*** Test ***")
