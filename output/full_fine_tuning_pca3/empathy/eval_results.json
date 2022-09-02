@@ -1,0 +1,15 @@
+{
+    "early_stop": false,
+    "epoch": 15.0,
+    "eval/loss": 0.0915428176522255,
+    "eval/mse": 0.13771842420101166,
+    "eval/pearsonr": 0.36634108115731373,
+    "eval/runtime": 1.4279,
+    "eval/samples_per_second": 189.086,
+    "eval_mem_cpu_alloc_delta": 0,
+    "eval_mem_cpu_peaked_delta": 0,
+    "eval_mem_gpu_alloc_delta": 0,
+    "eval_mem_gpu_peaked_delta": 188864512,
+    "eval_samples": 270,
+    "is_best": false
+}
