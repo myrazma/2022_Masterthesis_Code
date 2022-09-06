@@ -174,7 +174,7 @@ def scatter_moral_empdis(pca_features, labels):
         plt.savefig(get_output_dir() + f'/scatter_moral_{data_args.task_name}_{i+1}.pdf')
         plt.close()
         try:
-            new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['With outliers'], 'task_name': [data_args.task_name]})
+            new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MD ess - label (Without outliers)'], 'task_name': [data_args.task_name]})
             correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
         except:
             pass
@@ -300,7 +300,7 @@ for i in range(pca_dim):
     r, p = pearsonr(moral_dim_pc_i, labels)
     r = r[0]
     print(f'r: {r}, p: {p}')
-    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['With outliers'], 'task_name': [data_args.task_name]})
+    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MD ess - label (With outliers)'], 'task_name': [data_args.task_name]})
     correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
 
 scatter_moral_empdis(moral_dim, labels)
@@ -342,13 +342,13 @@ for i in range(moral_dim_articles.shape[1]):
     r, p = pearsonr(article_mort_per_essay, labels)
     if isinstance(r, list): r = r[0]
     print(f'Article MoRT and labels. r: {r}, p: {p}')
-    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MoRT_art and labels'], 'task_name': [data_args.task_name]})
+    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MoRT_art - labels'], 'task_name': [data_args.task_name]})
     correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
 
     r, p = pearsonr(article_mort_per_essay, moral_dim_pc_i)
     if isinstance(r, list): r = r[0]
     print(f'Article MoRT and essay MoRT. r: {r}, p: {p}')
-    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MoRT_art and MoRT_essay'], 'task_name': [data_args.task_name]})
+    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['MoRT_art - MoRT_essay'], 'task_name': [data_args.task_name]})
     correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
 
     # Does their difference correlate with the empathy score?
@@ -358,7 +358,7 @@ for i in range(moral_dim_articles.shape[1]):
     r, p = pearsonr(similarity_morts, labels)
     if isinstance(r, list): r = r[0]
     print(f'Sim(Article MoRT, essay MoRT) and labels. r: {r}, p: {p}')
-    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['Sim(MoRT_art, MoRT_essay) and labels'], 'task_name': [data_args.task_name]})
+    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['Sim(MoRT_art, MoRT_essay) - labels'], 'task_name': [data_args.task_name]})
     correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
 
 
