@@ -50,12 +50,59 @@ git submodule update --recursive --remote
 for more updates of this submodule.
 
 ## Parameter setting
-TODO: Update the arguments
 
-While calling the model in bash, you can enter specific hyperparameters of the model. It should have the form of f.e. "--epochs 10", where the parameter name has "--" as a prefix. Possible parameters with example settings are:
+The model with the UniPELT and PELT methods can be called with the bash script 
 
 | setting         | 	example command	        | explanation   |
 |---------------  |----------------------     |---------------------------|
+| epochs          | --epochs 10               |  Set the epoch number for training                  |
+| learning_rate  | --learning_rate 2e-5      |  Set the learning rate for training                  |
+
+python model/unipelt_model.py \
+        --task_name ${task_name} \
+        --data_dir data/ \
+        --output_dir ${output_dir}  \
+        --overwrite_output_dir \
+        --model_name_or_path bert-base-uncased \
+        --do_predict ${do_predict} \
+        --do_eval True \
+        --do_train True \
+        --num_train_epochs 3 \
+        --per_device_eval_batch_size 16 \
+        --per_device_train_batch_size 16 \
+        --early_stopping_patience 5 \
+        --logging_strategy epoch \
+        --evaluation_strategy epoch \
+        --save_strategy no \
+        --wandb_entity ${wandb_entity} \
+        --use_tensorboard ${use_tensorboard}\
+        --tensorboard_output_dir ${tensorboard_output_dir} \
+        --add_enc_prefix ${add_enc_prefix} \
+        --train_adapter ${train_adapter} \
+        --add_lora ${add_lora} \
+        --tune_bias ${tune_bias} \
+        --learning_rate ${learning_rate} \
+        --use_pca_features ${use_pca_features} \
+        --use_lexical_features ${use_lexical_features} \
+        --use_mort_features ${use_mort_features} \
+        --use_mort_article_features ${use_mort_article_features} \
+        --mort_princ_comp ${mort_princ_comp} \
+        --dim ${dim} \
+        --data_lim ${data_lim} \
+        --use_freq_dist ${use_freq_dist} \
+        --freq_thresh ${freq_thresh} \
+        --vocab_type ${vocab_type} \
+        --vocab_size ${vocab_size} \
+        --use_question_template ${use_question_template}  \
+        --stacking_adapter ${stacking_adapter} \
+        --use_stacking_adapter ${use_stacking_adapter} \
+        --train_all_gates_adapters ${train_all_gates_adapters} \
+        --use_sidetask_adapter ${use_sidetask_adapter} \
+        --pre_trained_sequential_transfer_adapter ${pre_trained_sequential_transfer_adapter} \
+        --train_ff_layers ${train_ff_layers}
+    
+    
+    
 | epochs          | --epochs 10               |  Set the epoch number for training                   |
  | learning_rate  | --learning_rate 2e-5      |  Set the learning rate for training                  |
 | empathy_type    | --distress                |  Set either to --distress or --empathy. Default --empathy                  |
