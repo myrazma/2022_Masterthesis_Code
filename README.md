@@ -75,8 +75,16 @@ While calling the model in bash, you can enter specific hyperparameters of the m
 | kfold           | --kfold 10                | Use kfold cross validation if kfold higher than 0. Default: 0, no cross validation used and use regular training.  |
 
 
-# Running MoRT
-Since MoRT has other dependencies, we need to use another Docker image:
+# Running the Empathy (ED) and Distress Direction (DD)
+
+The fittet PCA for the both directions can be found in EmpDim/pca_models/
+
+The input texts has to be transformed with Sentence-BERT (Reimers & Gurevych, 2019) with 'bert-large-nli-mean-tokens' as transformer model.
+
+You can also run the analsis by running the script *run_empdim.sh* with the desired settings.
+
+# Running Moral Direciotn
+Since the moral direction has other dependencies, we need to use another Docker image:
 
 Build the Dockerfile
 ```
@@ -97,3 +105,8 @@ TODO
 
 # Note
 I'm still currently working on the code and trying new things, therefore cleaner, more structured code will follow for the scripts currently under construction :). Also I'm running the code on another device and commiting even small changes that might have a difference in model training.
+
+
+
+# Bibliography
+Reimers, N., & Gurevych, I. (2019). Sentence-bert: Sentence embeddings using siamese bert-networks. arXiv preprint arXiv:1908.10084. https://arxiv.org/pdf/1908. 10084.pdf
