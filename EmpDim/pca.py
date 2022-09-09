@@ -1,5 +1,7 @@
 """Script for creating and evaluating pca
 Running this script (run()) will create a pca with the vocabulary based on the input parameters
+and evaluate the PCA.
+Cou can call the DisDimPCA class to create a PCA for the clauclation of the empathy or distress direction.
 
 This script can also be used from outside by using the classes
 DisDimPCA:
@@ -77,7 +79,40 @@ this_file_path = str(pathlib.Path(__file__).parent.resolve())
 ID = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 print(ID)
 
-    
+import seaborn as sns
+label_text_color='#555555'
+text_color="black"
+accent_color="lightgrey"
+sns.set(font="Franklin Gothic Book",
+        rc={
+ "axes.axisbelow": False,
+ "axes.edgecolor": accent_color,
+ "axes.facecolor": "None",
+ "axes.grid": False,
+ "axes.labelcolor": text_color,
+ "axes.spines.right": False,
+ "axes.spines.top": False,
+ "figure.facecolor": "white",
+ "lines.solid_capstyle": "round",
+ "patch.edgecolor": "w",
+ "patch.force_edgecolor": True,
+ "text.color": text_color,
+ "xtick.bottom": True,
+ "xtick.color": accent_color,
+ "xtick.labelcolor": label_text_color,
+ "xtick.direction": "out",
+ "xtick.labelsize": 18,
+ "xtick.top": False,
+ "ytick.color": label_text_color,
+ "ytick.direction": "out",
+ "ytick.left": False,
+ "ytick.right": False})
+sns.set_context("notebook", rc={"font.size":24,
+                                "axes.titlesize":26,
+                                "axes.labelsize":26,
+                                "axes.xticksize":26})
+tu_c1='#004E8A'
+
 
 class DisDimPCA:
     """Class for the distress / empathy dimension pca
@@ -146,19 +181,20 @@ class DisDimPCA:
             pca_pearsonr = None
             print('Pearson r does not have the correct size, ignroing this input')
 
-        fig, ax = plt.subplots(len(self.explained_var), figsize=(10,10))
+        fig, ax = plt.subplots(len(self.explained_var), figsize=(10,15))
         for i in range(len(self.explained_var)):
-            subplot_title = f'PC {i}. Explained var: {self.explained_var[i]:.4f}.'
-            if pca_pearsonr is not None: subplot_title = subplot_title + f' Pearson r: {pca_pearsonr[i]:.4f}'
-            ax[i].scatter(sent_transformed[:, i], true_scores)
+            subplot_title = f'PC {i+1} | variance: {self.explained_var[i]*100:.2f}%'
+            if pca_pearsonr is not None: subplot_title = subplot_title + f' | Pearson r: {pca_pearsonr[i]:.4f}'
+            ax[i].scatter(sent_transformed[:, i], true_scores, c=tu_c1, alpha=0.7, s=30)
             #ax[i].set_box_aspect(1)
-            ax[i].set_title(subplot_title)
-            ax[i].set_ylabel(f'{self.task_name} score')
+            ax[i].set_title(subplot_title, pad=10)
+            ax[i].set_ylabel(f'{self.task_name}')
+        fig.tight_layout()
         plt.xlabel('PCA dimension projection score')
 
 
         filename = f'{self.model_name}_{self.task_name}{title_add_on}'
-        plt.savefig(f'EmpDim/{plot_dir}{filename}.pdf')
+        plt.savefig(f'EmpDim/{plot_dir}{filename}.pdf', bbox_inches='tight', dpi=plt.gcf().dpi)
         if self.tensorboard_writer is not None:
             self.tensorboard_writer.add_figure(f'Scatter Predictions - {title_add_on}', plt.gcf())
         plt.close()
@@ -616,7 +652,7 @@ def save_run(data_dict, filename=None, tensorboard_writer=None):
     df = pd.concat([df, new_row])
     print('Saved Information:\n', new_row[:5])
     
-    df.to_csv(filename, sep=',')
+    df.to_csv('EmpDim/output/' + filename, sep=',')
 
 
 def scatter_vocab(vocab, title, plot_dir='plots/'):
@@ -631,7 +667,7 @@ def scatter_vocab(vocab, title, plot_dir='plots/'):
 
 
 
-def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, data_selector=None, device='cpu'):
+def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, data_selector=None, device='cpu', force_creation=True):
     # ------------------------------------
     # ------------------------------------
     #        Load pca if available 
@@ -650,6 +686,9 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
             pca_exists = False
     except:
         print(f'Could not load the pca at file {pca_file_path}.')
+        pca_exists = False
+    
+    if force_creation:  # force the creation of PCA, f.e. if you want to overwrite it
         pca_exists = False
 
     # ------------------------------------
@@ -788,6 +827,10 @@ def evaluate_pca(my_args, data_args, dim_pca, vocab, data_selector=None, plot_di
     dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{data_args.task_name}_random_y_dimension', plot_dir=plot_dir)
     dim_pca.scatter_vocab_words(vocab, transformed_emb[:, 0].reshape(-1), title_add_on=f'_{data_args.task_name}_dimension', set_y_random=False, plot_dir=plot_dir)
 
+    vocab_dict = {'word':[word for word, _ in vocab], 'label': [score for _, score in vocab], 'ED/DD': list(transformed_emb[:, 0].flatten()), 'PC2': list(transformed_emb[:, 1].flatten()), 'PC3': list(transformed_emb[:, 2].flatten())}
+    vocab_df = pd.DataFrame.from_dict(vocab_dict)
+    vocab_df.to_csv(f'EmpDim/output/vocab_{data_args.task_name}.csv')
+
     # ------------------------------
     #    Analyse the PCA outcome
     # ------------------------------
@@ -842,6 +885,7 @@ def evaluate_pca(my_args, data_args, dim_pca, vocab, data_selector=None, plot_di
                 data_len=len(all_words_rand_embeddings),
                 )
 
+
     # --- correlate for evenly sampled data samples ---
     
     datapoints_per_bin = 15
@@ -864,69 +908,25 @@ def evaluate_pca(my_args, data_args, dim_pca, vocab, data_selector=None, plot_di
                 data_len=len(sentences_input),
                 )
 
-                
-    # --- correlate for evenly sampled data samples ---
-    """
-    datapoints_per_bin = 20
-    print(f'correlate for even subsamples {datapoints_per_bin}')
-    even_subsamples = data_selector.subsample_even_score_distr(all_words_n_scores, datapoints_per_bin=datapoints_per_bin, bin_size=0.1)
-    sentences_input = [item[0] for item in even_subsamples]
-    embedding_input = sent_model.get_sen_embedding(sentences_input)
-    print('Dataset size:', len(embedding_input))
-    note = 'all_words_even_20'
-    true_labels = [item[1] for item in even_subsamples]
-    r_even_20, p_even_20 = dim_pca.correlate_dis_dim_scores(embedding_input, true_labels, printing=True)
-    dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_even_20, title_add_on=note)
-    dim_pca.update_log(my_args, 
-                data_args.task_name,
-                pearson_r=r_even_20, 
-                pearson_p=p_even_20, 
-                vocab=vocab,
-                center=data_selector.vocab_center,
-                note=note,
-                data_len=len(sentences_input),
-                )
+    transformed_emb = dim_pca.transform(embedding_input)
+    vocab_dict = {'word':sentences_input, 'label': true_labels, 'PC1': list(transformed_emb[:, 0].flatten()), 'PC2': list(transformed_emb[:, 1].flatten()), 'PC3': list(transformed_emb[:, 2].flatten())}
+    vocab_df = pd.DataFrame.from_dict(vocab_dict)
+    vocab_df.to_csv(f'EmpDim/output/vocab_{data_args.task_name}_{len(embedding_input)}.csv')
+            
+    # linear relationship
+    #colors = [tu_c1, "#ffffff"]
+    # Set your custom color palette
+    #sns.set_palette(sns.color_palette(colors))
+    #ax = sns.lmplot(x="empathy", y="distress", data=person_emp_dis_means, palette=tu_palette).set(title='Correlation of Distress and Empathy \n Training set')
+    #ax = ax.set_axis_labels("Empathy", "Distress")
+    #plt.savefig(plot_dir + 'corr_distress_empathy_train.pdf', bbox_inches='tight')
+    #plt.show()   
 
-    """
-    """
-    lim = 100
-    print(f'\n Do correlation on the words with {lim} min an max scores (insg. {lim*2} words). Add random words from middle: {lim}')
-    # get min 100 and max 100 of the words
-    # with random
-    words_sorted = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
-    words_random = words_sorted[lim:-lim]
-    random.shuffle(words_random)
-    words_random = words_random[:lim]
-
-    words_min = words_sorted[:lim]
-    words_max = words_sorted[-lim:]
-    sentences_input = [item[0] for item in words_min + words_max + words_random]
-    embedding_input = sent_model.get_sen_embedding(sentences_input)
-    print('Dataset size:', len(embedding_input))
-    true_labels = [item[1] for item in words_min + words_max + words_random]
-    r_twotailed_random_100, p_rand_even15 = dim_pca.correlate_dis_dim_scores(embedding_input, true_labels, printing=True)
-    dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_twotailed_random_100, title_add_on='all_words_twotailed_random_100')
-    # without random
-
-    print(f'\n Do correlation on the words with {lim} min an max scores (insg. {lim*2} words)')
-    words_sorted = [(word, score) for word, score in sorted(lexicon.items(), key=lambda item: item[1])]
-    words_min = words_sorted[:lim]
-    words_max = words_sorted[-lim:]
-    sentences_input = [item[0] for item in words_min + words_max]
-    embedding_input = sent_model.get_sen_embedding(sentences_input)
-    print('Dataset size:', len(embedding_input))
-    true_labels = [item[1] for item in words_min + words_max]
-    r_twotailed_100, p_rand_even15 = dim_pca.correlate_dis_dim_scores(embedding_input, true_labels, printing=True)
-    dim_pca.plot_dis_dim_scores(embedding_input, true_labels, r_twotailed_100, title_add_on='all_words_twotailed_100')
-    
-
-    if my_args.store_run: save_run(dim_pca.logging)
-    """
     # ------------------------------
     #    Apply PCA to the essays
     # ------------------------------
-
-    print('\n Apply PCA to the essays \n')
+    sys.exit(-1)
+    print('\n Apply PCA to the essays (random sample 200)\n')
     # --- preprocess data ---
     # - load data -
 
@@ -951,37 +951,6 @@ def evaluate_pca(my_args, data_args, dim_pca, vocab, data_selector=None, plot_di
         r, p = pearsonr(train_sent_transformed_i, train_labels)
         print('r', r)
         print('p', p)
-
-
-    # generate labels for test set
-    try:
-        test_sent = dim_pca.sent_model.get_sen_embedding(data_test_pd['essay'])
-        test_sent_transformed = dim_pca.transform(test_sent)
-        df = pd.DataFrame(test_sent_transformed)
-        output_dir = this_file_path + '/../output'
-        output_dir = output_dir + f'/EmpDim/{data_args.task_name}/'
-        if not os.path.exists(output_dir):
-            os.mkdir(output_dir)
-        output_path = output_dir + f'pca_dim_test_{data_args.task_name}.tsv'
-        df.to_csv(output_path, index=None, sep='\t')
-    except Exception as e:
-        print(f'No output generated: {e}. Outputdir: {output_dir}')
-        pass # doesn't really matter here
-
-    
-
-           
-    # ---
-    # use other sentence mbeddings
-
-
-
-
-
-    # - encode data -
-    # - tranform data -
-    # --- analyse data ---
-    # - correlate this score with the actual label -
 
 
 
@@ -1014,7 +983,8 @@ def run():
 
     data_selector = DataSelector()
 
-    dim_pca, vocab = create_pca(my_args, data_args, tensorboard_writer=tensorboard_writer, return_vocab=True, data_selector=data_selector)
+    # force creation will be true here
+    dim_pca, vocab = create_pca(my_args, data_args, tensorboard_writer=tensorboard_writer, return_vocab=True, data_selector=data_selector, force_creation=True)
     evaluate_pca(my_args, data_args, dim_pca, vocab)
 
 

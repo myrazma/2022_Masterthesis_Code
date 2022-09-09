@@ -1,6 +1,9 @@
 # This class is copied from https://github.com/ml-research/MoRT_NMI/blob/master/MoRT/mort/funcs_mcm.py
-# please refere to Schramowski et al., 2021 - Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do
-# TODO
+# please refere to:
+# Schramowski, P., Turan, C., Andersen, N., Rothkopf, C., & Kersting, K. (2022). 
+# Large pre-trained language models contain human-like biases of what is right and wrong to do. 
+# arXiv preprint arXiv:2103.11790. https://arxiv.org/abs/2103.11790
+#
 # ------------------------------------------------------------------------------
 # 
 # Licence:

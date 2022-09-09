@@ -1,5 +1,5 @@
 # best setting
-task_name=distress
+task_name=empathy
 use_tensorboard=False
 data_dir="data/"
 store_run=False
@@ -9,7 +9,6 @@ use_fdist=True
 freq_thresh=0.000005
 vocab_type=mm
 vocab_size=10
-
 use_question_template=False
 
 

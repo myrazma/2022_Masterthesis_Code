@@ -1075,7 +1075,10 @@ def main():
             unipelt_plotting.log_plot_predictions(true_score, predictions, tensorboard_writer, use_wandb)
 
             output_test_file = os.path.join(training_args.output_dir, f"eval_results_{task}.txt")
+            
+            #predictions = preprocessing.scale_scores(predictions, (0,1), (1,7))
             if trainer.is_world_process_zero():
+
                 with open(output_test_file, "w") as writer:
                     logger.info(f"***** Eval results {task} *****")
                     writer.write("index\tprediction\n")
