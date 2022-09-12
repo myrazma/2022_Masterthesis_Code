@@ -276,6 +276,10 @@ moral_dim = mort_pca.transform(essay_embeddings)
 
 print(type(moral_dim))
 print(moral_dim)
+print('np.max(moral_dim, axis=0)', np.max(moral_dim, axis=0))
+print('np.max(moral_dim, axis=1)', np.max(moral_dim, axis=1))
+print('np.min(moral_dim, axis=0)', np.min(moral_dim, axis=0))
+print('np.min(moral_dim, axis=1)', np.min(moral_dim, axis=1))
 
 try:
     print(moral_dim.shape)
