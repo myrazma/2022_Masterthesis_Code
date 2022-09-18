@@ -49,7 +49,20 @@ git submodule update --recursive --remote
 ```
 for more updates of this submodule.
 
-## Parameter setting
+## Running the UniPELT and PELT methods
+
+
+TODO: Parameter und Leanring rate settings beschreiben
+
+
+The gates can be returned during prediciton by setting the 'return_gates' variable to True. 
+```
+output, eval_gates_df = trainer.predict(test_dataset=eval_dataset, return_gates=True)
+```
+
+To use the PCA features, put use_pca to True.
+You can also set the Dimensions used by setting dim to the wished dimensions. The model will then use them as additional features.
+
 
 The model with the UniPELT and PELT methods can be called with the bash script 
 
