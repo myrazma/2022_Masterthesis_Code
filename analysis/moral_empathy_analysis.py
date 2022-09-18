@@ -264,7 +264,6 @@ def get_output_dir():
 # ------------------
 # create moral score
 # ------------------
-print(train_dataset)
 # TODO: Do this with resampled even data
 essays = train_dataset['essay']
 labels = np.array(train_dataset['label'])
@@ -274,12 +273,6 @@ essay_embeddings = sent_model.get_sen_embedding(essays)
 mort_pca = load_mort_pca(filename=data_args.data_dir + '/MoRT_projection/projection_model.p')
 moral_dim = mort_pca.transform(essay_embeddings)
 
-print(type(moral_dim))
-print(moral_dim)
-print('np.max(moral_dim, axis=0)', np.max(moral_dim, axis=0))
-print('np.max(moral_dim, axis=1)', np.max(moral_dim, axis=1))
-print('np.min(moral_dim, axis=0)', np.min(moral_dim, axis=0))
-print('np.min(moral_dim, axis=1)', np.min(moral_dim, axis=1))
 
 try:
     print(moral_dim.shape)
