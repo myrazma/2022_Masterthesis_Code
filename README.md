@@ -2,6 +2,8 @@
 The code for my master's thesis.
 
 # Models
+
+
 TODO: Update the available models
 The models can be found in the directory [model](model).
 
@@ -12,7 +14,7 @@ The script [adapter_ownhead_BERT.py](model/adapter_ownhead_BERT.py) is implement
 The script model_utils.py has model shared methods and class like the RegressionHead and training / evaluation methods.
 
 
-# Running the Code
+# Running the Project
 
 ## Docker
 
@@ -49,7 +51,7 @@ git submodule update --recursive --remote
 ```
 for more updates of this submodule.
 
-## Running the UniPELT and PELT methods
+# Running the UniPELT and PELT methods
 This code is using the submodule for the slightly modified UniPELT implementation, orignially implemented by Mao et. al.
 
 Make sure that the submodule is at the newest commit, by updating the submodule.
@@ -117,7 +119,9 @@ python model/unipelt_model.py \
         --train_ff_layers ${train_ff_layers}
     
     
-    
+
+| setting         | 	example command	        | explanation   |
+|---------------  |----------------------     |---------------------------|    
 | epochs          | --epochs 10               |  Set the epoch number for training                   |
  | learning_rate  | --learning_rate 2e-5      |  Set the learning rate for training                  |
 | empathy_type    | --distress                |  Set either to --distress or --empathy. Default --empathy                  |
@@ -139,35 +143,43 @@ python model/unipelt_model.py \
 
 # Running the Empathy (ED) and Distress Direction (DD)
 
-The fittet PCA for the both directions can be found in EmpDim/pca_models/
+The fittet PCA (sklearn) for the both directions (pca_ED.p and pca_DD.p) can be found in [EmpDim/pca_projections/](EmpDim/pca_projections/)
 
-The input texts has to be transformed with Sentence-BERT (Reimers & Gurevych, 2019) with 'bert-large-nli-mean-tokens' as transformer model.
+To use the PCA, the input has to be transformed using Sentence-BERT (Reimers & Gurevych, 2019) with 'bert-large-nli-mean-tokens' as transformer model.
 
-You can also run the analsis by running the script *run_empdim.sh* with the desired settings.
+Alternatively, the analysis can be run with the script *run_empdim.sh* with the desired settings:
 
-# Running Moral Direciotn
+
+| setting         | 	example command	        | explanation   |
+|---------------  |----------------------     |---------------------------|
+| dim          | --dim 3               |  The n components of the PCA                   |
+| use_fdist  | --use_fdist True     |  Whether removing words based on the frequency distribution should be activated or not                  |
+| freq_thresh    | --freq_thresh 0.000005                | The threshold for the frequency distribution. |
+| vocab_type | --vocab_type mm | The vocabulary type, can be 'mm' (min and max scores), 'mmn' (min, max neutral scores), 'range' (word from the whole range of scores) |
+| vocab_size | --vocab_size 10 | The size of the vocabulary per setting, e.g., for mm choose 10 min and 10 max. For range, this number is accordingly for each bin (0.1). |
+| use_question_template | --use_question_template True | Whether to use the template or not |
+| task_name | --task_name empathy | The prediction task, e.g., empathy or distress|
+# Running Moral Direction
 Since the moral direction has other dependencies, we need to use another Docker image:
 
 Build the Dockerfile
 ```
 docker build -t <docker-name> -f DockerfileMoRT .
 ```
+The pca for the moral direction is in *data/MoRT_projection*.
+
 
 # Generate output format for CodaLab
-Using the script *output_formatter.py* in utils, you can input a model name. The model has to be in the output folder and already generated some results (as seen in the output foler).
+Using the script *output_formatter.py* in utils, you can input a model name. 
+```
+python3 output_formatter.py adapter
+```
+The model has to be in the output folder and already generated some results (as seen in the output foler).
 The form should be as follows: 
 - output/model_name/empathy/
 - output/model_name/distress/
 and containing the file *test_results_distress.txt* (or empathy).
 This file is generated, setting the parameter *do_predict* to True.
-
-
-## Run bash script
-TODO
-
-# Note
-I'm still currently working on the code and trying new things, therefore cleaner, more structured code will follow for the scripts currently under construction :). Also I'm running the code on another device and commiting even small changes that might have a difference in model training.
-
 
 
 # Bibliography

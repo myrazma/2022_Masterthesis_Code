@@ -79,37 +79,40 @@ this_file_path = str(pathlib.Path(__file__).parent.resolve())
 ID = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 print(ID)
 
-import seaborn as sns
-label_text_color='#555555'
-text_color="black"
-accent_color="lightgrey"
-sns.set(font="Franklin Gothic Book",
-        rc={
- "axes.axisbelow": False,
- "axes.edgecolor": accent_color,
- "axes.facecolor": "None",
- "axes.grid": False,
- "axes.labelcolor": text_color,
- "axes.spines.right": False,
- "axes.spines.top": False,
- "figure.facecolor": "white",
- "lines.solid_capstyle": "round",
- "patch.edgecolor": "w",
- "patch.force_edgecolor": True,
- "text.color": text_color,
- "xtick.bottom": True,
- "xtick.color": accent_color,
- "xtick.direction": "out",
- "xtick.labelsize": 18,
- "xtick.top": False,
- "ytick.color": label_text_color,
- "ytick.direction": "out",
- "ytick.left": False,
- "ytick.right": False})
-sns.set_context("notebook", rc={"font.size":24,
-                                "axes.titlesize":26,
-                                "axes.labelsize":26,
-                                "axes.xticksize":26})
+import importlib
+seaborn_available = importlib.util.find_spec("seaborn") is not None
+if seaborn_available:
+    import seaborn as sns
+    label_text_color='#555555'
+    text_color="black"
+    accent_color="lightgrey"
+    sns.set(font="Franklin Gothic Book",
+            rc={
+    "axes.axisbelow": False,
+    "axes.edgecolor": accent_color,
+    "axes.facecolor": "None",
+    "axes.grid": False,
+    "axes.labelcolor": text_color,
+    "axes.spines.right": False,
+    "axes.spines.top": False,
+    "figure.facecolor": "white",
+    "lines.solid_capstyle": "round",
+    "patch.edgecolor": "w",
+    "patch.force_edgecolor": True,
+    "text.color": text_color,
+    "xtick.bottom": True,
+    "xtick.color": accent_color,
+    "xtick.direction": "out",
+    "xtick.labelsize": 18,
+    "xtick.top": False,
+    "ytick.color": label_text_color,
+    "ytick.direction": "out",
+    "ytick.left": False,
+    "ytick.right": False})
+    sns.set_context("notebook", rc={"font.size":24,
+                                    "axes.titlesize":26,
+                                    "axes.labelsize":26,
+                                    "axes.xticksize":26})
 tu_c1='#004E8A'
 
 
@@ -667,6 +670,20 @@ def scatter_vocab(vocab, title, plot_dir='plots/'):
 
 
 def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, data_selector=None, device='cpu', force_creation=True):
+    """Create the PCA and store it.
+
+    Args:
+        my_args (PCA_Arguments): The PCA arguments
+        data_args (DataArguments): The data arguments
+        tensorboard_writer (tensorboard_writer, optional): If needed, tensorboard wirter. Defaults to None.
+        return_vocab (bool, optional): Ture, if vocabulary shoudl be returned. Defaults to False.
+        data_selector (DataSelector, optional): The data selctor class to select the vocabulars. Defaults to None.
+        device (str, optional): The device. Defaults to 'cpu'.
+        force_creation (bool, optional): If it should not be loaded but created (forced). Defaults to True.
+
+    Returns:
+        DisDimPCA (, list(str, float)): pca, (Optional: vocabulary)
+    """
     # ------------------------------------
     # ------------------------------------
     #        Load pca if available 
@@ -785,6 +802,13 @@ def create_pca(my_args, data_args, tensorboard_writer=None, return_vocab=False, 
             pickle.dump(dim_pca, open(pca_file_path,"wb"))
         except:
             print(f'Could not store dis dim pca to {pca_file_path}')
+
+        # solely store PCA to upload on GitHub
+        try:
+            pca_name = "ED" if data_args.task_name == 'empathy' else "DD"
+            pickle.dump(dim_pca.pca, open(this_file_path + f"/../EmpDim/pca_projection/pca_{pca_name}.p","wb"))
+        except:
+            print(f'Could not store dis dim pca to {this_file_path}/../EmpDim/pca_projection/pca_{pca_name}.p')
 
     if return_vocab:
         return dim_pca, vocab
