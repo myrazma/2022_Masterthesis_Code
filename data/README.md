@@ -116,7 +116,7 @@ The data can be downloaded here: https://link.springer.com/article/10.3758/s1342
 
 This is a pickle file from the moral projection containing the generated projection onto the moral dimension. This file contains a .. dimensional vector.
 
-Schramowski et al. 2021 - Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do: https://arxiv.org/abs/2103.11790
+Schramowski, P., Turan, C., Andersen, N., Rothkopf, C. A., & Kersting, K. (2022). Large pre- trained language models contain human-like biases of what is right and wrong to do. Nature Machine Intelligence, 4(3), 258–268. https://arxiv.org/abs/2103.11790
 
 The data can be downloaded from their GitHub repository: https://github.com/ml-research/MoRT_NMI/tree/master/MoRT/data/subspace_proj/bert-large-nli-mean-tokens
 

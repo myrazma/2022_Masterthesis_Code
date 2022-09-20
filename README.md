@@ -1,5 +1,5 @@
 # 2022_Masterthesis_Code
-The code for my master's thesis.
+Repository for running the experiment with different PELT methods and UniPELT. 
 
 # Models
 
@@ -150,7 +150,7 @@ The pca for the moral direction is in *data/MoRT_projection*.
 
 
 # Generate output format for CodaLab
-Using the script *output_formatter.py* in utils, you can input a model name. 
+To meat the format of the [WASSA 2022 Codalab competition](#https://codalab.lisn.upsaclay.fr/competitions/834#participate-submit_results), the output needs to be combined for both tasks. Using the script *output_formatter.py* in utils, you can input a model name. 
 ```
 python3 output_formatter.py adapter
 ```
@@ -167,4 +167,4 @@ Mao, Y., Mathias, L., Hou, R., Almahairi, A., Ma, H., Han, J., Yih, S., & Khabsa
 
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using siamese bert-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3982–3992. https://aclanthology.org/D19-1410/
 
-Schramowski et al. 2021 - Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do: https://arxiv.org/abs/2103.11790
+Schramowski, P., Turan, C., Andersen, N., Rothkopf, C. A., & Kersting, K. (2022). Large pre- trained language models contain human-like biases of what is right and wrong to do. Nature Machine Intelligence, 4(3), 258–268. https://arxiv.org/abs/2103.11790
