@@ -1,9 +1,0 @@
-name: masterthesis_env
-channels:
-  - conda-forge
-dependencies:
-  - ipykernel
-  - numpy
-  - matplotlib
-  - pandas
-  - scipy
