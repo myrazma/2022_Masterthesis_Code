@@ -63,6 +63,9 @@ The gates can be returned during prediciton by setting the 'return_gates' variab
 output, gates = trainer.predict(test_dataset=eval_dataset, return_gates=True)
 ```
 
+The plots for the gate values can be generated in [output_analysis.ipynb](analysis/output_analysis.ipynb) after they are created in their correspsonding model directory in [output](output/)
+
+
 To run the mode, use [run_experiment_unipelt.sh](run_experiment_unipelt.sh). The parameters for each method can be set here. We support the following settings and methods
 
 The model can be changed in the bash script to run different PELT methods, adapter compositions using the different setups using the pelt_method variable.
@@ -83,6 +86,7 @@ With *pelt_method*, you can set the tuning method using the following names:
 | UniPELT AP | unipelt_ap | 5e-4 |
 
 ## The Adapter Composition
+We added the emotion adapter by Poth et al. (2020) to the empathy and distress prediction. As similar setup with RoBERTa has been done by Lahnala et al. (2022).
 The adapter composition has the following settings:
 
 
@@ -94,7 +98,7 @@ The adapter composition has the following settings:
 | train_all_gates_adapters  | True  | If True, all gates will be trained in the Stacking setup. (Set True for the experiment)|
 | pre_trained_sequential_transfer_adapter  | "bert-base-uncased-pf-emotion"  | Use this adapter for sequential tuning of the adapter (Adapter Seq EMO). If you do not want to use sequential tuning, use set it to None. |
 
-## Multi-iput
+## Multi-input
 The different features can be concatenated to the classification head of the model by setting the following variables:
 | variable        |  input type	      | explanation |
 |---------------  |----------------------  |----------------------  |
@@ -149,6 +153,10 @@ This file is generated, setting the parameter *do_predict* to True.
 
 # Bibliography
 Mao, Y., Mathias, L., Hou, R., Almahairi, A., Ma, H., Han, J., Yih, S., & Khabsa, M. (2022). Unipelt: A unified framework for parameter-efficient language model tuning. Proceedings of the 60th Annual Meeting of the Association for Computational Lin- guistics (Volume 1: Long Papers), 6253–6264. https://aclanthology.org/2022.acl- long.433/
+
+Lahnala, A., Welch, C., & Flek, L. (2022). Caisa at wassa 2022: Adapter-tuning for empathy prediction. Proceedings of the 12th Workshop on Computational Approaches to Subjectivity, Sentiment & Social Media Analysis, 280–285. https://aclanthology. org/2022.wassa-1.31.pdf
+
+Poth, C., Pfeiffer, J., Rücklé, A., & Gurevych, I. (2021). What to pre-train on? Efficient in- termediate task selection. Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing, 10585–10605. https://doi.org/10.18653/v1/ 2021.emnlp-main.827
 
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using siamese bert-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3982–3992. https://aclanthology.org/D19-1410/
 

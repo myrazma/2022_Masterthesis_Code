@@ -1,3 +1,7 @@
+"""
+Script to correlate the ED and DD with subsampled data
+Stores the output, for further analysis look at the Notebook emp_dim_analysis.ipynb
+"""
 
 
 from pathlib import Path

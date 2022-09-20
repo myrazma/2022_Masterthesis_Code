@@ -1,3 +1,7 @@
+"""
+Analysis and correlation of the moral direction by Schramowski et al. 2022 with the empathy dataset.
+"""
+
 import pickle
 import matplotlib
 from regex import F
@@ -31,23 +35,15 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules/2022_Maste
 sys.path.append(os.path.join(os.path.dirname(__file__),'../submodules/2022_Masterthesis_UnifiedPELT/transformers')) 
 print(sys.path)
 import importlib
-#import transformers
 
 unipelt_utils = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.utils')
-#try:
 unipelt_transformers = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers')
 unipelt_preprocessing = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.preprocessing')
 unipelt_arguments = importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.arguments')
-#except:
-#    print('The UniPelt Input is not available. Probably an import in "submodules.2022_Masterthesis_UnifiedPELT" not working.')
-#    sys.exit(-1)
-# use importlib in this case, because of the name in submodule starting with a number
 get_last_checkpoint = getattr(importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers.trainer_utils'), 'get_last_checkpoint')
 is_main_process = getattr(importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers.trainer_utils'), 'is_main_process')
 check_min_version = getattr(importlib.import_module('submodules.2022_Masterthesis_UnifiedPELT.transformers.utils'), 'check_min_version')
 
-#from transformers.trainer_utils import get_last_checkpoint, is_main_process
-#from transformers.utils import check_min_version
 AdapterConfig = getattr(unipelt_transformers, 'AdapterConfig')
 AutoConfig = getattr(unipelt_transformers, 'AutoConfig')
 AutoModelForSequenceClassification = getattr(unipelt_transformers, 'AutoModelForSequenceClassification')
@@ -88,13 +84,10 @@ else:
     print("\n---------- No GPU available, using the CPU instead. ----------\n")
     device = torch.device("cpu")
 
-# only use cpu for this analysis when running with a100
-#device = 'cpu'
 
 sent_model = BERTSentence(device=device)
 
 task_name = 'empathy'
-# TODO, add mort file to DataTrainArgs
 data_args = DataTrainingArguments(task_name=task_name)
 model_args = unipelt_arguments.ModelArguments()
 training_args = TrainingArguments(output_dir='output/moral_output')
@@ -136,7 +129,6 @@ if data_args.task_name == 'distress':
     display_text = "Using distress data"
 print('\n------------ ' + display_text + ' ------------\n')
 
-
 def remove_outliers(data_array):
     kept_idx, new_data = [], []
     avr = np.mean(data_array)
@@ -160,7 +152,6 @@ def scatter_moral_empdis(pca_features, labels):
 
     pca_dim = pca_features.shape[1]
 
-    #fig, axes = plt.subplots(pca_dim, sharey=True, figsize=(10,10))
     for i in range(pca_dim):
         moral_dim_pc_i = pca_features[:, i]
         moral_dim_no_outlier_pc_i, kept_idx = remove_outliers(moral_dim_pc_i)
@@ -178,21 +169,6 @@ def scatter_moral_empdis(pca_features, labels):
             correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
         except:
             pass
-
-#def distance_moral_empdis(pca_features, labels, decimal_count=1):
-
-#    # round label scores, so that the scores are in sort of bins: 
-#    labels_bin = np.around(labels, decimal_count)  # sort of discrete space, depending on the decimal count
-
-#    pca_dim = pca_features.shape[1]
-
-#    fig, axes = plt.subplots(pca_dim, sharey=True)
-#    for i in range(pca_dim):
-#        moral_dim_pc_i = pca_features[:, i]
-#        axes[i].scatter(labels, moral_dim_pc_i)
-
-#    plt.savefig(training_args.output_dir + f'/scatter_moral_{data_args.task_name}.pdf')
-
 
 def plot_moral_empdis(bins, binned_data):
     binned_ave, binned_std, final_bins = [], [], []
@@ -264,7 +240,6 @@ def get_output_dir():
 # ------------------
 # create moral score
 # ------------------
-# TODO: Do this with resampled even data
 essays = train_dataset['essay']
 labels = np.array(train_dataset['label'])
 
@@ -304,9 +279,6 @@ scatter_moral_empdis(moral_dim, labels)
 
 binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.1)
 plot_moral_empdis(bins, binned_pca)
-    
-
-
 
 # -------------------------
 # Do analysis with articles
@@ -358,34 +330,4 @@ for i in range(moral_dim_articles.shape[1]):
     new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['Sim(MoRT_art, MoRT_essay) - labels'], 'task_name': [data_args.task_name]})
     correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
 
-
-# --- Map articles on labels of empathy ---
-# TODO: We need the article ID for that in the training data, how do we do this?
-
 correlations_pd.to_csv(csv_path)
-"""
-csv_path = get_output_dir() + '/moral_correlations.csv'
-if not os.path.exists(csv_path):
-    correlations_pd = pd.DataFrame()
-else: 
-    correlations_pd = pd.read_csv(csv_path, index_col=0)
-
-
-for i in range(pca_dim):
-    print(f'correlation of PC {i+1}')
-    moral_dim_pc_i = moral_dim[:, i]
-    print('labels.shape', labels.shape)
-    print('moral_dim_pc_i.shape', moral_dim_pc_i.shape)
-    r, p = pearsonr(moral_dim_pc_i, labels)
-    r = r[0]
-    print(f'r: {r}, p: {p}')
-    new_row = pd.DataFrame().from_dict({'pearson_r':[r], 'pearson_p': [p], 'princ_comp':[(i+1)], 'note':['With outliers'], 'task_name': [data_args.task_name]})
-    correlations_pd = pd.concat([correlations_pd, new_row], ignore_index=True)
-
-scatter_moral_empdis(moral_dim, labels)
-
-binned_pca, binned_labels, bins = bin_data(labels, moral_dim, 0.1)
-plot_moral_empdis(bins, binned_pca)
-    
-correlations_pd.to_csv(csv_path)
-"""
