@@ -42,7 +42,7 @@ python model/baseline_BERT.py --train_only_bias --epochs 10 --learning_rate 1e-4
 ```
 
 ## Submodules
-To run code from the submodules you need to init the submodules with 
+To run code from the submodules, i.e. [a clone from the UniPELT](#https://github.com/myrazma/2022_Masterthesis_UnifiedPELT/tree/3850abc62308e1c38adf250082fca90518261c32) repository from Mao et al. (2022), you need to init the submodules with 
 ```
 git submodule init
 ```
