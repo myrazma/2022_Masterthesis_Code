@@ -111,32 +111,32 @@ The adapter composition has the following settings:
 
 ## Multi-iput
 The different features can be concatenated to the classification head of the model by setting the following variables:
-| variable        | 	example input	      | explanation |
+| variable        |  input type	      | explanation |
 |---------------  |----------------------  |----------------------  |
-| use_pca_features  |  True | If set to True, the PCA features will be used (ED/DD). |
-| use_lexical_features  |  True | If set to True, the lexical features will be used. |
-| use_mort_features  |  True | If set to True, the MD of the essay will be used. |
-| use_mort_features  |  True | If set to True, the MD of the article will be used. |
+| use_pca_features  |  bool | If set to True, the PCA features will be used (ED/DD). |
+| use_lexical_features  |  bool | If set to True, the lexical features will be used. |
+| use_mort_features  |  bool | If set to True, the MD of the essay will be used. |
+| use_mort_features  |  bool | If set to True, the MD of the article will be used. |
 
 
 # Running the Empathy (ED) and Distress Direction (DD)
 
-The fittet PCA (sklearn) for the both directions (pca_ED.p and pca_DD.p) can be found in [EmpDim/pca_projections/](EmpDim/pca_projections/)
+The fittet PCA (sklearn) for the both directions (pca_ED.p and pca_DD.p) can be found in [EmpDim/pca_projections/](EmpDim/pca_projections/). We make use of the some functions used for creating the MD ([funcs_mcm.py](EmpDim/funcs_mcm.py)) by Schramowski et al. (2021), which we downloaded from their [GitHub](https://github.com/ml-research/MoRT_NMI).
 
 To use the PCA, the input has to be transformed using Sentence-BERT (Reimers & Gurevych, 2019) with 'bert-large-nli-mean-tokens' as transformer model.
 
 Alternatively, the analysis can be run with the script *run_empdim.sh*. This will run the code in [pca.py](EmpDim/pca.py) You can hereby change the following settings: 
 
 
-| setting         | 	example command	        | explanation   |
+| setting         | 	example input	        | explanation   |
 |---------------  |----------------------     |---------------------------|
-| dim          | --dim 3               |  The n components of the PCA                   |
-| use_fdist  | --use_fdist True     |  Whether removing words based on the frequency distribution should be activated or not                  |
-| freq_thresh    | --freq_thresh 0.000005                | The threshold for the frequency distribution. |
-| vocab_type | --vocab_type mm | The vocabulary type, can be 'mm' (min and max scores), 'mmn' (min, max neutral scores), 'range' (word from the whole range of scores) |
-| vocab_size | --vocab_size 10 | The size of the vocabulary per setting, e.g., for mm choose 10 min and 10 max. For range, this number is accordingly for each bin (0.1). |
-| use_question_template | --use_question_template True | Whether to use the template or not |
-| task_name | --task_name empathy | The prediction task, e.g., empathy or distress|
+| dim          | 3               |  The n components of the PCA                   |
+| use_fdist  | True     |  Whether removing words based on the frequency distribution should be activated or not                  |
+| freq_thresh    | 0.000005                | The threshold for the frequency distribution. |
+| vocab_type | 'mm' | The vocabulary type, can be 'mm' (min and max scores), 'mmn' (min, max neutral scores), 'range' (word from the whole range of scores) |
+| vocab_size | 10 | The size of the vocabulary per setting, e.g., for mm choose 10 min and 10 max. For range, this number is accordingly for each bin (0.1). |
+| use_question_template | True | Whether to use the template  |
+| task_name | empathy | The prediction task, e.g., empathy or distress|
 
 
 # Running Moral Direction
@@ -166,3 +166,5 @@ This file is generated, setting the parameter *do_predict* to True.
 Mao, Y., Mathias, L., Hou, R., Almahairi, A., Ma, H., Han, J., Yih, S., & Khabsa, M. (2022). Unipelt: A unified framework for parameter-efficient language model tuning. Proceedings of the 60th Annual Meeting of the Association for Computational Lin- guistics (Volume 1: Long Papers), 6253–6264. https://aclanthology.org/2022.acl- long.433/
 
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using siamese bert-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3982–3992. https://aclanthology.org/D19-1410/
+
+Schramowski et al. 2021 - Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do: https://arxiv.org/abs/2103.11790
