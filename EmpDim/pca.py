@@ -99,7 +99,6 @@ sns.set(font="Franklin Gothic Book",
  "text.color": text_color,
  "xtick.bottom": True,
  "xtick.color": accent_color,
- "xtick.labelcolor": label_text_color,
  "xtick.direction": "out",
  "xtick.labelsize": 18,
  "xtick.top": False,
@@ -925,8 +924,9 @@ def evaluate_pca(my_args, data_args, dim_pca, vocab, data_selector=None, plot_di
     # ------------------------------
     #    Apply PCA to the essays
     # ------------------------------
-    sys.exit(-1)
+    #sys.exit(-1)
     print('\n Apply PCA to the essays (random sample 200)\n')
+    print('\n Apply PCA to the essays\n')
     # --- preprocess data ---
     # - load data -
 
