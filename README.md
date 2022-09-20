@@ -1,23 +1,21 @@
 # 2022_Masterthesis_Code
-Repository for running the experiment with different PELT methods and UniPELT. 
 
-# Models
+Repository for running the experiment with different PELT methods and UniPELT, as well as applying adapter setups and features to the model in empathy and distress prediciton. In addition, we create a projection onto the empathy and distress direction in BERT.
 
-Overview
-
-TODO: Update the available models
-The models can be found in the directory [model](#model/).
-
-The script [baseline_BERT.py](model/baseline_BERT.py) is implementing a baseline RoBERTa model with the possibility of BitFit training (by setting --train_only_bias in cmd parameters]. BitFit (BIas-Term FIne-Tuning: https://arxiv.org/abs/2106.10199) is a version of parameter-efficient training where only the bias in a pre-trained transformer model are trained. There is even the option to only train the bias parameters in the mlp of the transformers (no attention layers).
-
-The script [adapter_ownhead_BERT.py](model/adapter_ownhead_BERT.py) is implementing a RoBERTa model with different parameter-efficient training methods like adapters and prefix tuning using the adapter hub.
-
-The script model_utils.py has model shared methods and class like the RegressionHead and training / evaluation methods.
+# Overview
+* [Running the project](#running-the-project)  
+    * Creating and running the [Docker Container](#docker) 
+    * Initializing and Updating the [UniPELT submodule](#submodules)  
+* [UniPELT and PELT](#running-the-unipelt-and-pelt-methods)  
+    * The settigns for the run of [UniPELT and PELT methods](#pelt-and-unipelt) with BERT for the empathy and distress prediction task
+    * The settings for the [Adapter Compositions](#the-adapter-composition) with the emotion adapter
+    * The settings for [multi-input](#multi-iput)
+* [Running the empathy and distress direction](#running-the-empathy-ed-and-distress-direction-dd)  
 
 ## The task: Empathy and distress prediction
 The task is a supervised regression task to predict empathy and distress ratings from texts (Buechel et al, 2018). 
 
-Particpants were asked to read 5 news articles, after each article they reported their empathy and distress level on a 14 item questionnaire and wrote a reaction-essay. This essay is the base / input for our NLP model. The label / target are the average questionnaire. For an example and more information about the data please look at the [data README.md](data/buechel_empathy/README.md).
+Particpants were asked to read 5 news articles, after each article they reported their empathy and distress level on a 14 item questionnaire and wrote a reaction-essay. This essay is the base / input for our NLP model. The label / target are the average questionnaire. For an example and more information about the data please look at the [README.md](data/buechel_empathy/README.md).
 
 
 # Running the Project
@@ -87,19 +85,6 @@ With *pelt_method*, you can set the tuning method using the following names:
 ## The Adapter Composition
 The adapter composition has the following settings:
 
-
-    trained_adapter_dir="data/trained_adapters"
-    # Stacking adapter (emotion most likely)
-    stacking_adapter="bert-base-uncased-pf-emotion" # "AdapterHub/bert-base-uncased-pf-emotion"
-    use_stacking_adapter=False
-    train_all_gates_adapters=False
-
-    # Multi task adapter
-    # Add the adapter of the other task to the model
-    use_sidetask_adapter=False
-
-    # Sequential tansfer learning adapter
-    pre_trained_sequential_transfer_adapter=None
 
 | variable        | 	example input	      | explanation |
 |---------------  |----------------------  |----------------------  |
