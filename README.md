@@ -30,7 +30,7 @@ docker build -t <docker-name> .
 and run in bash (using gpus here, container will be removed after exit)
 
 ```
-docker run --gpus all --rm -it -v "$PWD":/mzmarsly <docker-name> bash
+docker run --gpus '"device=7"' --rm -it -v "$PWD":/mzmarsly <docker-name> bash
 ```
 
 Right now, you can run the code by calling one of the model scripts with desired parameters. A Docker container for running the code with any further adjustment will follow after the code experimentation phase of this part of the thesis. For example you can run **BitFit** with the following command
