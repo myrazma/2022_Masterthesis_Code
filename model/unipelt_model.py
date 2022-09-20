@@ -428,7 +428,7 @@ def main():
             # - Check if article id is available in train_dataset
             if 'article_id' in dataset.features.keys():
                 essay_article_ids = np.array(dataset['article_id'])
-                essay_features = fc.create_MoRT_feature_articles(essay_article_ids, principle_components_idx=principle_components_idx) # TODO
+                essay_features = fc.create_MoRT_feature_articles(essay_article_ids, principle_components_idx=principle_components_idx)
                 # if the features could be created:
                 if not essay_features is None:
                     if multiinput is None:  # no previous input generated
@@ -511,12 +511,6 @@ def main():
     except:
         print('Feature dim assignment did not work')
 
-    # TODO: For FFT, FeFo and BitFit set to false
-
-    add_enc_prefix=False
-    train_adapter=False
-    add_lora=False
-    tune_bias=False
     # if any of those is set to true, then we are usign UniPELT
 
     # ---------------------------
@@ -620,7 +614,7 @@ def main():
             lang_adapter_name = None
 
         
-        # TODO: Add multitask_adapter:
+        # Add multitask_adapter:
         # to turn of, set use_sidetask_adapter to False
         if model_args.use_sidetask_adapter:
             other_task = "empathy" if task_name == "distress" else "distress"
@@ -996,10 +990,6 @@ def _mp_fn(index):
     # For xla_spawn (TPUs)
     main()
 
-
-def write_predictions_tsv(predictions, task_name):
-    # TODO
-    pass
 
 if __name__ == "__main__":
     # --- run on GPU if available ---
