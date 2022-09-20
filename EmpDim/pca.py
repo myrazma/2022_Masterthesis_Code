@@ -126,7 +126,7 @@ class DisDimPCA:
         self.n_components = n_components
         self.explained_var = None
         self.task_name = task_name
-        self.tensorboard_writer = tensorboard_writer
+        self.tensorboard_writer = tensorboard_writer  # can also be None
         self.model_name = model_name
         self.vocab_size = None
         self.logging = pd.DataFrame()
@@ -137,6 +137,15 @@ class DisDimPCA:
         self.sent_model = BERTSentence(device=device) #, transormer_model='paraphrase-MiniLM-L6-v2') # TODO use initial model (remove transformer model varibale from head)
 
     def fit(self, sent_embeddings, transform_embeddings=False):
+        """Fit the PCA
+
+        Args:
+            sent_embeddings (np.array): The transformed input sequence
+            transform_embeddings (bool, optional): If True, the sentence embeddings will be transformed as well. Defaults to False.
+
+        Returns:
+            (Optional) np.array: The transformed sentence ebeddings
+        """
         self.pca = PCA(n_components=self.n_components)
         self.pca.fit(sent_embeddings)
         self.explained_var = self.pca.explained_variance_ratio_
@@ -146,12 +155,38 @@ class DisDimPCA:
             return self.transform(sent_embeddings)
 
     def fit_transform(self, sent_embeddings):
+        """Fit and transform the pca using the sentence embeddings as input
+
+        Args:
+            sent_embeddings (np.array): The transformed input sequence
+
+        Returns:
+            np.array: The transformed sentence ebeddings
+        """
         return self.fit(sent_embeddings, transform_embeddings=True)
 
     def transform(self, sent_embeddings):
+        """Transform the pca using the sentence embeddings as input
+
+        Args:
+            sent_embeddings (np.array): The transformed input sequence
+
+        Returns:
+            np.array: The transformed sentence ebeddings
+        """
         return self.pca.transform(sent_embeddings)
 
     def correlate_dis_dim_scores(self, sent_embeddings, true_scores, printing=True):
+        """Correlate ED or DD with the true scores
+
+        Args:
+            sent_embeddings (np.array): The transformed input sequence
+            true_scores (np.array): The true empathy or distress scores
+            printing (bool, optional): If True, the correlation scores will be printed. Defaults to True.
+
+        Returns:
+            _type_: _description_
+        """
         # does pearson r correlation for given sentence embeddings on all
         # possible principal components
         sent_transformed = self.transform(sent_embeddings)
@@ -160,7 +195,6 @@ class DisDimPCA:
         pca_pearsonr, pca_pearsonp = [], []
         for i in range(sent_transformed.shape[1]):
             princ_comp = i
-            # version 1:
             sent_transformed_i = sent_transformed[:, i]  # same result as multiplying data with the one principal component
             r, p = pearsonr(sent_transformed_i, true_scores)
             if isinstance(r, list):
@@ -169,12 +203,22 @@ class DisDimPCA:
             pca_pearsonp.append(float(p))
             if printing: print(f'\nPC {princ_comp}. r: {r}, p: {p}')
 
+            # also do spearman correlation here
             sr, sp = spearmanr(sent_transformed_i, true_scores)
             if printing: print(f'\nPC spearmanr {princ_comp}. sr: {sr}, sp: {sp}')
 
         return pca_pearsonr, pca_pearsonp
     
     def plot_dis_dim_scores(self, sent_embeddings, true_scores, pca_pearsonr=None, title_add_on='', plot_dir='plots/'):
+        """Plot the ED or DD
+
+        Args:
+            sent_embeddings (np.array): The transformed input sequence
+            true_scores (np.array): The true empathy or distress scores
+            pca_pearsonr (list(float), optional): The pearson r. Defaults to None.
+            title_add_on (str, optional): The title for the plot. Defaults to ''.
+            plot_dir (str, optional): The directory for saving the plot. Defaults to 'plots/'.
+        """
         sent_transformed = self.pca.transform(sent_embeddings)
         if isinstance(true_scores, list): true_scores = np.array(true_scores)
 
@@ -202,27 +246,22 @@ class DisDimPCA:
         plt.close()
 
     def scatter_vocab_words(self, vocab, x=None, colormap='pink', title_add_on='', ylabel='', xlabel='', set_y_random=True, use_cmap=True, plot_dir='plots/'):
-        
+        """Scatter the vocabulary"""
         def normalize(vals, scale=None):
             if scale is None:
                 scale = (min(vals), max(vals))
             return (vals - (scale[0])) / (scale[1] - (scale[0]))
 
         calc_dist = lambda a, b: abs(a - b)
-
         offset = 0.01
         scores = [item[1] for item in vocab]
         scores = np.array(scores)
         words = [item[0] for item in vocab]
-        none_random = True  # variable if x or y are non random. If one of them is random, set to False
-
-
         y = scores
         y_rand = np.array([random.uniform(0, 1) for y in range(len(y))])
         if ylabel == '':
             ylabel = 'Human Scores'
         if set_y_random:
-            none_random = False
             ylabel = ''
             y = y_rand
 
@@ -243,13 +282,9 @@ class DisDimPCA:
             plt.colorbar(sc)       
         else:
             sc = plt.scatter(x, y)
-            
-
         for i, word in enumerate(words):
             plt.annotate(word, (x[i]+offset, y[i]+offset))
 
-        #plt.ylim(0-offset,1+offset)
-        #plt.xlim(0-offset,1+offset)
         plt.ylabel(ylabel)
         plt.xlabel(xlabel)
         plt.title(f'{self.task_name} Dimension - Vocabulary for PCA \n the color represents the smilarity to the human scores from the lexicon (0 means simsilar, 1 not similar)')
@@ -271,6 +306,18 @@ class DisDimPCA:
                     note=None,
                     data_len=None
                     ):
+        """Update log: Store the pearons correlation with the corresponing vocabulary setup
+
+        Args:
+            arguments (PCA_arguments): The PCA arguments
+            task_name (str): empathy or distress
+            pearson_r (list(float), optional): _description_. Defaults to None.
+            pearson_p (list(float), optional): _description_. Defaults to None.
+            vocab (list(str, float), optional): list(word, score). Defaults to None.
+            center (str, optional): center type. Defaults to None.
+            note (str, optional): a note to add to the data frame. Defaults to None.
+            data_len (int, optional): The datalength for the vocabulary. Defaults to None.
+        """
         if self.explained_var is None:
             print('MyWarning (update_log): PCA is not fittet yet, data will not be logged')
             return
@@ -329,6 +376,8 @@ class DisDimPCA:
 
 
 class DataSelector:
+    """Class for reading and selecting the vocabulary
+    """
     # read and load data
     # select data
     def __init__(self):
@@ -486,10 +535,10 @@ class DataSelector:
         len(output) == len(samples), so the sorting strategies
 
         Args:
-            lexicon (_type_): _description_
-            word_count (_type_): _description_
-            random_vocab (bool, optional): _description_. Defaults to False.
-            samples (list, optional): _description_. Defaults to ['min', 'max'].
+            lexicon (_type_): The lexicon to choose the words from
+            word_count (int): The word count of the data
+            random_vocab (bool, optional): If vocabulary should be random. Defaults to False.
+            samples (list(str), optional): the vocabulary types, e.g. from what we should sample (min, max, neutra, range). Defaults to ['min', 'max'].
             center_strategy (str, optional): _description_. Defaults to 'soft'.
             use_freq_dist (bool, optional): _description_. Defaults to False.
             freq_thresh (float, optional): _description_. Defaults to 0.000002.

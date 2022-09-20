@@ -1,5 +1,5 @@
 # best setting
-task_name=empathy
+task_name=distress
 use_tensorboard=False
 data_dir="data/"
 store_run=False

@@ -147,7 +147,7 @@ The fittet PCA (sklearn) for the both directions (pca_ED.p and pca_DD.p) can be 
 
 To use the PCA, the input has to be transformed using Sentence-BERT (Reimers & Gurevych, 2019) with 'bert-large-nli-mean-tokens' as transformer model.
 
-Alternatively, the analysis can be run with the script *run_empdim.sh* with the desired settings:
+Alternatively, the analysis can be run with the script *run_empdim.sh*. This will run the code in [pca.py](pca.py) You can hereby change the following settings: 
 
 
 | setting         | 	example command	        | explanation   |
@@ -159,6 +159,8 @@ Alternatively, the analysis can be run with the script *run_empdim.sh* with the 
 | vocab_size | --vocab_size 10 | The size of the vocabulary per setting, e.g., for mm choose 10 min and 10 max. For range, this number is accordingly for each bin (0.1). |
 | use_question_template | --use_question_template True | Whether to use the template or not |
 | task_name | --task_name empathy | The prediction task, e.g., empathy or distress|
+
+
 # Running Moral Direction
 Since the moral direction has other dependencies, we need to use another Docker image:
 
