@@ -1,3 +1,4 @@
+# runs the model for empathy and distress
 use_tensorboard=False
 wandb_entity="masterthesis-zmarsly"
 wandb_project="Results"
@@ -5,16 +6,19 @@ wandb_project="Results"
 # -------- UniPELT setup --------
 # UniPELT Setup: APL
 pelt_method="full"
+# if you wish to only run one task here, remove the other one fomr the list
 task_names=( distress empathy )
-#overwrite_learning_rate=1e-4
+# if you want to overwrite the learning rate in ANY case, do:
+#overwrite_learning_rate=1e-4  
 
-#task_name=distress
 store_run=False
 do_predict=True
 train_ff_layers=False
 
+#
 for task_name in "${task_names[@]}"
 do
+    # The settings for the different methods
     # UniPELT
     if [ $pelt_method == "unipelt_aplb" ]; then
         echo "Using Unipelt (Prefix, adapter, lora, bitfit)"
@@ -67,8 +71,7 @@ do
         train_adapter=False
         add_lora=True
         tune_bias=False
-    fi
-    
+    fi  
 
     # Adapters
     if [ $pelt_method == "adapter" ]; then

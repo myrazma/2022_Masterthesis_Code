@@ -1,4 +1,8 @@
-""" Script for running Unipelt Model with possible feature input
+""" 
+Script adapted from UniPELT implementation by Mao et al. 2021
+Unipelt: A unified framework for parameter-efficient language model tuning
+
+Script for running Unipelt Model with possible feature input
 Should capture:
 1. Different Input:
     a. Lexicon - word average
@@ -14,7 +18,7 @@ In here: use trainer (best from submodule/..UnifiedPELT/transformers), same like
 
 Can we maybe build a framework for this trainer to use it for other models too? So for the model of / in adapter_BERT
 """
-
+    
 from multiprocessing import pool
 import torch
 from torch import nn
@@ -102,23 +106,6 @@ set_seed = getattr(unipelt_transformers, 'set_seed')
 
 
 BertForSequenceClassification = getattr(unipelt_transformers, 'BertForSequenceClassification')
-
-#from transformers import (
-#    AdapterConfig,
-#    AutoConfig,
-#    AutoModelForSequenceClassification,
-#    AutoTokenizer,
-#    DataCollatorWithPadding,
-#    EvalPrediction,
-#    HfArgumentParser,
-#    MultiLingAdapterArguments,
-#    PretrainedConfig,
-#    Trainer,
-#    TrainingArguments,
-#    default_data_collator,
-#    set_seed,
-#)
-# Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 set_seed = getattr(unipelt_transformers, 'set_seed')
 
 
@@ -207,18 +194,6 @@ class ModelArguments(unipelt_arguments.ModelArguments):
 
 def run():
 
-    #parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, MultiLingAdapterArguments))
-    #parser = HfArgumentParser((MyArguments, ... what else we need))
-
-    #if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-    #    # If we pass only one argument to the script and it's the path to a json file,
-    #    # let's parse it to get our arguments.
-    #    model_args, data_args, training_args, adapter_args = parser.parse_json_file(
-    #        json_file=os.path.abspath(sys.argv[1])
-    #    )
-    #else:
-    #    model_args, data_args, training_args, adapter_args = parser.parse_args_into_dataclasses()
-    # --- run on GPU if available ---
     if torch.cuda.is_available():       
         device = torch.device("cuda")
         print("\n------------------ Using GPU. ------------------\n")
@@ -319,7 +294,6 @@ def main():
     # per default stores in runs/ + output_dir, where the output dir is set to '' per default
     tensorboard_writer = SummaryWriter(data_args.tensorboard_output_dir) if data_args.use_tensorboard else None
 
-    # Added by Myra Z.
     # setup wandb, use wandb if available
     # if entity is empty or None, don't use wandb no matter if the package is available or not
     use_wandb = WANDB_AVAILABLE and (data_args.wandb_entity is not None or data_args.wandb_entity != '' or data_args.wandb_entity != 'None')
@@ -544,8 +518,10 @@ def main():
     add_lora=False
     tune_bias=False
     # if any of those is set to true, then we are usign UniPELT
-    use_unipelt = any([add_enc_prefix, train_adapter, add_lora, tune_bias])
 
+    # ---------------------------
+    #       create model
+    # ---------------------------
     model = AutoModelForSequenceClassification.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -554,16 +530,6 @@ def main():
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
-    #else:
-    #    model = hf_transformers.AutoModelForSequenceClassification.from_pretrained(
-    #            model_args.model_name_or_path,
-    #            from_tf=bool(".ckpt" in model_args.model_name_or_path),
-    #            config=config,
-    #            cache_dir=model_args.cache_dir,
-    #            revision=model_args.model_revision,
-    #            use_auth_token=True if model_args.use_auth_token else None,
-    #        )
-
 
     # Make sure, the classifier is active when using multi input
     if feature_dim > 0:
@@ -571,33 +537,6 @@ def main():
         for p in classifier_params:
             if not p.requires_grad:
                 print(f'\n --------- MyWarning ------------ \n Your are using features of input dim {feature_dim}, but some gradients in the classifier are set to False: {p}')
-
-
-    # TODO: There is something happening in AutoForSequence clasification that we dont know and that is improving the result
-    # - Should be maybe inlcude our multiinput bert model into the transformers architecture to call it with automodel for sequence classification?
-
-    # ---------------------------
-    #       create model
-    # ---------------------------
-    ###model = MultiinputBertForSequenceClassification(
-        #model = BertForSequenceClassification(  # leading to the exact same result as oru classification!
-        ###model_args.model_name_or_path,
-        #from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        ###config=config,
-        #cache_dir=model_args.cache_dir,
-        #revision=model_args.model_revision,
-        #use_auth_token=True if model_args.use_auth_token else None,
-        ###feature_dim=feature_dim
-    ###)
-
-    ###model = BertForSequenceClassification(  # leading to the exact same result as oru classification!
-        #emodel_args.model_name_or_path,
-        #from_tf=bool(".ckpt" in model_args.model_name_or_path),
-    ###    config=config,
-        #cache_dir=model_args.cache_dir,
-        #revision=model_args.model_revision,
-        #use_auth_token=True if model_args.use_auth_token else None
-    ###)
 
     # train only the ff_layers
     if model_args.train_ff_layers:
@@ -634,7 +573,6 @@ def main():
                     config=adapter_config,
                     load_as=task_name,
                 )
-            # Added by Myra Z.
             # load pre-trained adapter from local direcotry, if you are not able to load it from the Hub
             # this adapter is then used as the base adapter for sequentially fine tuning
             elif model_args.pre_trained_sequential_transfer_adapter:
@@ -650,7 +588,7 @@ def main():
                 model.add_adapter(task_name, config=adapter_config)
         
 
-        if model_args.use_stacking_adapter:  # Added by Myra Z.
+        if model_args.use_stacking_adapter:
         #if model_args.stacking_adapter or model_args.stacking_adapter != '':  # if path to stacking adapter is avaiable
             try:
                 additional_adapter_name_path = model_args.trained_adapter_dir + "/" + model_args.stacking_adapter
@@ -711,8 +649,6 @@ def main():
 
         # combine adapters
         if model_args.use_stacking_adapter or model_args.use_sidetask_adapter:
-            # TODO: Make sure that we can use this setup without using the emotion adapter
-            # TODO: Right now it is not allowed by the agrument setup (I think)
             stacking_adapters = []  # for the correct sequence of the adapters
             if additional_adapter_name: stacking_adapters.append(additional_adapter_name)
             if multitask_adapter_name: stacking_adapters.append(multitask_adapter_name)
@@ -729,16 +665,6 @@ def main():
 
         print('Active Adapters:', model.active_adapters)
         
-        
-        #if model_args.use_stacking_adapter and additional_adapter_name and task_name:  # if use emotion_stack is true and we have two adapters
-        #    print(' ----- using Stack -----')
-        #    model.active_adapters = Stack(additional_adapter_name, task_name)
-        #    #model.set_active_adapters([emotion_adapter_name, task_name])
-        #else:  # Otherwise just set them to active
-        #    model.set_active_adapters(active_adapters_list)
-
-        # TODO: Reset the gates of multitask adapter for standard initialization, or don't even load them
-
         if model_args.train_all_gates_adapters:  # all gates of the adapters will be trainable, by default only the trainable adapters will have trainable gates
             names = [n for n, p in model.named_parameters()]
             paramsis = [param for param in model.parameters()]
@@ -817,32 +743,9 @@ def main():
     }
 
     param_info = '\n'.join([f'{key}: {param_count_dict[key]}' for key in param_count_dict.keys()])
-    #f"""
-    #-- Complete model --
-    #total_params: {total_params}
-    #trainable_params:       {total_trainable_params}
-    #percentage:             {(total_trainable_params/total_params)*100}
-    #bert:                   {bert_params}
-    #bert_trainable_params:  {bert_trainable_params}
-    #gate_params:            {gate_params}
-    # 
-    # -- Methods --
-    # total_adapter_params:   {total_adapter_params}
-    # trainable_adapter_p:    {trainable_adapter_params}
-    # adapter_gates:          {adapter_gates}
-
-    #total_lora_params:      {total_lora_params}
-    #trainable_lora_params:  {trainable_lora_params}
-    #lora_gates:             {lora_gates}
-
-    #total_prefix_params:    {total_prefix_params}
-    #trainable_prefix_p:     {trainable_prefix_params}
-    #prefix_gates:           {prefix_gates}
-    #"""
+    
     logger.info(param_info)
     
-    #logger.info(f"trainable_params: {trainable_params}, total_params: {total_params}, percentage:  {(trainable_params/total_params)*100}")
-
     log_wandb(param_count_dict, use_wandb)
     if True:
             names = [n for n, p in model.named_parameters()]
@@ -850,43 +753,6 @@ def main():
             for n, p in zip(names, paramsis):
                 print(f"{n}: {p.requires_grad}")
             print(model)
-
-
-    # I dont think we need this here
-    #if data_args.task_name is not None:
-    #    sentence1_key, sentence2_key = unipelt_arguments.task_to_keys[data_args.task_name]
-    #else:
-    #    # Again, we try to have some nice defaults but don't hesitate to tweak to your use case.
-    #    non_label_column_names = [name for name in datasets["train"].column_names if name != "label"]
-    #    if "sentence1" in non_label_column_names and "sentence2" in non_label_column_names:
-    #        sentence1_key, sentence2_key = "sentence1", "sentence2"
-    #    else:
-    #        if len(non_label_column_names) >= 2:
-    #            sentence1_key, sentence2_key = non_label_column_names[:2]
-    #        else:
-    #            sentence1_key, sentence2_key = non_label_column_names[0], None
-
-
-
-    # Some models have set the order of the labels to use, so let's make sure we do use it.
-    #label_to_id = None
-    #if (
-    #        model.config.label2id != PretrainedConfig(num_labels=num_labels).label2id
-    #        and data_args.task_name is not None
-    #        and not is_regression
-    #):
-        # Some have all caps in their config, some don't.
-    #    label_name_to_id = {k.lower(): v for k, v in model.config.label2id.items()}
-    #    if list(sorted(label_name_to_id.keys())) == list(sorted(label_list)):
-    #        label_to_id = {i: int(label_name_to_id[label_list[i]]) for i in range(num_labels)}
-    #    else:
-    #        logger.warn(
-    #            "Your model seems to have been trained with labels, but they don't match the dataset: ",
-    #            f"model labels: {list(sorted(label_name_to_id.keys()))}, dataset labels: {list(sorted(label_list))}."
-    #            "\nIgnoring the model labels as a result.",
-    #        )
-    #elif data_args.task_name is None and not is_regression:
-    #    label_to_id = {v: i for i, v in enumerate(label_list)}
 
     if data_args.max_seq_length > tokenizer.model_max_length:
         logger.warn(
@@ -996,7 +862,7 @@ def main():
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
         trainer.save_state()
-        log_wandb(metrics, use_wandb)  # Added by Myra Z.: log wandb is use_wandb == True
+        log_wandb(metrics, use_wandb) 
 
     #log_plot_gradients(model, tensorboard_writer, use_wandb)
     unipelt_plotting.log_plot_gates(model, tensorboard_writer, use_wandb, output_dir=training_args.output_dir)
@@ -1010,32 +876,17 @@ def main():
         # Loop to handle MNLI double evaluation (matched, mis-matched)
         tasks = [data_args.task_name]
         eval_datasets = [eval_dataset]
-        #if data_args.task_name == "mnli":
-        #    tasks.append("mnli-mm")
-        #    eval_datasets.append(datasets["validation_mismatched"])
 
         for eval_dataset, task in zip(eval_datasets, tasks):
             metrics = trainer.evaluate(eval_dataset=eval_dataset)
-
-            # Added by Myra Z.
-            #if tensorboard_writer is not None:
-            #    for met in metrics.keys():
-            #        tensorboard_writer.add_scalar(str(met) + '/eval', metrics[met])
 
             max_val_samples = data_args.max_val_samples if data_args.max_val_samples is not None else len(eval_dataset)
             metrics["eval_samples"] = min(max_val_samples, len(eval_dataset))
 
             trainer.log_metrics("eval", metrics)
             trainer.save_metrics("eval", metrics)
-            log_wandb(metrics, use_wandb)  # Added by Myra Z.: log wandb is use_wandb == True
+            log_wandb(metrics, use_wandb)
             
-            #predictions = trainer.predict(test_dataset=eval_dataset).predictions
-            #predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
-
-            #true_score = np.reshape(eval_dataset['label'],(-1,))
-            #if tensorboard_writer is not None:
-            #    log_plot_predictions(true_score, predictions, tensorboard_writer)
-
             output, eval_gates_df = trainer.predict(test_dataset=eval_dataset, return_gates=True)
             predictions = output.predictions
             predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
@@ -1096,18 +947,9 @@ def main():
         # Loop to handle MNLI double evaluation (matched, mis-matched)
         tasks = [data_args.task_name]
         test_datasets = [test_dataset]
-        # not evaluating test_mismatched
-        # if data_args.task_name == "mnli":
-        #     tasks.append("mnli-mm")
-        #     test_datasets.append(datasets["test_mismatched"])
 
         for test_dataset, task in zip(test_datasets, tasks):
-            # only do_predict if train_as_val
-            # Removing the `label` columns because it contains -1 and Trainer won't like that.
-            # test_dataset.remove_columns_("label")
-            
-            #predictions = trainer.predict(test_dataset=test_dataset).predictions
-            #predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
+
             output, eval_gates_df = trainer.predict(test_dataset=test_dataset, return_gates=True)
             predictions = output.predictions
             predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
@@ -1117,9 +959,8 @@ def main():
                 metrics = trainer.evaluate(eval_dataset=test_dataset, metric_key_prefix='test')
                 trainer.log_metrics("test", metrics)
                 trainer.save_metrics("test", metrics)
-                log_wandb(metrics, use_wandb)  # Added by Myra Z.: log wandb is use_wandb == True
+                log_wandb(metrics, use_wandb)
 
-                # Added by Myra Z.
                 true_score = np.reshape(test_dataset['label'],(-1,))
                 unipelt_plotting.log_plot_predictions(true_score, predictions, tensorboard_writer, use_wandb, output_dir=training_args.output_dir, split='test')
 
@@ -1142,14 +983,13 @@ def main():
     
     unipelt_plotting.log_plot_gates_per_layer(model, tensorboard_writer, use_wandb, output_dir=training_args.output_dir)
     unipelt_plotting.log_plot_gates_per_epoch(model, tensorboard_writer, use_wandb, output_dir=training_args.output_dir)
-    # Added by Myra Z.
     if len(model.bert.gates) > 0:
         model.bert.gates.to_csv(training_args.output_dir + '/gates.csv')
     
 
 def log_wandb(metrics, use_wandb):
     if use_wandb:  # only log if True, otherwise package might not be available
-        wandb.log(metrics)  # Added by Myra Z.
+        wandb.log(metrics)
 
 
 def _mp_fn(index):
@@ -1173,8 +1013,3 @@ if __name__ == "__main__":
 
 
     main()
-
-
-
-#if __name__ == '__main__':
-#    run()
