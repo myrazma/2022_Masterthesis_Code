@@ -121,6 +121,9 @@ Schramowski et al. 2021 - Large Pre-trained Language Models Contain Human-like B
 The data can be downloaded from their GitHub repository: https://github.com/ml-research/MoRT_NMI/tree/master/MoRT/data/subspace_proj/bert-large-nli-mean-tokens
 
 # Source
+Buechel, S., Buffone, A., Slaff, B., Ungar, L., & Sedoc, J. (2018). Modeling empathy and distress in reaction to news stories. arXiv preprint arXiv:1808.10399. https:
+//arxiv.org/abs/1808.10399
+
 Mohammad, S. (2018). Obtaining reliable human ratings of valence, arousal, and dom- inance for 20,000 English words. Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), 174–184. https: //doi.org/10.18653/v1/P18-1017
 
 Poth, C., Pfeiffer, J., Rücklé, A., & Gurevych, I. (2021). What to pre-train on? Efficient in- termediate task selection. Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing, 10585–10605. https://doi.org/10.18653/v1/ 2021.emnlp-main.827
