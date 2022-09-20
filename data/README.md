@@ -6,7 +6,7 @@ The tree structure of the data files and subfolders. If all data sets are downlo
 
 ```
 data/
-├── buechel_empathy/                        (Buechel2018)
+├── buechel_empathy/                        (Buechel et al., 2018)
 │   ├── articles_adobe_AMT.csv
 │   ├── goldstandard_dev_2022.tsv
 │   ├── messages_dev_features_ready_for_WS_2022.tsv
@@ -14,22 +14,26 @@ data/
 │   ├── messages_train_ready_for_WS.tsv
 │   └── messages_train_sentencized_automatic_emotion_tags.tsv
 ├── lexicon/
-│   ├── distress/                           (Sedoc2019)
+│   ├── distress/                           (Sedoc et al., 2019)
 │   │   ├── distress_clusters.txt
 │   │   └── distress_lexicon.txt
-│   ├── empathy/                            (Sedoc2019)
+│   ├── empathy/                            (Sedoc et al., 2019)
 │   │   ├── empathy_clusters.txt
 │   │   └── empathy_lexicon.txt
-│   ├── NRC-Emotion-Intensity-Lexicon-v1/   (Mohammad2018)
+│   ├── NRC-Emotion-Intensity-Lexicon-v1/   (Mohammad et al., 2018)
 │   │   ├── NRC-Emotion-Intensity-Lexicon-v1.txt
 │   │   └── ...
-│   ├── NRC-VAD-Lexicon-Aug2018Release/     (Mohammad2018b)
+│   ├── NRC-VAD-Lexicon-Aug2018Release/     (Mohammad et al., 2018)
 │   │   ├── NRC-VAD-Lexicon.txt
 │   │   └── ...
-│   └── BRM-emot-submit.csv                 (Warriner2013)
-└── MoRT_projection
-    └── projection_model.p                  (Schramowski2021)
-
+│   └── BRM-emot-submit.csv                 (Warriner et al., 2013)
+├── MoRT_projection
+│   └── projection_model.p                  (Schramowski et al., 2021)
+└── trained_adapters
+    ├── bert-base-uncased_pf_emotion         (Poth et al., 2020)  
+    ├── bert-base-uncased-pf-social_i_qa         (Poth et al., 2020)  
+    ├── distress          
+    ├── empathy                  
 ```
 
 ## Empathy Data set
@@ -115,3 +119,12 @@ This is a pickle file from the moral projection containing the generated project
 Schramowski et al. 2021 - Large Pre-trained Language Models Contain Human-like Biases of What is Right and Wrong to Do: https://arxiv.org/abs/2103.11790
 
 The data can be downloaded from their GitHub repository: https://github.com/ml-research/MoRT_NMI/tree/master/MoRT/data/subspace_proj/bert-large-nli-mean-tokens
+
+# Source
+Mohammad, S. (2018). Obtaining reliable human ratings of valence, arousal, and dom- inance for 20,000 English words. Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), 174–184. https: //doi.org/10.18653/v1/P18-1017
+
+Poth, C., Pfeiffer, J., Rücklé, A., & Gurevych, I. (2021). What to pre-train on? Efficient in- termediate task selection. Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing, 10585–10605. https://doi.org/10.18653/v1/ 2021.emnlp-main.827
+
+Sedoc, J., Buechel, S., Nachmany, Y., Buffone, A., & Ungar, L. (2020). Learning word ratings for empathy and distress from document-level user responses. Proceedings of the 12th Language Resources and Evaluation Conference, 1664–1673. https: //aclanthology.org/2020.lrec-1.206/
+
+Warriner, A. B., Kuperman, V., & Brysbaert, M. (2013). Norms of valence, arousal, and dominance for 13,915 english lemmas. Behavior Research Methods, 45(4), 1191– 1207. https://doi.org/10.3758/s13428-012-0314-x
