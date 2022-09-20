@@ -67,9 +67,11 @@ output, gates = trainer.predict(test_dataset=eval_dataset, return_gates=True)
 
 To run the mode, use [run_experiment_unipelt.sh](run_experiment_unipelt.sh). The parameters for each method can be set here. We support the following settings and methods
 
-The model can be changed in the bash script to run different PELT methods using the pelt_method variable.
+The model can be changed in the bash script to run different PELT methods, adapter compositions using the different setups using the pelt_method variable.
 
-| pelt method         | 	name	      | default learning rate |
+## PELT and UniPELT
+With *pelt_method*, you can set the tuning method using the following names:
+| PELT method         | 	name	      | default learning rate |
 |---------------  |----------------------  |----------------------  |
 | Full fine-tuning  |  full | 2e-5 |
 | Tuning feed-forward | feedforward | 1e-4 |
@@ -82,79 +84,39 @@ The model can be changed in the bash script to run different PELT methods using 
 | UniPELT AL | unipelt_al | 5e-4 |
 | UniPELT AP | unipelt_ap | 5e-4 |
 
+## The Adapter Composition
+The adapter composition has the following settings:
 
 
-The model with the UniPELT and PELT methods can be called with the bash script 
+    trained_adapter_dir="data/trained_adapters"
+    # Stacking adapter (emotion most likely)
+    stacking_adapter="bert-base-uncased-pf-emotion" # "AdapterHub/bert-base-uncased-pf-emotion"
+    use_stacking_adapter=False
+    train_all_gates_adapters=False
 
-| setting         | 	example command	        | explanation   |
-|---------------  |----------------------     |---------------------------|
-| epochs          | --epochs 10               |  Set the epoch number for training                  |
-| learning_rate  | --learning_rate 2e-5      |  Set the learning rate for training                  |
+    # Multi task adapter
+    # Add the adapter of the other task to the model
+    use_sidetask_adapter=False
 
-python model/unipelt_model.py \
-        --task_name ${task_name} \
-        --data_dir data/ \
-        --output_dir ${output_dir}  \
-        --overwrite_output_dir \
-        --model_name_or_path bert-base-uncased \
-        --do_predict ${do_predict} \
-        --do_eval True \
-        --do_train True \
-        --num_train_epochs 3 \
-        --per_device_eval_batch_size 16 \
-        --per_device_train_batch_size 16 \
-        --early_stopping_patience 5 \
-        --logging_strategy epoch \
-        --evaluation_strategy epoch \
-        --save_strategy no \
-        --wandb_entity ${wandb_entity} \
-        --use_tensorboard ${use_tensorboard}\
-        --tensorboard_output_dir ${tensorboard_output_dir} \
-        --add_enc_prefix ${add_enc_prefix} \
-        --train_adapter ${train_adapter} \
-        --add_lora ${add_lora} \
-        --tune_bias ${tune_bias} \
-        --learning_rate ${learning_rate} \
-        --use_pca_features ${use_pca_features} \
-        --use_lexical_features ${use_lexical_features} \
-        --use_mort_features ${use_mort_features} \
-        --use_mort_article_features ${use_mort_article_features} \
-        --mort_princ_comp ${mort_princ_comp} \
-        --dim ${dim} \
-        --data_lim ${data_lim} \
-        --use_freq_dist ${use_freq_dist} \
-        --freq_thresh ${freq_thresh} \
-        --vocab_type ${vocab_type} \
-        --vocab_size ${vocab_size} \
-        --use_question_template ${use_question_template}  \
-        --stacking_adapter ${stacking_adapter} \
-        --use_stacking_adapter ${use_stacking_adapter} \
-        --train_all_gates_adapters ${train_all_gates_adapters} \
-        --use_sidetask_adapter ${use_sidetask_adapter} \
-        --pre_trained_sequential_transfer_adapter ${pre_trained_sequential_transfer_adapter} \
-        --train_ff_layers ${train_ff_layers}
-    
-    
+    # Sequential tansfer learning adapter
+    pre_trained_sequential_transfer_adapter=None
 
-| setting         | 	example command	        | explanation   |
-|---------------  |----------------------     |---------------------------|    
-| epochs          | --epochs 10               |  Set the epoch number for training                   |
- | learning_rate  | --learning_rate 2e-5      |  Set the learning rate for training                  |
-| empathy_type    | --distress                |  Set either to --distress or --empathy. Default --empathy                  |
-|  seed           | --seed 42                 |     Set the seed                 | 
-| batch_size      | --batch_size 32           |         Set the batch size for training            | 
-|  bert_type      | --bert_type roberta-base  |   Set the bert model (load pretrained)                  | 
-| train_only_bias | --train_only_bias mlp (or --train_only_bias) |  Train only the bias parameters of the model and freeze all other parameters. Will only be used in baseline_BERT. Options: "mlp": trainonly the bias in the mlp layers; "all": train all bias terms in the model, this is the default if the arg gets no input (see example)               | 
-| adapter_type    | --adapter_type pfeiffer   |   The adapter type to use. Will onyl be used in adapter_ownhead_BERT. Hand a string of one of the predefined adapter possibilities.             | 
-| model_name      | --model_name model1       |  The model name will be used as suffix for storing. Default: Timestamp with date and time of computer.                | 
-| save_settings   | --save_settings           |  Either True or False, Default: False. If True, the settings of the model will be saved as a json.                   | 
-| early_stopping  | --early_stopping          |   Either True or False, Default: False. If True, the model will use early stopping and save the model with the best correlation on de set.      | 
-| weight_decay    | --weight_decay 0.1        |  Set the weigth decay of AdamW optimizer.                   | 
-| save_model      | --save_model              |   Either True or False, Default: False. If True, the model will be saved.                  | 
-|  scheduler      | --scheduler               |  Either True or False, Default: False. If True, the scheduler will be used.                   | 
-|  activation     | --activation tanh         |   Options: tanh, relu. Default: relu. Sets the activation function in the model                  | 
-|  dropout        | --dropout 0.2             |   Sets the dropout layers in the model. Default: 0.2.                  | 
-| kfold           | --kfold 10                | Use kfold cross validation if kfold higher than 0. Default: 0, no cross validation used and use regular training.  |
+| variable        | 	example input	      | explanation |
+|---------------  |----------------------  |----------------------  |
+| trained_adapter_dir  | "data/trained_adapters"  | The directory with the adpater (already downloaded) |
+| stacking_adapter  | "bert-base-uncased-pf-emotion"  | The adapter that should be used for stacking (e.g. Adapter Stack EMO) |
+| use_stacking_adapter  | True  | Set to True to use the stack setup with the Adpater specified in *stacking_adapter* |
+| train_all_gates_adapters  | True  | If True, all gates will be trained in the Stacking setup. (Set True for the experiment)|
+| pre_trained_sequential_transfer_adapter  | "bert-base-uncased-pf-emotion"  | Use this adapter for sequential tuning of the adapter (Adapter Seq EMO). If you do not want to use sequential tuning, use set it to None. |
+
+## Multi-iput
+The different features can be concatenated to the classification head of the model by setting the following variables:
+| variable        | 	example input	      | explanation |
+|---------------  |----------------------  |----------------------  |
+| use_pca_features  |  True | If set to True, the PCA features will be used (ED/DD). |
+| use_lexical_features  |  True | If set to True, the lexical features will be used. |
+| use_mort_features  |  True | If set to True, the MD of the essay will be used. |
+| use_mort_features  |  True | If set to True, the MD of the article will be used. |
 
 
 # Running the Empathy (ED) and Distress Direction (DD)
