@@ -50,7 +50,9 @@ git submodule update --recursive --remote
 for more updates of this submodule.
 
 ## Running the UniPELT and PELT methods
+This code is using the submodule for the slightly modified UniPELT implementation, orignially implemented by Mao et. al.
 
+Make sure that the submodule is at the newest commit, by updating the submodule.
 
 TODO: Parameter und Leanring rate settings beschreiben
 
@@ -169,4 +171,6 @@ I'm still currently working on the code and trying new things, therefore cleaner
 
 
 # Bibliography
-Reimers, N., & Gurevych, I. (2019). Sentence-bert: Sentence embeddings using siamese bert-networks. arXiv preprint arXiv:1908.10084. https://arxiv.org/pdf/1908. 10084.pdf
+Mao, Y., Mathias, L., Hou, R., Almahairi, A., Ma, H., Han, J., Yih, S., & Khabsa, M. (2022). Unipelt: A unified framework for parameter-efficient language model tuning. Proceedings of the 60th Annual Meeting of the Association for Computational Lin- guistics (Volume 1: Long Papers), 6253–6264. https://aclanthology.org/2022.acl- long.433/
+
+Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using siamese bert-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3982–3992. https://aclanthology.org/D19-1410/
