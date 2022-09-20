@@ -3,6 +3,7 @@ The code for my master's thesis.
 
 # Models
 
+Overview
 
 TODO: Update the available models
 The models can be found in the directory [model](model).
@@ -12,6 +13,11 @@ The script [baseline_BERT.py](model/baseline_BERT.py) is implementing a baseline
 The script [adapter_ownhead_BERT.py](model/adapter_ownhead_BERT.py) is implementing a RoBERTa model with different parameter-efficient training methods like adapters and prefix tuning using the adapter hub.
 
 The script model_utils.py has model shared methods and class like the RegressionHead and training / evaluation methods.
+
+## The task: Empathy and distress prediction
+The task is a supervised regression task to predict empathy and distress ratings from texts (Buechel et al, 2018). 
+
+Particpants were asked to read 5 news articles, after each article they reported their empathy and distress level on a 14 item questionnaire and wrote a reaction-essay. This essay is the base / input for our NLP model. The label / target are the average questionnaire. For an example and more information about the data please look at the [data README.md](#data/buechel_empathy/README.md).
 
 
 # Running the Project
@@ -52,9 +58,7 @@ git submodule update --recursive --remote
 for more updates of this submodule.
 
 # Running the UniPELT and PELT methods
-This code is using the submodule for the slightly modified UniPELT implementation, orignially implemented by Mao et. al.
-
-Make sure that the submodule is at the newest commit, by updating the submodule.
+This code is using the submodule for the slightly modified UniPELT implementation, orignially implemented by Mao et. al., 2022. To use the [unipelt_model.py](unipelt_model.py) model, make sure that the submodule is at the newest commit, by [updating the submodule](Submodules).
 
 TODO: Parameter und Leanring rate settings beschreiben
 
