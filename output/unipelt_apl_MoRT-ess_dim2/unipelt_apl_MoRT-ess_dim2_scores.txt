@@ -1,0 +1,4 @@
+Averaged Pearson Correlations: 0.42405
+Empathy Pearson Correlation: 0.4221
+Distress Pearson Correlation: 0.426
+
