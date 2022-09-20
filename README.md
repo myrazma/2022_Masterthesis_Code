@@ -60,16 +60,28 @@ for more updates of this submodule.
 # Running the UniPELT and PELT methods
 This code is using the submodule for the slightly modified UniPELT implementation, orignially implemented by Mao et. al., 2022. To use the [unipelt_model.py](model/unipelt_model.py) model, make sure that the submodule is at the newest commit, by [updating the submodule](#Submodules).
 
-TODO: Parameter und Leanring rate settings beschreiben
-
-
 The gates can be returned during prediciton by setting the 'return_gates' variable to True. 
 ```
-output, eval_gates_df = trainer.predict(test_dataset=eval_dataset, return_gates=True)
+output, gates = trainer.predict(test_dataset=eval_dataset, return_gates=True)
 ```
 
-To use the PCA features, put use_pca to True.
-You can also set the Dimensions used by setting dim to the wished dimensions. The model will then use them as additional features.
+To run the mode, use [run_experiment_unipelt.sh](run_experiment_unipelt.sh). The parameters for each method can be set here. We support the following settings and methods
+
+The model can be changed in the bash script to run different PELT methods using the pelt_method variable.
+
+| pelt method         | 	name	      | default learning rate |
+|---------------  |----------------------  |----------------------  |
+| Full fine-tuning  |  full | 2e-5 |
+| Tuning feed-forward | feedforward | 1e-4 |
+| BitFit  |  bitfit | 1e-3 |
+| Bottleneck Adapter  |  adaper | 1e-4 |
+| Prefix-tuning  |  prefix | 2e-4 |
+| LoRA  |  lora | 5e-4 |
+| UniPELT APL  |  unipelt_aplb | 5e-4 |
+| UniPELT APLB  |  unipelt_apl | 1e-4 |
+| UniPELT AL | unipelt_al | 5e-4 |
+| UniPELT AP | unipelt_ap | 5e-4 |
+
 
 
 The model with the UniPELT and PELT methods can be called with the bash script 
