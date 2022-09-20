@@ -58,7 +58,7 @@ git submodule update --recursive --remote
 for more updates of this submodule.
 
 # Running the UniPELT and PELT methods
-This code is using the submodule for the slightly modified UniPELT implementation, orignially implemented by Mao et. al., 2022. To use the [unipelt_model.py](#unipelt_model.py) model, make sure that the submodule is at the newest commit, by [updating the submodule](#Submodules).
+This code is using the submodule for the slightly modified UniPELT implementation, orignially implemented by Mao et. al., 2022. To use the [unipelt_model.py](#model/unipelt_model.py) model, make sure that the submodule is at the newest commit, by [updating the submodule](#Submodules).
 
 TODO: Parameter und Leanring rate settings beschreiben
 
