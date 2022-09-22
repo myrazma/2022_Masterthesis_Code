@@ -4,12 +4,12 @@ Repository for running the experiment with different PELT methods and UniPELT, a
 
 # Overview
 * [Running the project](#running-the-project) 
- * Creating and running the [Docker Container](#docker) 
- * Initializing and Updating the [UniPELT submodule](#submodules) 
+  * Creating and running the [Docker Container](#docker) 
+  * Initializing and Updating the [UniPELT submodule](#submodules) 
 * [UniPELT and PELT](#running-the-unipelt-and-pelt-methods) 
- * The settings for the run of [UniPELT and PELT methods](#pelt-and-unipelt) with BERT for the empathy and distress prediction task
- * The settings for the [Adapter Compositions](#the-adapter-composition) with the emotion adapter
- * The settings for [multi-input](#multi-iput)
+  * The settings for the run of [UniPELT and PELT methods](#pelt-and-unipelt) with BERT for the empathy and distress prediction task
+  * The settings for the [Adapter Compositions](#the-adapter-composition) with the emotion adapter
+  * The settings for [multi-input](#multi-iput)
 * [Running the empathy and distress direction](#running-the-empathy-ed-and-distress-direction-dd) 
 
 ## The task: Empathy and distress prediction
@@ -145,8 +145,8 @@ python3 output_formatter.py adapter
 ```
 The model has to be in the output folder and already generated some results (as seen in the output folder).
 The form should be as follows: 
-- output/model_name/empathy/
-- output/model_name/distress/
+- output/<model_name>/empathy/
+- output/<model_name>/distress/
 and containing the file *test_results_distress.txt* (or empathy).
 This file is generated, setting the parameter *do_predict* to True.
 
